@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coordsys — the lens</title>
+<style>
+:root{--paper:#E9EDE7;--ink:#22302A;--slate:#5B7DA3;--moss:#6E8B5E;
+  --ochre:#B08A47;--ember:#C25E42;--faded:#8FA097;
+  --d1:#F4F6F2;--d2:#F6F2E4;--d3:#F2E9E0}
+*{margin:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  padding:34px 16px 70px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-family:'Iowan Old Style',Palatino,Georgia,serif;font-weight:600;
+  font-size:clamp(22px,3.4vw,34px);letter-spacing:-.01em}
+.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faded);margin-bottom:5px}
+.sub{font-size:12.5px;color:#4a5a52;margin-top:6px;max-width:66ch}
+
+/* depth dial */
+.dial{display:flex;gap:0;margin-top:12px;border:2px solid var(--ink);
+  border-radius:20px;overflow:hidden;width:max-content;background:#fff}
+.dial button{font:inherit;font-size:10.5px;font-weight:700;border:0;
+  padding:6px 14px;background:transparent;color:#5a6a62;cursor:pointer;
+  letter-spacing:.06em}
+.dial button+button{border-left:2px solid var(--ink)}
+.dial button.on{background:var(--ink);color:var(--paper)}
+.hint{font-size:10.5px;color:var(--ochre);font-weight:700;margin-top:8px}
+
+.stage{position:relative;margin-top:14px;border:2px solid var(--ink);
+  border-radius:12px;overflow:hidden;cursor:none;background:#fff;
+  user-select:none}
+.layer{padding:22px 26px;font-size:12.5px;line-height:1.0;
+  will-change:clip-path,transform}
+.rich{position:absolute;inset:0;clip-path:circle(0px at -200px -200px)}
+#r1{background:var(--d1)}#r2{background:var(--d2)}#r3{background:var(--d3)}
+.row{height:24px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.row.gap{height:12px}
+.ind1{padding-left:26px}.ind2{padding-left:52px}.ind3{padding-left:78px}
+.dir{font-weight:700}.file{color:#3a4a42}.kw{color:#7a8a82}
+.slot{height:18px;display:flex;align-items:center}
+.rule{flex:0 0 300px;border-bottom:1px dotted #d3dad2;height:1px;
+  margin-left:78px}
+.cid{font-size:9px;font-weight:700;color:#fff;background:var(--ink);
+  border-radius:8px;padding:1px 7px}
+.chip{font-size:9px;border:1.3px solid;border-radius:8px;padding:0 6px;
+  font-weight:700}
+.c-hot{border-color:var(--ember);color:var(--ember)}
+.c-cx{border-color:var(--faded);color:#5a6a62}
+.terr{font-size:9px;font-weight:700;padding:1px 8px;border-radius:8px;color:#fff}
+.terr.auth{background:var(--slate)}.terr.pay{background:var(--ochre)}
+.terr.front{background:var(--moss)}
+.stratum{margin-left:78px;font-size:10px;color:#37473f;display:flex;gap:7px;
+  align-items:center}
+.stag{font-size:8px;font-weight:700;letter-spacing:.08em;border:1.1px solid;
+  border-radius:7px;padding:0 5px}
+.s-docs{border-color:var(--moss);color:var(--moss)}
+.s-hist{border-color:var(--slate);color:var(--slate)}
+.s-note{border-color:var(--ochre);color:var(--ochre)}
+.s-trace{border-color:var(--faded);color:var(--faded)}
+.s-lin{border-color:var(--ink);color:var(--ink)}
+.stale{color:var(--ember);font-weight:700;font-size:9px}
+.evt{color:var(--ember);font-weight:700;font-size:10px}
+.agent{color:#fff;font-size:9px;font-weight:700}
+.orchrow{background:var(--ink);color:var(--paper);margin:-22px -26px 12px;
+  padding:0 26px;height:46px;display:flex;align-items:center;gap:10px;
+  white-space:nowrap;overflow:hidden}
+.orchrow b{letter-spacing:.05em}
+.orchrow small{font-size:10px;opacity:.9}
+#ring{position:absolute;width:300px;height:300px;border-radius:50%;
+  border:5px solid var(--ochre);box-shadow:0 0 0 2px var(--ink),
+  inset 0 0 0 2px var(--ink),inset 0 0 26px rgba(34,48,42,.10),
+  6px 10px 18px rgba(34,48,42,.25);
+  pointer-events:none;transform:translate(-50%,-50%);left:-200px;top:-200px;
+  transition:width .18s ease,height .18s ease}
+#ring::after{content:"";position:absolute;width:9px;height:86px;
+  background:var(--ochre);border:2px solid var(--ink);border-radius:6px;
+  bottom:-72px;right:14px;transform:rotate(-45deg)}
+#ring .tag{position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  background:var(--ochre);color:#fff;font-size:9px;font-weight:700;
+  letter-spacing:.12em;padding:2px 10px;border-radius:9px;
+  border:1.5px solid var(--ink);white-space:nowrap}
+#ring.pinned{border-color:var(--ember)}
+#ring.pinned .tag{background:var(--ember)}
+footer{margin-top:18px;font-size:10.5px;color:var(--faded);text-align:center}
+@media (prefers-reduced-motion: reduce){.stage{cursor:default}
+  #ring{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="eyebrow">coordsys · the lens</div>
+<h1>__TITLE__ — through the coordsys lens</h1>
+<p class="sub">Outside the lens: __TITLE__ as any editor shows it.
+Turn the lens deeper and it excavates: first the coordinates, then the
+knowledge attached to them, then the intelligence that lives on top.</p>
+
+<div class="dial" role="tablist" aria-label="Lens depth">
+  <button class="on" data-d="1">1 · STRUCTURE</button>
+  <button data-d="2">2 · KNOWLEDGE</button>
+  <button data-d="3">3 · INTELLIGENCE</button>
+</div>
+<div class="hint">◉ move to inspect · scroll or keys 1-3 to change depth ·
+click to pin the lens · [ ] resizes</div>
+
+<div class="stage" id="stage">
+  <div class="layer" id="plain"></div>
+  <div class="layer rich" id="r1"></div>
+  <div class="layer rich" id="r2"></div>
+  <div class="layer rich" id="r3"></div>
+  <div id="ring"><span class="tag" id="rtag">DEPTH 1 · STRUCTURE</span></div>
+</div>
+<div class="sub" style="margin-top:12px;font-size:11px">Note the
+hierarchy: files are module coordinates (they carry their own history
+and metadata), packages get coordinates through __init__, and
+<b>contains</b> edges chain directory → module → class → function. Bare
+non-package directories are the one thing without an ID — implicit in
+paths by design.</div>
+<footer>same pixels, four worlds · depth 1 = .coord/index · depth 2 =
+.coord/meta/&lt;id&gt;/ · depth 3 = .agents + orchestrator + gate</footer>
+</div>
+
+<script>
+// One data structure -> four pixel-identical renderings.
+// Fields cascade: r2 falls back to r1, r3 to r2. Geometry never changes.
+const ROWS = /*__ROWS__*/
+
+function seg(r,mode){
+  if(mode==="p") return r.p||"";
+  if(mode==="r1") return r.r1||r.p||"";
+  if(mode==="r2") return r.r2||r.r1||r.p||"";
+  return r.r3||r.r2||r.r1||r.p||"";
+}
+function render(mode){
+  return ROWS.map(r=>{
+    if(r.k==="gap") return `<div class="row gap"></div>`;
+    if(r.k==="orch") return `<div class="row orchrow">${seg(r,mode)}</div>`;
+    if(r.k==="slot"){
+      const c=seg(r,mode);
+      return `<div class="slot">${(mode==="p"||mode==="r1")&&!r.r1
+        ? `<div class="rule"></div>`
+        : (c&&mode!=="p"&&(mode!=="r1"||r.r1)
+           ? `<div class="stratum">${c}</div>`
+           : `<div class="rule"></div>`)}</div>`;
+    }
+    const cls=r.k==="dir"?"dir":r.k==="file"?"file":"fn";
+    return `<div class="row ind${r.ind??0} ${cls}">${seg(r,mode)}</div>`;
+  }).join("");
+}
+document.getElementById("plain").innerHTML=render("p");
+document.getElementById("r1").innerHTML=render("r1");
+document.getElementById("r2").innerHTML=render("r2");
+document.getElementById("r3").innerHTML=render("r3");
+
+const stage=document.getElementById("stage"),ring=document.getElementById("ring"),
+      rtag=document.getElementById("rtag"),
+      layers=[null,document.getElementById("r1"),
+              document.getElementById("r2"),document.getElementById("r3")];
+const NAMES=["","DEPTH 1 · STRUCTURE","DEPTH 2 · KNOWLEDGE","DEPTH 3 · INTELLIGENCE"];
+const MAG=[0,1.03,1.05,1.07];
+let x=280,y=340,R=150,depth=1,pinned=false;
+function setLens(){
+  for(let i=1;i<=3;i++){
+    const l=layers[i];
+    if(i===depth){
+      l.style.clipPath=`circle(${R}px at ${x}px ${y}px)`;
+      l.style.transformOrigin=`${x}px ${y}px`;
+      l.style.transform=`scale(${MAG[i]})`;
+    }else{
+      l.style.clipPath=`circle(0px at -300px -300px)`;
+    }
+  }
+  ring.style.left=x+"px";ring.style.top=y+"px";
+  ring.style.width=(R*2)+"px";ring.style.height=(R*2)+"px";
+  rtag.textContent=NAMES[depth]+(pinned?" · PINNED":"");
+  ring.classList.toggle("pinned",pinned);
+  document.querySelectorAll(".dial button").forEach(b=>
+    b.classList.toggle("on",+b.dataset.d===depth));
+}
+setLens();
+function move(e){
+  if(pinned)return;
+  const b=stage.getBoundingClientRect();
+  x=(e.touches?e.touches[0].clientX:e.clientX)-b.left;
+  y=(e.touches?e.touches[0].clientY:e.clientY)-b.top;
+  setLens();
+}
+stage.addEventListener("mousemove",move);
+stage.addEventListener("touchmove",e=>{e.preventDefault();move(e);},{passive:false});
+stage.addEventListener("touchstart",e=>{pinned=false;move(e);},{passive:true});
+stage.addEventListener("click",()=>{pinned=!pinned;setLens();});
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  depth=Math.min(3,Math.max(1,depth+(e.deltaY>0?1:-1)));
+  setLens();
+},{passive:false});
+document.querySelectorAll(".dial button").forEach(b=>
+  b.addEventListener("click",()=>{depth=+b.dataset.d;setLens();}));
+addEventListener("keydown",e=>{
+  if(e.key>="1"&&e.key<="3"){depth=+e.key;setLens();}
+  if(e.key==="["){R=Math.max(90,R-20);setLens();}
+  if(e.key==="]"){R=Math.min(240,R+20);setLens();}
+  const step=e.shiftKey?60:24;
+  if(e.key.startsWith("Arrow")){pinned=false;
+    if(e.key==="ArrowLeft")x-=step;if(e.key==="ArrowRight")x+=step;
+    if(e.key==="ArrowUp")y-=step;if(e.key==="ArrowDown")y+=step;
+    setLens();}
+});
+const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(!reduced){
+  let t=0,user=false;
+  const stop=()=>user=true;
+  stage.addEventListener("mousemove",stop,{once:true});
+  stage.addEventListener("touchstart",stop,{once:true});
+  (function drift(){
+    if(user)return;
+    t+=0.004;
+    x=280+Math.sin(t*1.7)*130;
+    y=210+(Math.sin(t*0.9)*0.5+0.5)*400;
+    setLens();
+    requestAnimationFrame(drift);
+  })();
+}
+</script>
+</body>
+</html>
