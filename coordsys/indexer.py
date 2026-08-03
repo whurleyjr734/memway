@@ -98,7 +98,7 @@ def sketch_containment(child, parent, n_child, n_parent):
     return min(1.0, inter / n_child)
 
 
-def _shape_hash(body_text: str, short_name: str) -> str:
+def _structure_hash(body_text: str, short_name: str) -> str:
     """Name-insensitive structural hash.
 
     AST node-type sequence when the body parses as Python: identical
@@ -416,7 +416,7 @@ class Indexer:
         for re_ in entities:
             parent_cid = qual_to_cid.get(re_.parent_qualname)
             body_hash = _hash_body(re_.body_text)
-            shape_hash = _shape_hash(re_.body_text, re_.short_name)
+            shape_hash = _structure_hash(re_.body_text, re_.short_name)
             logic_hash = _logic_hash(re_.body_text)
             p_types, r_type = _annotations(re_.body_text)
             cmts = _comments(re_.body_text)

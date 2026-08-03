@@ -967,7 +967,7 @@
   },
   "C-2814e2": {
     "agg_complexity": 113,
-    "body_hash": "29989398b620cd0b",
+    "body_hash": "3e8148bab4060b59",
     "churn": 0,
     "complexity": 103,
     "fan_in": 6,
@@ -975,8 +975,8 @@
     "kind": "module",
     "line_end": 555,
     "line_start": 1,
-    "loc": 548,
-    "logic_hash": "c2afc0aec8c8c764",
+    "loc": 556,
+    "logic_hash": "567b6eeefa050515",
     "n_children": 11,
     "path": "coordsys/indexer.py",
     "provenance": "computed"
@@ -1627,7 +1627,7 @@
     "provenance": "computed"
   },
   "C-4e4a18": {
-    "body_hash": "8e0ebc71f66be511",
+    "body_hash": "3a21fff4cbbd5b01",
     "churn": 0,
     "complexity": 12,
     "fan_in": 1,
@@ -1636,7 +1636,7 @@
     "line_end": 455,
     "line_start": 376,
     "loc": 80,
-    "logic_hash": "aee95dea1df80780",
+    "logic_hash": "b831be49391d03b8",
     "path": "coordsys/indexer.py",
     "provenance": "computed"
   },
@@ -1816,19 +1816,6 @@
     "logic_hash": "0ea3f142c4d764d4",
     "n_children": 3,
     "path": "coordsys/edges.py",
-    "provenance": "computed"
-  },
-  "C-56599a": {
-    "body_hash": "76c1b277a5fcfd6a",
-    "churn": 0,
-    "complexity": 3,
-    "fan_in": 1,
-    "fan_out": 1,
-    "kind": "function",
-    "line_end": 117,
-    "line_start": 101,
-    "loc": 17,
-    "path": "coordsys/indexer.py",
     "provenance": "computed"
   },
   "C-56737c": {
@@ -2986,6 +2973,20 @@
     "logic_hash": "5d2c99b79185c402",
     "n_children": 17,
     "path": "tests/test_mcp.py",
+    "provenance": "computed"
+  },
+  "C-92c35f": {
+    "body_hash": "644dac99c592abfe",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 1,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 117,
+    "line_start": 101,
+    "loc": 17,
+    "logic_hash": "8f974ff1436e630a",
+    "path": "coordsys/indexer.py",
     "provenance": "computed"
   },
   "C-92c394": {
@@ -4772,7 +4773,7 @@
   },
   "C-f24b5f": {
     "agg_complexity": 78,
-    "body_hash": "1dc7fdc575d840bf",
+    "body_hash": "a88bdeb74410d3e7",
     "churn": 0,
     "complexity": 70,
     "fan_in": 10,
@@ -4780,8 +4781,8 @@
     "kind": "class",
     "line_end": 555,
     "line_start": 220,
-    "loc": 335,
-    "logic_hash": "31d1140f069f9bd5",
+    "loc": 336,
+    "logic_hash": "e51dcbf626b68e91",
     "n_children": 9,
     "path": "coordsys/indexer.py",
     "provenance": "computed"

@@ -1,0 +1,1 @@
+{"ts": "2026-08-03T06:32:26Z", "version": 7, "kind": "renamed", "old": ["C-56599a"], "new": ["C-92c35f"], "note": "coordsys.indexer._shape_hash -> coordsys.indexer._structure_hash (identical logic)", "author": "auto"}
