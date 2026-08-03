@@ -11,13 +11,14 @@ Channels:
   notes    - gotchas, invariants, warnings
   docs     - documentation
   traces   - recorded data-flow traversals (structural stack traces)
+  confirm  - attestation that current comments/docs remain accurate after logic change
 """
 
 import json
 import time
 from pathlib import Path
 
-CHANNELS = ("history", "design", "notes", "docs", "traces")
+CHANNELS = ("history", "design", "notes", "docs", "traces", "confirm")
 
 
 class MetaStore:

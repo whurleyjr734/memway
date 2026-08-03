@@ -9,6 +9,7 @@ New entities get new IDs. Renamed/moved entities are matched to their
 old ID via body-hash similarity (handled in lineage.py).
 
 Each entity carries multiple hashes: body_hash for identity matching,
+shape_hash (name-insensitive structure) for clone detection,
 logic_hash (behavior-only, ignoring comments/docstrings) for detecting
 real changes vs cosmetic edits, and comment_hash for rot detection.
 Minhash sketches enable fast similarity estimation without storing source.
@@ -218,7 +219,10 @@ def _new_id(qualname: str, salt: str = "") -> str:
 
 
 class Indexer:
-    """Builds/refreshes the coordinate index for a repo."""
+    """Builds/refreshes the coordinate index for a repo.
+
+    Maintains stable coordinate IDs across re-indexing and tracks
+    entity metadata including hashes, complexity, and structural sketches."""
 
     def __init__(self, repo_root: str, coord_dir: str):
         self.repo_root = Path(repo_root)
@@ -376,6 +380,7 @@ class Indexer:
     def _index_file(self, path: Path, parser,
                     old_by_qualname: dict, old_entities: dict,
                     cache: dict = None, new_cache: dict = None):
+        """Index a single file, using parse cache when file unchanged."""
         rel = str(path.relative_to(self.repo_root))
         raw = path.read_bytes()
         fsha = hashlib.sha256(raw).hexdigest()[:16]

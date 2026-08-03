@@ -48,6 +48,38 @@ def test_comment_rot_fires_and_clears(tmp_path):
     assert b["comments"]["rot"] is False
 
 
+def test_comment_rot_confirm_suppresses_and_restales(tmp_path):
+    """Confirm channel: rot fires → confirm written → rot suppressed →
+    logic changes again → old confirm stale, rot returns."""
+    repo = tmp_path / "r"; repo.mkdir()
+    (repo / "m.py").write_text(V1)
+    ix = _idx(repo)
+    # logic changes, comments do not -> rot fires
+    (repo / "m.py").write_text(V1.replace("x * 3", "x * 4"))
+    ix = _idx(repo)
+    b = query.before_edit(str(repo), "price")
+    assert b["comments"]["rot"] is True
+    # write confirm at current logic_hash
+    from coordsys.metadata import MetaStore
+    meta = MetaStore(repo / ".coord")
+    price_e = ix.resolve("m.price")
+    meta.add(price_e.coord_id, "confirm", "comments reviewed, still accurate",
+             body_hash=price_e.logic_hash)
+    # rot now suppressed
+    b = query.before_edit(str(repo), "price")
+    assert b["comments"]["rot"] is False
+    # attention queue also clean
+    att = query.attention(str(repo))
+    assert "m.price" not in att["comment_rot"]
+    # another logic change -> confirm goes stale, rot returns
+    (repo / "m.py").write_text(V1.replace("x * 3", "x * 5"))
+    ix = _idx(repo)
+    b = query.before_edit(str(repo), "price")
+    assert b["comments"]["rot"] is True
+    att = query.attention(str(repo))
+    assert "m.price" in att["comment_rot"]
+
+
 def test_design_doc_binding_and_drift(tmp_path):
     repo = tmp_path / "r"; repo.mkdir()
     (repo / "m.py").write_text(V1)

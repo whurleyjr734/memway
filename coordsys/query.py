@@ -286,10 +286,21 @@ def before_edit(repo: str, ref: str) -> dict:
         if mk:
             _markers.append({"tag": mk.group(1).upper(), "line": c["line"],
                              "text": mk.group(2)[:120]})
+
+    # Check for comment rot, but suppress if confirmed at current logic_hash
+    has_rot = bool(getattr(e, "comment_rot", False))
+    if has_rot:
+        # Read meta to check for non-stale confirm entry (stamp matches current logic_hash)
+        _confirm_meta = meta.read_all(e.coord_id,
+                                       current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+        _confirm_entries = _confirm_meta.get("confirm", [])
+        if any(not en.get("stale") for en in _confirm_entries):
+            has_rot = False  # Confirmed at current logic_hash, suppress rot
+
     comments_block = {
         "total": len(getattr(e, "comments", []) or []),
         "markers": _markers,
-        "rot": bool(getattr(e, "comment_rot", False)),
+        "rot": has_rot,
     }
 
     # ---- design docs governing this coordinate ----
@@ -513,8 +524,18 @@ def attention(repo_root, limit=20):
         return {"error": f"no index at {repo_root}; run coordsys init first"}
     repo_p, coord, ix, edges, meta = ctx
 
-    rot = [e.qualname for e in ix.entities.values()
-           if getattr(e, "comment_rot", False)][:limit]
+    # Comment rot, but suppress entries confirmed at current logic_hash
+    rot = []
+    for e in ix.entities.values():
+        if getattr(e, "comment_rot", False):
+            # Check for non-stale confirm entry
+            _confirm_meta = meta.read_all(e.coord_id,
+                                           current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+            _confirm_entries = _confirm_meta.get("confirm", [])
+            if not any(not en.get("stale") for en in _confirm_entries):
+                # No current confirmation, include in rot list
+                rot.append(e.qualname)
+    rot = rot[:limit]
 
     markers = []
     for e in ix.entities.values():
