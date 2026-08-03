@@ -7,6 +7,9 @@ one structured surface, so agents and humans never drift apart.
 Every function takes a loaded context and returns JSON-serializable
 dicts/lists. Errors are returned as {"error": "..."} rather than
 raised, so an agent gets a usable message instead of a stack trace.
+
+Context loading is shared via _ctx(); edge grounding (resolution provenance
+and confidence) is surfaced in before_edit to calibrate trust in static analysis.
 """
 
 from __future__ import annotations
@@ -178,8 +181,10 @@ def before_edit(repo: str, ref: str) -> dict:
 
     # Grounding: how trustworthy is this picture? Every edge carries the
     # provenance of how it was resolved (exact / mro / suffix /
-    # inherited-guess / bare-name / event / runtime). Surfacing it lets
-    # the caller calibrate trust instead of treating the radius as gospel.
+    # inherited-guess / bare-name / event / runtime) AND a confidence score.
+    # We tally resolution methods and count low-confidence edges (<0.7),
+    # surfacing both so the caller can calibrate trust instead of treating
+    # the radius as gospel.
     aff_ids = set(b.get("affected", {})) | {e.coord_id}
     res_counts: dict = {}
     low_conf = 0

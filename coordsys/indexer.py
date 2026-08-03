@@ -7,6 +7,11 @@ code entity: package, module, class, function, method, attribute.
 IDs are stable: once an entity gets an ID it keeps it across re-indexing.
 New entities get new IDs. Renamed/moved entities are matched to their
 old ID via body-hash similarity (handled in lineage.py).
+
+Each entity carries multiple hashes: body_hash for identity matching,
+logic_hash (behavior-only, ignoring comments/docstrings) for detecting
+real changes vs cosmetic edits, and comment_hash for rot detection.
+Minhash sketches enable fast similarity estimation without storing source.
 """
 
 import hashlib
@@ -135,7 +140,9 @@ def _logic_hash(body_text: str) -> str:
         return _hash_body(body_text)
     # normalize the entity's OWN name: a pure rename is identity, not a
     # logic change (internal identifiers stay - renaming a variable IS
-    # a logic-relevant edit; recursive self-calls fall to the scorer)
+    # a logic-relevant edit; recursive self-calls fall to the similarity scorer).
+    # Combined with docstring stripping above, this hash changes ONLY when
+    # behavior changes, enabling comment-rot detection and staleness checking.
     if tree.body and hasattr(tree.body[0], "name"):
         tree.body[0].name = "_"
     for node in _ast.walk(tree):
@@ -270,10 +277,11 @@ class Indexer:
         from .parsers import _PARSER_ERRORS
         self._parser_errors = dict(_PARSER_ERRORS)
         self._raw_edges = []
-        # Parse cache: per-file artifacts keyed by content hash, so
-        # unchanged files skip parsing entirely (only changed
-        # coordinates get recomputed - the memoization invariant
-        # extended upstream from metrics to parsing itself).
+        # Parse cache: per-file artifacts keyed by content hash AND parser
+        # schema version, so unchanged files skip parsing entirely (only changed
+        # coordinates get recomputed - the memoization invariant extended upstream
+        # from metrics to parsing itself). Cache is versioned to invalidate when
+        # the parser logic changes (lines 284-295).
         cache_file = self.coord_dir / "index" / "parse_cache.json"
         cache = {}
         if cache_file.exists():
