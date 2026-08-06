@@ -1,0 +1,18 @@
+# --- python ---
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# --- packaging ---
+dist/
+build/
+*.egg-info/
+
+# --- coordsys: DELIBERATE choices ---
+# .coord/ itself is TRACKED on purpose: clone the repo, inherit the
+# map's memory. Only derived caches are ignored (rebuilt on index).
+.coord/cache/
+# usage log is personal-machine data, not team knowledge:
+.coord/log/
