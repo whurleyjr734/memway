@@ -10,7 +10,7 @@ Data flow:
   2. Multi-source reverse reachability over the confidence-weighted edge
      graph (calls/imports + closure containment) -> the impacted set.
   3. Test selection, tiered with the same honesty rules as everything
-     else in coordsys:
+     else in memway:
        grounded  - test entities reached through actual graph edges
        name-hit  - test files that mention a changed entity's name but
                    have no resolved edge (dynamic dispatch, fixtures);

@@ -27,7 +27,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest"]
 # Python parsing is stdlib-only. Other languages use tree-sitter
-# grammars, installed via:  pip install coordsys[languages]
+# grammars, installed via:  pip install memway[languages]
 languages = [
     "tree-sitter==0.26.0",
     "tree-sitter-javascript==0.25.0",

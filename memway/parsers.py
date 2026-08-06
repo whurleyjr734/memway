@@ -616,6 +616,6 @@ def get_parsers(verbose: bool = False) -> dict[str, LanguageParser]:
     if verbose and _PARSER_ERRORS:
         import sys
         for lang, err in _PARSER_ERRORS.items():
-            sys.stderr.write(f"coordsys: {lang} parser unavailable - "
+            sys.stderr.write(f"memway: {lang} parser unavailable - "
                              f"{err}\n")
     return PARSERS

@@ -1,4 +1,4 @@
-"""Pytest configuration: ensure coordsys package is importable.
+"""Pytest configuration: ensure memway package is importable.
 
 Inserts repo root into sys.path so all test modules can import memway
 without requiring PYTHONPATH or an editable install. Loaded automatically

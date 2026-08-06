@@ -67,15 +67,15 @@ def out(capsys):
 # ------------------------------------------------------------ dispatch
 
 def test_main_usage_and_dispatch(repo, capsys, monkeypatch):
-    monkeypatch.setattr(sys, "argv", ["coordsys"])
+    monkeypatch.setattr(sys, "argv", ["memway"])
     with pytest.raises(SystemExit):
         cli.main()                                   # usage + exit 1
     assert "grep finds it" in out(capsys)
-    monkeypatch.setattr(sys, "argv", ["coordsys", "nope", "x"])
+    monkeypatch.setattr(sys, "argv", ["memway", "nope", "x"])
     with pytest.raises(SystemExit):
         cli.main()                                   # unknown command
     monkeypatch.setattr(sys, "argv",
-                        ["coordsys", "show", str(repo), "price"])
+                        ["memway", "show", str(repo), "price"])
     cli.main()                                       # real dispatch
     assert "src.shop.price" in out(capsys)
 

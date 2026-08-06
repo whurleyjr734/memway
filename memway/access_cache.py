@@ -3,7 +3,7 @@
 JSON stays the source of truth (human-readable, diffable). The pickle
 is a disposable acceleration layer whose validity is a single
 fingerprint - (mtime_ns, size) of the source file - so freshness is
-answered the same way everything in coordsys answers it: one fact,
+answered the same way everything in memway answers it: one fact,
 checked cheaply. Stale or corrupt cache silently falls back to JSON
 and rewrites itself. Measured at django scale: 2366ms -> 339ms (7x).
 

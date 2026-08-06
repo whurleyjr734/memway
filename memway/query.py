@@ -1,6 +1,6 @@
 """Structured query API: the map's facts as data, not formatted text.
 
-Both `coordsys <cmd> --json` and the MCP server call these functions.
+Both `memway <cmd> --json` and the MCP server call these functions.
 The CLI's human-readable printers are untouched; this module is the
 one structured surface, so agents and humans never drift apart.
 
@@ -68,7 +68,7 @@ def _entity_dict(e, meta=None) -> dict:
 def show(repo: str, ref: str) -> dict:
     ctx = _ctx(repo)
     if not ctx:
-        return {"error": f"no index at {repo}; run coordsys init first"}
+        return {"error": f"no index at {repo}; run memway init first"}
     _, _, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
@@ -93,7 +93,7 @@ def show(repo: str, ref: str) -> dict:
 def lineage(repo: str, ref: str) -> dict:
     ctx = _ctx(repo)
     if not ctx:
-        return {"error": f"no index at {repo}; run coordsys init first"}
+        return {"error": f"no index at {repo}; run memway init first"}
     _, coord, ix, _, _ = ctx
     e = ix.resolve(ref)
     cid = e.coord_id if e else ref
@@ -108,7 +108,7 @@ def summary(repo: str) -> dict:
     agent should read FIRST instead of grepping."""
     ctx = _ctx(repo)
     if not ctx:
-        return {"error": f"no index at {repo}; run coordsys init first"}
+        return {"error": f"no index at {repo}; run memway init first"}
     _, coord, ix, edges, meta = ctx
     from collections import Counter
     langs = Counter()
@@ -217,7 +217,7 @@ def before_edit(repo: str, ref: str) -> dict:
     explicit WARNINGS, never hides the data behind them."""
     ctx = _ctx(repo)
     if not ctx:
-        return {"error": f"no index at {repo}; run coordsys init first"}
+        return {"error": f"no index at {repo}; run memway init first"}
     repo_p, coord, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
@@ -480,7 +480,7 @@ def at(repo: str, location: str) -> dict:
     locations; the map speaks names - this is the weld between them."""
     ctx = _ctx(repo)
     if not ctx:
-        return {"error": f"no index at {repo}; run coordsys init first"}
+        return {"error": f"no index at {repo}; run memway init first"}
     repo_p, coord, ix, edges, meta = ctx
     if ":" not in location:
         return {"error": "expected file:line, e.g. src/app.py:42"}
@@ -566,7 +566,7 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     """
     ctx = _ctx(repo_root)
     if not ctx:
-        return {"error": f"no index at {repo_root}; run coordsys init first"}
+        return {"error": f"no index at {repo_root}; run memway init first"}
     repo_p, coord, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
@@ -595,7 +595,7 @@ def attention(repo_root, limit=20):
     import re as _re
     ctx = _ctx(repo_root)
     if not ctx:
-        return {"error": f"no index at {repo_root}; run coordsys init first"}
+        return {"error": f"no index at {repo_root}; run memway init first"}
     repo_p, coord, ix, edges, meta = ctx
 
     # Comment rot, but suppress entries confirmed at current logic_hash
