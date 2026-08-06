@@ -109,7 +109,7 @@ def summary(repo: str) -> dict:
     ctx = _ctx(repo)
     if not ctx:
         return {"error": f"no index at {repo}; run coordsys init first"}
-    _, coord, ix, edges, _ = ctx
+    _, coord, ix, edges, meta = ctx
     from collections import Counter
     langs = Counter()
     for e in ix.entities.values():
@@ -125,6 +125,52 @@ def summary(repo: str) -> dict:
             if e.kind in ("function", "method")
             and "test" not in e.path.lower()]
     prod.sort(reverse=True)
+
+    # ---- knowledge census: what does the map remember? ----
+    # Repo-wide answer to "what has been learned here", so orientation
+    # is one summary call, not a hand-walk through .coord/meta/.
+    # Walks the coordinates that actually have metadata on disk and
+    # reads each channel THROUGH MetaStore.read, judging freshness the
+    # same way before_edit does: an entry is fresh if its stamp matches
+    # the entity's current logic_hash or body_hash. Channel discovery is
+    # per-directory (f.stem), not the CHANNELS tuple, so channels added
+    # later (e.g. confirm) are censused without touching this code.
+    chan_counts = Counter()
+    know = []
+    total_entries = 0
+    if meta.root.exists():
+        for cdir in sorted(meta.root.iterdir()):
+            if not cdir.is_dir():
+                continue
+            cid = cdir.name
+            e = ix.entities.get(cid)
+            accepted = ({getattr(e, "logic_hash", ""), e.body_hash}
+                        if e else "")
+            channels, any_stale, n_here = [], False, 0
+            for f in sorted(cdir.glob("*.jsonl")):
+                entries = meta.read(cid, f.stem, accepted)
+                if not entries:
+                    continue
+                channels.append(f.stem)
+                chan_counts[f.stem] += len(entries)
+                n_here += len(entries)
+                if any(en.get("stale") for en in entries):
+                    any_stale = True
+            if not n_here:
+                continue
+            total_entries += n_here
+            know.append({
+                "coordinate": cid,
+                # an unresolvable coordinate means orphaned knowledge
+                # (entity gone without lineage migration): surface it,
+                # and flag it - freshness cannot be verified.
+                "qualname": e.qualname if e else None,
+                "channels": channels,
+                "entries": n_here,
+                "any_stale": any_stale if e else True,
+            })
+    know.sort(key=lambda k: (not k["any_stale"], k["qualname"] or ""))
+
     return {
         "entities": len(ix.entities),
         "edges": len(edges),
@@ -132,6 +178,12 @@ def summary(repo: str) -> dict:
         "kinds": dict(kinds),
         "hardest": [{"qualname": q, "complexity": c}
                     for c, q in prod[:5]],
+        "knowledge": {
+            "total_entries": total_entries,
+            "coordinates_with_knowledge": len(know),
+            "by_channel": dict(chan_counts),
+            "entries": know[:20],
+        },
     }
 
 

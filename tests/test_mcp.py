@@ -165,3 +165,41 @@ def test_mcp_before_edit_tool(built):
                    built)
     payload = json.loads(r["result"]["content"][0]["text"])
     assert "warnings" in payload and "downstream" in payload
+
+
+def test_summary_knowledge_census(built):
+    """The census: summary answers "what does the map remember" -
+    counts by channel, per-coordinate entries, freshness judged like
+    before_edit. Uses the confirm channel when the tree has it."""
+    from coordsys.metadata import CHANNELS
+    ch2 = "confirm" if "confirm" in CHANNELS else "docs"
+
+    r1 = query.agent_meta(built, "sign", "notes",
+                          "margin is load-bearing; see D7")
+    assert "attached" in r1
+    r2 = query.agent_meta(built, "src.auth", ch2,
+                          "reviewed after harvest; behavior as documented")
+    assert "attached" in r2
+
+    k = query.summary(built)["knowledge"]
+    # harvest also mines docs entries, so assert >=, then pin OUR two
+    assert k["total_entries"] >= 2
+    assert k["by_channel"].get("notes", 0) >= 1
+    assert k["by_channel"].get(ch2, 0) >= 1
+    by_q = {e["qualname"]: e for e in k["entries"]}
+    assert "src.auth.sign" in by_q and "notes" in by_q["src.auth.sign"]["channels"]
+    assert "src.auth" in by_q and ch2 in by_q["src.auth"]["channels"]
+    assert by_q["src.auth.sign"]["any_stale"] is False
+    assert k["coordinates_with_knowledge"] == len(
+        {e["coordinate"] for e in k["entries"]})
+
+    # change sign's LOGIC -> its note must go stale in the census
+    p = Path(built) / "src" / "auth.py"
+    p.write_text(p.read_text().replace('emit("signed.ok")',
+                                       'emit("signed.v2")'))
+    cli.cmd_index(built)
+    k2 = query.summary(built)["knowledge"]
+    by_q2 = {e["qualname"]: e for e in k2["entries"]}
+    assert by_q2["src.auth.sign"]["any_stale"] is True
+    # stale coordinates sort first: the queue surfaces problems on top
+    assert k2["entries"][0]["any_stale"] is True
