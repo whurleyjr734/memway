@@ -16,14 +16,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys.indexer import Indexer
-from coordsys.edges import EdgeBuilder
-from coordsys.metadata import MetaStore
+from memway.indexer import Indexer
+from memway.edges import EdgeBuilder
+from memway.metadata import MetaStore
 
 
 def cli(*args):
     return subprocess.run(
-        [sys.executable, "-m", "coordsys.cli", *[str(a) for a in args]],
+        [sys.executable, "-m", "memway.cli", *[str(a) for a in args]],
         capture_output=True, text=True, cwd=str(HERE))
 
 

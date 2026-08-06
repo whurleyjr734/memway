@@ -1,18 +1,18 @@
-"""coordsys MCP server: the map as tools an IDE agent calls autonomously.
+"""memway MCP server: the map as tools an IDE agent calls autonomously.
 
 Speaks the Model Context Protocol over stdio, so Claude Code, Cursor,
-Windsurf, and Zed can all use coordsys without bespoke integration.
-Every tool is a thin wrapper over coordsys.query (the same structured
+Windsurf, and Zed can all use memway without bespoke integration.
+Every tool is a thin wrapper over memway.query (the same structured
 core the CLI's --json path uses), so agent-facing and human-facing
 answers can never drift.
 
 Design: read-only tools only. The agent inspects the map; it never
 mutates the index through this surface. The single most valuable tool
-is `coordsys_summary` - an agent should call it FIRST on any repo to
+is `memway_summary` - an agent should call it FIRST on any repo to
 get the ~structured briefing instead of grepping blind.
 
-Run:  python -m coordsys.mcp /path/to/repo
-Register in Claude Code:  claude mcp add coordsys -- python -m coordsys.mcp <repo>
+Run:  python -m memway.mcp /path/to/repo
+Register in Claude Code:  claude mcp add memway -- python -m memway.mcp <repo>
 (The repo path is bound at launch so the agent's tool calls need only
 pass refs, not the repo root, every time.)
 """
@@ -27,7 +27,7 @@ from . import query
 
 TOOLS = [
     {
-        "name": "coordsys_summary",
+        "name": "memway_summary",
         "description": "Repo shape at a glance: entity/edge counts, "
                        "languages, and the hardest (most complex) "
                        "functions. CALL THIS FIRST on an unfamiliar "
@@ -36,7 +36,7 @@ TOOLS = [
         "fn": lambda repo, a: query.summary(repo),
     },
     {
-        "name": "coordsys_at",
+        "name": "memway_at",
         "description": "The grep handoff: given file:line (e.g. "
                        "'src/app.py:42' from a grep hit or stack "
                        "trace), return the entity containing that "
@@ -48,7 +48,7 @@ TOOLS = [
         "fn": lambda repo, a: query.at(repo, a["location"]),
     },
     {
-        "name": "coordsys_before_edit",
+        "name": "memway_before_edit",
         "description": "CALL THIS BEFORE MODIFYING ANY ENTITY. One "
                        "pre-change safety briefing: the entity's "
                        "location and signature, its complexity, every "
@@ -62,7 +62,7 @@ TOOLS = [
         "fn": lambda repo, a: query.before_edit(repo, a["ref"]),
     },
     {
-        "name": "coordsys_verify_change",
+        "name": "memway_verify_change",
         "description": "CALL THIS AFTER MODIFYING CODE. Diffs the working "
                        "tree against the saved index, traces the change's "
                        "reverse reachability over the edge graph, and "
@@ -78,7 +78,7 @@ TOOLS = [
                                                   bool(a.get("run"))),
     },
     {
-        "name": "coordsys_probe",
+        "name": "memway_probe",
         "description": "Exec on steroids: RUN an entity with real values "
                        "and get the end-to-end data flow back as "
                        "coordinates. Pass args/kwargs as JSON, or "
@@ -105,7 +105,7 @@ TOOLS = [
                                           bool(a.get("record"))),
     },
     {
-        "name": "coordsys_meta",
+        "name": "memway_meta",
         "description": "WRITE BACK an observation for future readers "
                        "(human or agent). Attach a note to an entity's "
                        "coordinate - e.g. a subtle bug you noticed, why "
@@ -127,7 +127,7 @@ TOOLS = [
                                                a["text"]),
     },
     {
-        "name": "coordsys_attention",
+        "name": "memway_attention",
         "description": "The repo's ATTENTION QUEUE in one call: entities "
                        "whose comments went stale across behavior changes "
                        "(comment rot), all TODO/FIXME/HACK markers with "
@@ -142,7 +142,7 @@ TOOLS = [
                                               int(a.get("limit", 20))),
     },
     {
-        "name": "coordsys_show",
+        "name": "memway_show",
         "description": "Full dossier for one entity (by qualname or "
                        "coordinate id): its signature, callers/callees, "
                        "and any attached knowledge (docs, notes, "
@@ -152,7 +152,7 @@ TOOLS = [
         "fn": lambda repo, a: query.show(repo, a["ref"]),
     },
     {
-        "name": "coordsys_lineage",
+        "name": "memway_lineage",
         "description": "The identity history of an entity: renames, "
                        "moves, and prior versions. Answers 'what was "
                        "this called before?' across refactors.",
@@ -183,7 +183,7 @@ def handle(msg: dict, repo: str) -> dict | None:
         return _result(id_, {
             "protocolVersion": "2024-11-05",
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "coordsys", "version": "1.0"},
+            "serverInfo": {"name": "memway", "version": "1.0"},
         })
     if method == "notifications/initialized":
         return None
@@ -240,7 +240,7 @@ def main():
     repo = sys.argv[1] if len(sys.argv) > 1 else "."
     if not (Path(repo) / ".coord").exists():
         sys.stderr.write(
-            f"coordsys: no index at {repo}; run 'coordsys init {repo}' "
+            f"memway: no index at {repo}; run 'memway init {repo}' "
             "first\n")
         sys.exit(1)
     serve(repo)

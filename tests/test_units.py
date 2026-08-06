@@ -14,14 +14,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys.indexer import Indexer
-from coordsys.edges import EdgeBuilder, neighbors, event_pairs
-from coordsys.metadata import MetaStore
-from coordsys.metrics import (_py_complexity, complexity_of, _pct_rank,
+from memway.indexer import Indexer
+from memway.edges import EdgeBuilder, neighbors, event_pairs
+from memway.metadata import MetaStore
+from memway.metrics import (_py_complexity, complexity_of, _pct_rank,
                               MetricsStore)
-from coordsys.lineage import VersionStore, detect_lineage
-from coordsys.harvest import Harvester
-from coordsys.access_cache import load_json_cached
+from memway.lineage import VersionStore, detect_lineage
+from memway.harvest import Harvester
+from memway.access_cache import load_json_cached
 
 
 # ------------------------------------------------------------- helpers

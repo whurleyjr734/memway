@@ -14,7 +14,7 @@ import pytest
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys import query, mcp, cli
+from memway import query, mcp, cli
 
 
 
@@ -75,7 +75,7 @@ def rpc(method, params=None, id_=1):
 
 def test_initialize_handshake(built):
     r = mcp.handle(rpc("initialize"), built)
-    assert r["result"]["serverInfo"]["name"] == "coordsys"
+    assert r["result"]["serverInfo"]["name"] == "memway"
     assert "protocolVersion" in r["result"]
 
 
@@ -87,17 +87,17 @@ def test_initialized_notification_returns_none(built):
 def test_tools_list_advertises_every_tool(built):
     r = mcp.handle(rpc("tools/list"), built)
     names = {t["name"] for t in r["result"]["tools"]}
-    assert names == {"coordsys_summary", "coordsys_at",
-                     "coordsys_verify_change", "coordsys_probe", "coordsys_meta",
-                     "coordsys_attention",
-                     "coordsys_show", "coordsys_lineage",
-                     "coordsys_before_edit"}
+    assert names == {"memway_summary", "memway_at",
+                     "memway_verify_change", "memway_probe", "memway_meta",
+                     "memway_attention",
+                     "memway_show", "memway_lineage",
+                     "memway_before_edit"}
     for t in r["result"]["tools"]:                  # schema well-formed
         assert t["inputSchema"]["type"] == "object"
 
 
 def test_tools_call_summary(built):
-    r = mcp.handle(rpc("tools/call", {"name": "coordsys_summary",
+    r = mcp.handle(rpc("tools/call", {"name": "memway_summary",
                                       "arguments": {}}), built)
     payload = json.loads(r["result"]["content"][0]["text"])
     assert payload["entities"] > 0
@@ -110,7 +110,7 @@ def test_tools_call_unknown_tool_errors(built):
 
 
 def test_tools_call_bad_args_returns_iserror_not_crash(built):
-    r = mcp.handle(rpc("tools/call", {"name": "coordsys_show",
+    r = mcp.handle(rpc("tools/call", {"name": "memway_show",
                                       "arguments": {}}), built)
     # missing required 'ref' -> handled as tool error, agent stays alive
     assert r["result"]["isError"] or "error" in \
@@ -129,14 +129,14 @@ def test_serve_loop_processes_lines(built):
     outp = io.StringIO()
     mcp.serve(built, stdin=inp, stdout=outp)
     lines = [json.loads(l) for l in outp.getvalue().splitlines() if l]
-    assert lines[0]["result"]["serverInfo"]["name"] == "coordsys"
+    assert lines[0]["result"]["serverInfo"]["name"] == "memway"
     assert len(lines[1]["result"]["tools"]) == 9
 
 
 # ------------------------------------------------------- before_edit
 
 def test_before_edit_briefing_shape_and_warnings(built):
-    from coordsys import cli as _cli
+    from memway import cli as _cli
     # make it warned-about: stale note + a caller
     _cli.cmd_meta(built, "sign", "notes", "auth team owns this")
     p = Path(built) / "src" / "auth.py"
@@ -160,7 +160,7 @@ def test_before_edit_unknown_ref(built):
 
 
 def test_mcp_before_edit_tool(built):
-    r = mcp.handle(rpc("tools/call", {"name": "coordsys_before_edit",
+    r = mcp.handle(rpc("tools/call", {"name": "memway_before_edit",
                                       "arguments": {"ref": "sign"}}),
                    built)
     payload = json.loads(r["result"]["content"][0]["text"])
@@ -171,7 +171,7 @@ def test_summary_knowledge_census(built):
     """The census: summary answers "what does the map remember" -
     counts by channel, per-coordinate entries, freshness judged like
     before_edit. Uses the confirm channel when the tree has it."""
-    from coordsys.metadata import CHANNELS
+    from memway.metadata import CHANNELS
     ch2 = "confirm" if "confirm" in CHANNELS else "docs"
 
     r1 = query.agent_meta(built, "sign", "notes",
@@ -216,15 +216,15 @@ def test_flight_recorder_logs_tool_calls(built):
                            "params": {"name": name,
                                       "arguments": arguments}}, built)
 
-    call("coordsys_summary", {})
-    call("coordsys_show", {"ref": "sign"})
-    call("coordsys_show", {"ref": "no_such_entity_xyz"})
+    call("memway_summary", {})
+    call("memway_show", {"ref": "sign"})
+    call("memway_show", {"ref": "no_such_entity_xyz"})
 
     log = Path(built) / ".coord" / "log" / "usage.jsonl"
     assert log.exists()
     lines = [json.loads(l) for l in log.read_text().splitlines()]
     assert [l["tool"] for l in lines] == [
-        "coordsys_summary", "coordsys_show", "coordsys_show"]
+        "memway_summary", "memway_show", "memway_show"]
     assert lines[1]["ref"] == "sign"
     assert [l["ok"] for l in lines] == [True, True, False]
     assert len({l["session"] for l in lines}) == 1

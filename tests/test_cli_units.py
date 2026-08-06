@@ -14,7 +14,7 @@ import pytest
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys import cli
+from memway import cli
 
 
 @pytest.fixture()
@@ -100,7 +100,7 @@ def test_index_warns_on_unparseable(repo, capsys):
 def test_load_guard_missing_index(tmp_path):
     with pytest.raises(SystemExit) as ei:
         cli.cmd_show(str(tmp_path / "nothing"), "x")
-    assert "coordsys init" in str(ei.value)
+    assert "memway init" in str(ei.value)
 
 
 def test_load_guard_corrupt_index_message(repo):

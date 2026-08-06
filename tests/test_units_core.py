@@ -13,13 +13,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys.indexer import Indexer
-from coordsys.edges import EdgeBuilder
-from coordsys.metadata import MetaStore, TraceRecorder
-from coordsys.metrics import (_py_complexity, complexity_of, _pct_rank,
+from memway.indexer import Indexer
+from memway.edges import EdgeBuilder
+from memway.metadata import MetaStore, TraceRecorder
+from memway.metrics import (_py_complexity, complexity_of, _pct_rank,
                               MetricsStore)
-from coordsys.lineage import VersionStore
-from coordsys.access_cache import load_json_cached
+from memway.lineage import VersionStore
+from memway.access_cache import load_json_cached
 
 from test_units import make, full_index, PY, BODY
 

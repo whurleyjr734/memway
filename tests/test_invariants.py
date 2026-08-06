@@ -11,11 +11,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from coordsys.indexer import Indexer, _hash_body
-from coordsys.edges import EdgeBuilder
-from coordsys.metadata import MetaStore
-from coordsys.lineage import VersionStore, detect_lineage
-from coordsys.metrics import MetricsStore, complexity_of
+from memway.indexer import Indexer, _hash_body
+from memway.edges import EdgeBuilder
+from memway.metadata import MetaStore
+from memway.lineage import VersionStore, detect_lineage
+from memway.metrics import MetricsStore, complexity_of
 
 
 @pytest.fixture
@@ -177,7 +177,7 @@ def test_hash_normalizes_whitespace():
 # -------------------------------------------------------------- blast
 
 def test_blast_radius_decay_and_events():
-    from coordsys.blast import blast_radius
+    from memway.blast import blast_radius
     edges = [
         {"src": "B", "dst": "A", "kind": "calls"},      # B calls A
         {"src": "C", "dst": "B", "kind": "calls"},      # C calls B
@@ -192,7 +192,7 @@ def test_blast_radius_decay_and_events():
 
 
 def test_blast_depth_cap():
-    from coordsys.blast import blast_radius
+    from memway.blast import blast_radius
     edges = [{"src": chr(66 + i), "dst": chr(65 + i), "kind": "calls"}
              for i in range(10)]     # A<-B<-C<-...
     r = blast_radius(["A"], edges, max_depth=3)
@@ -234,7 +234,7 @@ def test_dynamic_event_names_become_visible_uncertainty(tmp_path):
     dsts = {e["dst"] for e in eb.edges if e["kind"] == "emits"}
     assert "EVT:<dynamic>" in dsts        # not silently dropped
     assert "EVT:fixed.event" in dsts      # literals unaffected
-    from coordsys.blast import blast_radius
+    from memway.blast import blast_radius
     notify = ix.resolve("pkg.a.notify")
     r = blast_radius([notify.coord_id], eb.edges)
     assert r["radius_is_lower_bound"] is True
@@ -272,7 +272,7 @@ def test_shape_hash_collisions_are_clones(repo):
 
 def test_access_cache_correct_and_invalidates(repo):
     ix, eb, _ = index(repo)
-    from coordsys.access_cache import load_json_cached
+    from memway.access_cache import load_json_cached
     src = repo / ".coord" / "index" / "coordinates.json"
     a = load_json_cached(src, repo / ".coord")      # cold: writes pkl
     b = load_json_cached(src, repo / ".coord")      # warm: reads pkl
@@ -384,10 +384,10 @@ def test_inheritance_block_and_knowledge_flow(tmp_path):
         "    def handle(self, x):\n"
         "        return x + 2\n"
     )
-    from coordsys.indexer import Indexer
-    from coordsys.edges import EdgeBuilder
-    from coordsys.metadata import MetaStore
-    from coordsys import query
+    from memway.indexer import Indexer
+    from memway.edges import EdgeBuilder
+    from memway.metadata import MetaStore
+    from memway import query
 
     ix = Indexer(str(repo), str(repo / ".coord"))
     ix.index(); ix.save()

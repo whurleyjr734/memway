@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "coordsys"
+name = "memway"
 version = "0.49.1"
 description = "A coordinate system for code: stable entity identity through refactors, lineage, and a self-auditing memory layer for coding agents. A cache answers what the code is; the map knows what we've learned about it."
 readme = "README.md"
@@ -37,10 +37,10 @@ languages = [
 ]
 
 [project.scripts]
-coordsys = "coordsys.cli:main"
+memway = "memway.cli:main"
 
 [tool.setuptools]
-packages = ["coordsys"]
+packages = ["memway"]
 
 [tool.setuptools.package-data]
-coordsys = ["lens_template.html"]
+memway = ["lens_template.html"]

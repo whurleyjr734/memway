@@ -1,9 +1,9 @@
 """Logic-tier hashing: cosmetics never invalidate; behavior always does."""
-from coordsys.indexer import Indexer, _logic_hash
-from coordsys.edges import EdgeBuilder
-from coordsys.metadata import MetaStore
-from coordsys.lineage import detect_lineage, VersionStore
-from coordsys import query
+from memway.indexer import Indexer, _logic_hash
+from memway.edges import EdgeBuilder
+from memway.metadata import MetaStore
+from memway.lineage import detect_lineage, VersionStore
+from memway import query
 
 
 V1 = '''def price(x):
@@ -64,7 +64,7 @@ def test_note_survives_cosmetic_edit_flags_logic_edit(tmp_path):
 def test_metrics_memoized_across_cosmetic_edit(tmp_path):
     repo = _make(tmp_path, V1)
     ix = Indexer(str(repo), str(repo / ".coord")); ix.index(); ix.save()
-    from coordsys.metrics import MetricsStore
+    from memway.metrics import MetricsStore
     eb = EdgeBuilder(ix); edges = eb.build()
     MetricsStore(repo / ".coord").compute(ix, edges, repo)    # prime cache
     (repo / "m.py").write_text(COSMETIC)

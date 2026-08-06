@@ -1,24 +1,24 @@
-"""coordsys - a map of your codebase: coordinates, flow, and memory.
+"""memway - a map of your codebase: coordinates, flow, and memory.
 
-Quickstart:  pip install coordsys && coordsys setup .
+Quickstart:  pip install memway && memway setup .
              (builds the map, wires your agent, installs workflow rules)
 
-Workflow: grep finds it; coordsys explains it and remembers it.
+Workflow: grep finds it; memway explains it and remembers it.
 
-  coordsys setup [repo]                 one-command onboarding (see above)
-  coordsys init <repo>                  build/refresh the map
-  coordsys index <repo>                 re-index (incremental)
-  coordsys harvest <repo>               mine docstrings + git history
-  coordsys at <repo> <file:line>        grep hit -> entity (the handoff)
-  coordsys show <repo> <ref>            entity dossier: edges + knowledge
-  coordsys meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
-  coordsys lineage <repo> [ref]         identity history through renames
-  coordsys mcp [repo]                   run the MCP server (agent wiring)
-  coordsys --json <q> <repo> [args]     structured: summary, at, show,
+  memway setup [repo]                 one-command onboarding (see above)
+  memway init <repo>                  build/refresh the map
+  memway index <repo>                 re-index (incremental)
+  memway harvest <repo>               mine docstrings + git history
+  memway at <repo> <file:line>        grep hit -> entity (the handoff)
+  memway show <repo> <ref>            entity dossier: edges + knowledge
+  memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
+  memway lineage <repo> [ref]         identity history through renames
+  memway mcp [repo]                   run the MCP server (agent wiring)
+  memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
-  claude mcp add coordsys -- coordsys mcp .
+  claude mcp add memway -- memway mcp .
 """
 
 import json
@@ -39,14 +39,14 @@ def _paths(repo):
 def _load(repo, must_exist=True):
     repo, coord, agents_dir = _paths(repo)
     if must_exist and not (coord / "index" / "coordinates.json").exists():
-        raise SystemExit(f"no index at {repo} - run: coordsys init {repo}")
+        raise SystemExit(f"no index at {repo} - run: memway init {repo}")
     ix = Indexer(repo, coord)
     try:
         ix.load_existing()
     except Exception as e:
         raise SystemExit(
             f"index unreadable ({type(e).__name__}) - run: "
-            f"coordsys init {repo}  (identities recover from snapshots)")
+            f"memway init {repo}  (identities recover from snapshots)")
     edges = EdgeBuilder.load(coord)
     meta = MetaStore(coord)
     return repo, coord, ix, edges, meta, None
@@ -56,7 +56,7 @@ def cmd_init(repo):
     repo, coord, _ = _paths(repo)
     (coord / "index").mkdir(parents=True, exist_ok=True)
     (coord / "manifest.json").write_text(json.dumps({
-        "format": "coordsys/0.1", "language": "python",
+        "format": "memway/0.1", "language": "python",
     }, indent=2))
     print(f"initialized {coord}")
     cmd_index(repo)
@@ -222,26 +222,26 @@ def cmd_harvest(repo):
 _AGENT_RULES = """\
 # Project rules
 
-This repo uses coordsys (MCP tools prefixed `coordsys_`) as its
+This repo uses memway (MCP tools prefixed `memway_`) as its
 memory layer.
 
-- Before editing any function or class, call `coordsys_before_edit`
+- Before editing any function or class, call `memway_before_edit`
   on it and heed any attached knowledge.
-- After completing changes, call `coordsys_verify_change` to confirm
+- After completing changes, call `memway_verify_change` to confirm
   impact.
 - When a task, design doc, or conversation supplies a REASON a piece
   of code is the way it is (constraints, incidents, tuning
-  rationale), record that reason with `coordsys_meta` on the relevant
+  rationale), record that reason with `memway_meta` on the relevant
   entity - reasons must outlive this session.
 """
 
-# Portable wiring: relies on the `coordsys` console script being on
+# Portable wiring: relies on the `memway` console script being on
 # PATH and on agents launching MCP servers with cwd = repo root, so
 # the file survives clones and moves (no absolute paths, no venv
 # paths). This is what lets a committed map travel with the repo.
 _MCP_JSON = {
     "mcpServers": {
-        "coordsys": {"command": "coordsys", "args": ["mcp", "."]}
+        "memway": {"command": "memway", "args": ["mcp", "."]}
     }
 }
 
@@ -263,7 +263,7 @@ def cmd_setup(repo="."):
     rules = repo_p / "CLAUDE.md"
     if rules.exists():
         print("CLAUDE.md exists - leaving it "
-              "(coordsys rules: see `coordsys` usage text)")
+              "(memway rules: see `memway` usage text)")
     else:
         rules.write_text(_AGENT_RULES)
         print("wrote CLAUDE.md (the three measured workflow rules)")
@@ -277,8 +277,8 @@ def cmd_mcp(repo="."):
     """Run the MCP server (what .mcp.json launches)."""
     from . import mcp as _mcp_mod
     if not (Path(repo) / ".coord").exists():
-        sys.stderr.write(f"coordsys: no index at {repo}; "
-                         f"run 'coordsys init {repo}' first\n")
+        sys.stderr.write(f"memway: no index at {repo}; "
+                         f"run 'memway init {repo}' first\n")
         sys.exit(1)
     _mcp_mod.serve(repo)
 

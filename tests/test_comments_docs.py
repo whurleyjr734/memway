@@ -1,7 +1,7 @@
 """Comment channel with rot detection; design-doc binding with drift flags."""
-from coordsys.indexer import Indexer
-from coordsys.edges import EdgeBuilder
-from coordsys import query
+from memway.indexer import Indexer
+from memway.edges import EdgeBuilder
+from memway import query
 
 
 V1 = '''def price(x):
@@ -60,7 +60,7 @@ def test_comment_rot_confirm_suppresses_and_restales(tmp_path):
     b = query.before_edit(str(repo), "price")
     assert b["comments"]["rot"] is True
     # write confirm at current logic_hash
-    from coordsys.metadata import MetaStore
+    from memway.metadata import MetaStore
     meta = MetaStore(repo / ".coord")
     price_e = ix.resolve("m.price")
     meta.add(price_e.coord_id, "confirm", "comments reviewed, still accurate",

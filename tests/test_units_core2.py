@@ -17,12 +17,12 @@ import pytest
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from coordsys.indexer import Indexer
-from coordsys.edges import EdgeBuilder
-from coordsys.metadata import MetaStore
-from coordsys.metrics import MetricsStore
-from coordsys.lineage import VersionStore
-from coordsys import parsers as P
+from memway.indexer import Indexer
+from memway.edges import EdgeBuilder
+from memway.metadata import MetaStore
+from memway.metrics import MetricsStore
+from memway.lineage import VersionStore
+from memway import parsers as P
 
 from test_units import make, full_index, PY, BODY
 
@@ -115,7 +115,7 @@ def test_hidden_dir_skipped(tmp_path):
 
 def test_id_collision_salts_to_new_id(tmp_path):
     ix, _, _ = make(tmp_path, {PY: BODY})
-    from coordsys.indexer import Entity
+    from memway.indexer import Entity
     a = ix.resolve("src.m.alpha")
     # occupy the ID alpha would mint for a DIFFERENT qualname
     imp = Entity(**{**a.__dict__, "qualname": "impostor.q",
@@ -149,7 +149,7 @@ def test_lineage_skips_shapeless_removed(tmp_path):
 
 def test_raw_edge_with_unknown_src_dropped(tmp_path):
     ix, _, _ = make(tmp_path, {PY: BODY})
-    from coordsys.parsers import RawEdge
+    from memway.parsers import RawEdge
     ix._raw_edges = [RawEdge("ghost.src.never", "src.m.alpha", "calls")]
     eb = EdgeBuilder(ix)
     eb.build()
@@ -235,7 +235,7 @@ def test_files_under_dotted_ancestor_still_index(tmp_path):
     (base / "web" / "a.js").write_text(
         "class Cart {\n  add(x){ return x; }\n}\n")
     (base / "m.py").write_text("def f():\n    return 1\n")
-    from coordsys.indexer import Indexer
+    from memway.indexer import Indexer
     ix = Indexer(base, base / ".coord")
     ix.index()
     quals = {e.qualname for e in ix.entities.values()}
@@ -257,8 +257,8 @@ def test_scope_aware_call_resolution(tmp_path):
         "    def helper(self):\n        return 2\n\n"
         "def use(a: A):\n    return a.top()\n\n"
         "def blind(x):\n    return x.helper()\n")
-    from coordsys.indexer import Indexer
-    from coordsys.edges import EdgeBuilder
+    from memway.indexer import Indexer
+    from memway.edges import EdgeBuilder
     ix = Indexer(tmp_path, tmp_path / ".coord")
     ix.index()
     eb = EdgeBuilder(ix)
@@ -280,12 +280,12 @@ def test_parse_cache_invalidates_on_schema_bump(tmp_path):
     (tmp_path / "m.py").write_text(
         "class A:\n    def t(self):\n        return self.h()\n"
         "    def h(self):\n        return 1\n")
-    from coordsys.indexer import Indexer
+    from memway.indexer import Indexer
     ix = Indexer(tmp_path, tmp_path / ".coord")
     ix.index()
     cf = tmp_path / ".coord" / "index" / "parse_cache.json"
     c = _j.loads(cf.read_text())
-    from coordsys.parsers import PARSE_SCHEMA_VERSION
+    from memway.parsers import PARSE_SCHEMA_VERSION
     assert c["_schema"] == PARSE_SCHEMA_VERSION
     c["_schema"] = PARSE_SCHEMA_VERSION - 1          # simulate upgrade
     cf.write_text(_j.dumps(c))
@@ -324,7 +324,7 @@ def test_js_arrow_relative_import_member_and_dynamic_events(tmp_path):
 
 def test_parser_registry_skips_missing_grammar(monkeypatch):
     import sys as _s
-    from coordsys import parsers as P
+    from memway import parsers as P
     monkeypatch.setitem(_s.modules, "tree_sitter_go", None)
     P.PARSERS.clear()
     try:
@@ -337,7 +337,7 @@ def test_parser_registry_skips_missing_grammar(monkeypatch):
 # restored: blast module units (plumbing for before_edit)
 
 def test_blast_isolated_and_cycle_guard(tmp_path):
-    from coordsys.blast import blast_radius
+    from memway.blast import blast_radius
     ix, edges, _ = make(tmp_path, {PY:
         "def lonely():\n    return 1\n\n"
         "def a():\n    return b()\n\ndef b():\n    return a()\n"})
@@ -350,7 +350,7 @@ def test_blast_isolated_and_cycle_guard(tmp_path):
 
 
 def test_blast_crosses_events(tmp_path):
-    from coordsys.blast import blast_radius
+    from memway.blast import blast_radius
     ix, edges, _ = make(tmp_path, {
         PY: 'def go():\n    emit("sig.x")\n',
         "web/a.js": 'function h(){ on("sig.x"); return 1; }\n'})
@@ -360,7 +360,7 @@ def test_blast_crosses_events(tmp_path):
 
 
 def test_metrics_dirty_flag_and_triage_method(tmp_path):
-    from coordsys.metrics import MetricsStore
+    from memway.metrics import MetricsStore
     ix, edges, _ = make(tmp_path, {PY: BODY})
     ms = MetricsStore(tmp_path / ".coord")
     ms.compute(ix, edges, tmp_path)

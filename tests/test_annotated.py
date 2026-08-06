@@ -1,6 +1,6 @@
 """Annotated-receiver resolution: declared types beat guessing."""
-from coordsys.indexer import Indexer, _annotations
-from coordsys.edges import EdgeBuilder
+from memway.indexer import Indexer, _annotations
+from memway.edges import EdgeBuilder
 
 
 SRC = '''class Request:
