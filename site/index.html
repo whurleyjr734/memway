@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memway — a memory layer for codebases</title>
+<meta name="description" content="Stable coordinates for every function. Knowledge stamped against the code itself. What your agents learn outlives the session that learned it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#060913;          /* deep space */
+  --panel:#0C1222;         /* card base */
+  --glass:#111A30cc;
+  --line:#233052;
+  --star:#EAF0FF;          /* primary text */
+  --dim:#8B96B8;           /* secondary text */
+  --nebula1:#7C6CFF;       /* violet */
+  --nebula2:#3EC8FF;       /* cyan */
+  --beacon:#FF7A66;        /* ember — the inherited note */
+  --fresh:#4AE3B5;         /* verification */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);color:var(--star);
+  font-family:'Sora',sans-serif;font-size:16.5px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+::selection{background:var(--nebula1);color:#fff}
+a{color:var(--nebula2);text-decoration:none}
+a:hover{color:var(--star)}
+:focus-visible{outline:2px solid var(--nebula2);outline-offset:3px;border-radius:4px}
+code,pre,.mono{font-family:'JetBrains Mono',monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ambient nebula */
+.sky{
+  position:fixed;inset:0;z-index:-2;background:var(--void);
+}
+.sky::before{
+  content:"";position:absolute;inset:-20%;
+  background:
+    radial-gradient(600px 420px at 78% -6%, #7C6CFF2e, transparent 65%),
+    radial-gradient(700px 520px at 8% 22%, #3EC8FF1f, transparent 65%),
+    radial-gradient(520px 420px at 60% 110%, #7C6CFF1a, transparent 60%);
+}
+.stars{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.stars i{
+  position:absolute;width:2px;height:2px;border-radius:50%;
+  background:var(--star);opacity:.5;
+  animation:tw 4s ease-in-out infinite;
+}
+.stars i:nth-child(3n){width:1px;height:1px;opacity:.35}
+.stars i:nth-child(4n){animation-delay:1.4s}
+.stars i:nth-child(5n){animation-delay:2.6s;opacity:.7}
+@keyframes tw{0%,100%{opacity:.25}50%{opacity:.8}}
+@media(prefers-reduced-motion:reduce){.stars i{animation:none}}
+
+/* nav */
+header{position:sticky;top:0;z-index:10;background:#06091388;backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.mast{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
+.wordmark{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--star)}
+.wordmark b{background:linear-gradient(90deg,var(--nebula1),var(--nebula2));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav{display:flex;gap:26px;align-items:center}
+nav a{font-size:14px;color:var(--dim)}
+nav a:hover{color:var(--star)}
+nav .ghub{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--line);padding:7px 14px;border-radius:999px;color:var(--star)}
+nav .ghub:hover{border-color:var(--nebula2)}
+
+/* hero */
+.hero{padding:96px 0 40px;position:relative}
+.eyebrow{
+  display:inline-flex;gap:10px;align-items:center;
+  font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:7px 16px;margin-bottom:28px;
+  background:#0C122266;
+}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--fresh);box-shadow:0 0 10px var(--fresh)}
+h1{
+  font-weight:800;font-size:clamp(40px,6.4vw,72px);line-height:1.04;letter-spacing:-.03em;max-width:16ch;
+}
+h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.thesis{margin-top:26px;font-size:clamp(17px,2.1vw,20px);font-weight:300;color:var(--dim);max-width:58ch}
+.thesis strong{color:var(--star);font-weight:600}
+.cta{margin-top:36px;display:flex;gap:14px;flex-wrap:wrap}
+.btn{
+  font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
+  padding:13px 24px;border-radius:12px;border:1px solid var(--line);color:var(--star);
+  background:var(--panel);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.btn:hover{transform:translateY(-2px);border-color:var(--nebula2)}
+.btn.primary{
+  background:linear-gradient(90deg,var(--nebula1),var(--nebula2));border:none;color:#061017;font-weight:700;
+  box-shadow:0 8px 32px #3EC8FF33;
+}
+.btn.primary:hover{box-shadow:0 12px 40px #3EC8FF55;color:#061017}
+
+/* session handoff — the signature */
+.handoff{
+  margin:64px 0 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--dim);
+}
+.sess{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--line);border-radius:999px;padding:7px 14px;background:#0C122288;
+}
+.sess i{width:7px;height:7px;border-radius:50%}
+.sess.dead i{background:var(--dim);opacity:.6}
+.sess.dead{color:var(--dim)}
+.sess.live i{background:var(--fresh);box-shadow:0 0 10px var(--fresh)}
+.sess.live{color:var(--star);border-color:#4AE3B544}
+.handoff .carry{
+  flex:1;min-width:120px;height:1px;position:relative;
+  background:linear-gradient(90deg,var(--nebula1),var(--nebula2));
+}
+.handoff .carry::before{
+  content:"";position:absolute;left:0;top:-2.5px;width:6px;height:6px;border-radius:50%;
+  background:var(--beacon);box-shadow:0 0 12px var(--beacon);
+  animation:carry 3.2s ease-in-out infinite;
+}
+.handoff .carry::after{
+  content:"◆ note";position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  color:var(--beacon);letter-spacing:.08em;
+}
+@keyframes carry{0%{left:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:calc(100% - 6px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.handoff .carry::before{animation:none;left:calc(50% - 3px)}}
+
+/* the Phase C record */
+.rec{
+  border:1px solid var(--line);border-radius:20px;background:var(--glass);
+  backdrop-filter:blur(10px);overflow:hidden;position:relative;
+}
+.rec-head{
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:14px 22px;border-bottom:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);letter-spacing:.08em;
+}
+.rec-body{padding:24px 26px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.95;overflow-x:auto}
+.rec-body .u{color:var(--dim)}
+.rec-body .a{color:var(--star)}
+.rec-body .tool{color:var(--nebula2)}
+.rec-body .notec{
+  display:block;margin:10px 0;padding:12px 16px;border-left:2px solid var(--beacon);
+  background:#FF7A660f;border-radius:0 12px 12px 0;color:var(--dim);
+}
+.rec-body .notec .hd{color:var(--beacon);font-weight:700}
+.rec-body .notec .fresh{color:var(--fresh)}
+.rec-body .turn{color:var(--beacon);font-weight:700}
+.cap{margin-top:16px;font-size:14px;color:var(--dim);max-width:72ch;font-weight:300}
+
+/* sections */
+section{padding:88px 0 0}
+.kicker{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--nebula2);margin-bottom:12px}
+h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
+.sub{color:var(--dim);font-weight:300;max-width:64ch;margin-top:12px}
+
+/* quickstart */
+.qs{display:grid;grid-template-columns:1.2fr 1fr;gap:22px;margin-top:36px}
+@media(max-width:820px){.qs{grid-template-columns:1fr}}
+.term{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+.term-head{display:flex;gap:7px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.term-head i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.term-body{padding:20px 22px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.9;overflow-x:auto}
+.p::before{content:"$ ";color:var(--nebula2)}
+.o{color:var(--dim)}
+.hl{color:var(--fresh)}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+@media(max-width:820px){.phases{grid-template-columns:1fr}}
+.phase{
+  border:1px solid var(--line);border-radius:18px;padding:26px;background:var(--glass);backdrop-filter:blur(10px);
+  transition:transform .18s ease,border-color .18s ease;position:relative;
+}
+.phase:hover{transform:translateY(-4px)}
+.phase .tag{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.phase.a .tag{color:var(--dim)} .phase.a:hover{border-color:var(--dim)}
+.phase.b .tag{color:var(--fresh)} .phase.b:hover{border-color:var(--fresh)}
+.phase.c .tag{color:var(--beacon)} .phase.c:hover{border-color:var(--beacon)}
+.phase p{margin-top:14px;font-size:15px;color:var(--dim);font-weight:300}
+.phase p strong{color:var(--star)}
+.phase .verdict{margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
+.phase .verdict::before{content:"── ";color:var(--line)}
+
+/* mechanism */
+.mech{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+@media(max-width:960px){.mech{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.mech{grid-template-columns:1fr}}
+.m{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--panel)}
+.m .t{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--nebula2);display:block;margin-bottom:10px}
+.m p{font-size:14.5px;color:var(--dim);font-weight:300}
+.m p em{font-style:normal;color:var(--star)}
+
+/* neighbors */
+.rel{margin-top:36px;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:grid;grid-template-columns:180px 1fr 1fr;gap:0;border-top:1px solid var(--line)}
+.row:first-child{border-top:none}
+.row>div{padding:20px 22px;font-size:14.5px}
+.row .who{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--star);background:#0C122288}
+.row .them{color:var(--dim);font-weight:300;border-left:1px solid var(--line)}
+.row .us{color:var(--star);font-weight:300;border-left:1px solid var(--line);background:#7C6CFF0d}
+.row .us b{color:var(--nebula2);font-weight:600}
+@media(max-width:820px){.row{grid-template-columns:1fr}.row>div{border-left:none!important;border-top:1px dashed var(--line)}}
+
+/* footer */
+footer{margin-top:96px;border-top:1px solid var(--line);padding:44px 0 72px}
+.frow{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:baseline}
+footer,footer a{color:var(--dim);font-size:14px}
+footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="stars" id="stars" aria-hidden="true"></div>
+
+<header>
+  <div class="wrap mast">
+    <div class="wordmark">mem<b>way</b></div>
+    <nav>
+      <a href="#quickstart">Install</a>
+      <a href="#proof">Proof</a>
+      <a href="#how">How it works</a>
+      <a class="ghub" href="https://github.com/memway">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow"><i></i>MCP-native · AGPL · zero dependencies</div>
+    <h1>Your agents keep learning things.<br><span class="grad">Then the session ends.</span></h1>
+    <p class="thesis">A cache answers what the code <strong>is</strong>. Memway remembers what you've <strong>learned</strong> about it — stamped against the code itself, checked for staleness, delivered to the next agent at the moment it's about to matter.</p>
+    <div class="cta">
+      <a class="btn primary" href="#quickstart">pip install memway</a>
+      <a class="btn" href="https://github.com/memway">Read the source</a>
+    </div>
+
+    <div class="handoff" aria-label="A note written in one session is carried to a later session">
+      <span class="sess dead"><i></i>session 01f09ab — ended</span>
+      <span class="carry"></span>
+      <span class="sess live"><i></i>session 49e66a2 — fresh, zero context</span>
+    </div>
+
+    <div class="rec">
+      <div class="rec-head"><span>the moment it works</span><span>memway_before_edit · .coord/meta</span></div>
+      <div class="rec-body">
+<span class="u">&gt; Bursts feel too restrictive. Widen the burst window to 30 seconds.</span><br>
+<span class="a">⏺ I'll help you widen the burst window to 30 seconds.</span><br>
+<span class="tool">⏺ memway_before_edit(ref: "ratelimit.refill_bucket")</span>
+<span class="notec"><span class="hd">◆ inherited note</span> · author: agent · session 01f09ab (ended) · stamp: <span class="fresh">fresh</span><br>
+"BURST_WINDOW must stay 10s — billing reconciles in 10-second buckets; INC-42 was caused by exactly this change. Use allowance multipliers instead."</span>
+<span class="turn">⏺ I found important constraints on this change.</span><br>
+<span class="a">&nbsp;&nbsp;The window stays at 10s. If users need more burst capacity, the<br>
+&nbsp;&nbsp;correct fix is a per-user allowance multiplier. Proceed anyway?</span>
+      </div>
+    </div>
+    <p class="cap">A real record. The agent that wrote the note no longer exists. The agent that received it had never seen the repo — and it opened this conversation intending to comply. The note crossed the session boundary and stopped the exact incident it records.</p>
+  </div>
+
+  <section id="quickstart">
+    <div class="kicker">Quickstart</div>
+    <h2>Five minutes to a repo that remembers</h2>
+    <p class="sub">Zero runtime dependencies — stdlib only. One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
+    <div class="qs">
+      <div class="term">
+        <div class="term-head"><i></i><i></i><i></i></div>
+        <div class="term-body">
+<span class="p">pip install memway</span><br>
+<span class="p">cd your-repo && memway setup .</span><br>
+<span class="o">initialized .coord — 369 entities, 1,137 edges</span><br>
+<span class="o">wrote .mcp.json <span class="hl">(agent wiring)</span></span><br>
+<span class="o">wrote CLAUDE.md <span class="hl">(the three measured rules)</span></span>
+        </div>
+      </div>
+      <div class="term">
+        <div class="term-head"><i></i><i></i><i></i></div>
+        <div class="term-body">
+<span class="o">&gt; What does this repo know?</span><br><br>
+The answer starts empty.<br>
+Every session after this one,<br>
+it won't be.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="proof">
+    <div class="kicker">The evidence</div>
+    <h2>Built on an experiment, not a pitch</h2>
+    <p class="sub">Same task, same model, a repo the system had never seen — implement a feature from a design doc containing a constraint whose <em style="font-style:normal;color:var(--star)">why</em> the code cannot express. Session boundaries verified by log.</p>
+    <div class="phases">
+      <div class="phase a">
+        <span class="tag">Phase A — unconfigured</span>
+        <p>The agent read the design doc, understood it perfectly, implemented it correctly — and recorded the reason <strong>nowhere</strong>. No comment. No note. Tool log: empty.</p>
+        <div class="verdict">context evaporates</div>
+      </div>
+      <div class="phase b">
+        <span class="tag">Phase B — three rules</span>
+        <p>Same task, fresh agent, plus the three-line rule file <strong>setup</strong> installs. It briefed itself before editing, verified after — and wrote the constraint to the coordinate where the logic lives.</p>
+        <div class="verdict">the memory fills itself</div>
+      </div>
+      <div class="phase c">
+        <span class="tag">Phase C — the trap</span>
+        <p>A third agent — provably a new process — was asked for exactly the change that caused the incident. It <strong>intended to comply</strong>. The inherited note turned it around mid-task.</p>
+        <div class="verdict">memory intercepts the mistake</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="kicker">Mechanism</div>
+    <h2>Small primitives that compose</h2>
+    <p class="sub">Everything persisted is plain, greppable JSONL under <code>.coord/</code>. Commit it, and teammates clone the repo <em style="font-style:normal;color:var(--star)">with its memory</em>.</p>
+    <div class="mech">
+      <div class="m"><span class="t">coordinates + lineage</span><p>Durable identity through renames and refactors — <em>100% on ground truth, 0.995+ precision on foreign repos, zero tuning.</em> We renamed this entire product; the memory followed.</p></div>
+      <div class="m"><span class="t">stamped knowledge</span><p>Notes and confirmations attach to coordinates, stamped with the code's logic hash. When logic changes, the entry is <em>flagged stale</em> instead of silently lying.</p></div>
+      <div class="m"><span class="t">before_edit briefings</span><p>Complexity, callers, blast radius, and inherited knowledge — delivered <em>at the moment of intent</em>, on the exact entity.</p></div>
+      <div class="m"><span class="t">token economy</span><p>The map returns coordinates <em>into</em> files, never copies of them: <em>56–472× measured savings.</em> Agents use it to aim surgical reads.</p></div>
+      <div class="m"><span class="t">verified changes</span><p>Test selection from the real edge graph — run what your edit <em>actually touches</em>, grounded, not guessed.</p></div>
+      <div class="m"><span class="t">local & transparent</span><p><em>No telemetry. No phone-home. Ever.</em> The usage log is local-only and reference-only — an instrument for you, not a feed for us.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Honest neighbors</div>
+    <h2>This space is getting good</h2>
+    <p class="sub">Here's the map of it — and the coordinate Memway holds.</p>
+    <div class="rel">
+      <div class="row">
+        <div class="who">codebase graphs</div>
+        <div class="them">The best graph tools answer what your code is right now, across 150+ languages. Excellent maps.</div>
+        <div class="us">A refactor there is a delete and an add. Here it's <b>the same entity</b> — history and knowledge intact.</div>
+      </div>
+      <div class="row">
+        <div class="who">session recorders</div>
+        <div class="them">Event logs of what agents did — prompts, edits, commands — indexed by session and file.</div>
+        <div class="us">File-indexed logs go stale silently when code moves. Knowledge here <b>rides identity</b> and audits its own freshness.</div>
+      </div>
+      <div class="row">
+        <div class="who">mem-* agent memory</div>
+        <div class="them">Long-term memory for AI agents: users, preferences, conversations.</div>
+        <div class="us">Those tools remember your conversations. <b>Memway remembers your codebase.</b></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="frow">
+      <span class="mono" style="color:var(--star);font-weight:700">memway</span>
+      <span><a href="https://github.com/memway">GitHub</a> · <a href="https://pypi.org/project/memway/">PyPI</a> · AGPL-3.0</span>
+    </div>
+    <p class="fine">Young tool, tested hard in a narrow way. Known limits ship in the repo — including the time an agent's recovery instinct was to delete the memory, and what we changed because of it. No features are planned until real usage asks for them; the usage log exists so that answer comes from evidence.</p>
+  </div>
+</footer>
+
+<script>
+// starfield — deterministic-ish scatter, cheap
+const s=document.getElementById('stars');
+for(let i=0;i<90;i++){
+  const d=document.createElement('i');
+  d.style.left=(Math.random()*100)+'vw';
+  d.style.top=(Math.random()*100)+'vh';
+  d.style.animationDuration=(3+Math.random()*4)+'s';
+  s.appendChild(d);
+}
+</script>
+</body>
+</html>
