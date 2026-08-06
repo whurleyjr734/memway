@@ -135,9 +135,17 @@ def summary(repo: str) -> dict:
     # the entity's current logic_hash or body_hash. Channel discovery is
     # per-directory (f.stem), not the CHANNELS tuple, so channels added
     # later (e.g. confirm) are censused without touching this code.
+    #
+    # Distinction: coordinates that don't resolve to live entities fall
+    # into two classes - superseded (their knowledge migrated to a
+    # successor in the lineage chain) vs orphaned (genuinely lost, no
+    # successor). Superseded coordinates are excluded from totals to
+    # prevent double-counting migration receipts.
+    vs = VersionStore(coord)
     chan_counts = Counter()
     know = []
     total_entries = 0
+    superseded_count = 0
     if meta.root.exists():
         for cdir in sorted(meta.root.iterdir()):
             if not cdir.is_dir():
@@ -152,12 +160,25 @@ def summary(repo: str) -> dict:
                 if not entries:
                     continue
                 channels.append(f.stem)
-                chan_counts[f.stem] += len(entries)
                 n_here += len(entries)
                 if any(en.get("stale") for en in entries):
                     any_stale = True
             if not n_here:
                 continue
+            # If coordinate doesn't resolve, check if it's superseded
+            if not e:
+                # Check lineage for a successor: cid in any "old" list
+                has_successor = any(cid in entry.get("old", [])
+                                   for entry in vs.read())
+                if has_successor:
+                    # Superseded: exclude from totals, don't add to know list
+                    superseded_count += 1
+                    continue
+            # Live entity or orphaned: count it
+            for f in sorted(cdir.glob("*.jsonl")):
+                entries = meta.read(cid, f.stem, accepted)
+                if entries:
+                    chan_counts[f.stem] += len(entries)
             total_entries += n_here
             know.append({
                 "coordinate": cid,
@@ -182,6 +203,7 @@ def summary(repo: str) -> dict:
             "total_entries": total_entries,
             "coordinates_with_knowledge": len(know),
             "by_channel": dict(chan_counts),
+            "superseded": superseded_count,
             "entries": know[:20],
         },
     }

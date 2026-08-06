@@ -205,6 +205,42 @@ def test_summary_knowledge_census(built):
     assert k2["entries"][0]["any_stale"] is True
 
 
+def test_census_superseded_vs_orphaned(built):
+    """Census distinguishes superseded (migrated) from orphaned (lost)
+    knowledge. A rename mints new coordinates and migrates metadata - the
+    old coordinate becomes superseded and must NOT inflate totals."""
+    # Attach knowledge to an entity
+    query.agent_meta(built, "sign", "notes", "test note on sign")
+    k1 = query.summary(built)["knowledge"]
+    initial_total = k1["total_entries"]
+    initial_notes = k1["by_channel"].get("notes", 0)
+
+    # Rename the entity (change function name in source)
+    p = Path(built) / "src" / "auth.py"
+    src = p.read_text()
+    src = src.replace("def sign(", "def sign_renamed(")
+    p.write_text(src)
+    cli.cmd_index(built)
+
+    # After rename: new coordinate with migrated knowledge + history receipt
+    k2 = query.summary(built)["knowledge"]
+    # Total should be initial + 1 history entry, NOT doubled
+    assert k2["total_entries"] == initial_total + 1
+    # Notes count unchanged (the original note, not duplicated)
+    assert k2["by_channel"].get("notes", 0) == initial_notes
+    # Should have 1 history entry (the migration receipt)
+    assert k2["by_channel"].get("history", 0) == 1
+    # Should report 1 superseded coordinate
+    assert k2["superseded"] == 1
+    # The old coordinate should NOT appear in the entries list
+    coords = [e["coordinate"] for e in k2["entries"]]
+    by_q = {e["qualname"]: e for e in k2["entries"] if e["qualname"]}
+    # New qualname should appear
+    assert "src.auth.sign_renamed" in by_q
+    # Old qualname should NOT appear
+    assert "src.auth.sign" not in by_q
+
+
 def test_flight_recorder_logs_tool_calls(built):
     """Every MCP tool call leaves one line in .coord/log/usage.jsonl:
     tool name, entity ref, ok flag, shared session id. Local-only,
