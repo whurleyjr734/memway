@@ -198,11 +198,16 @@ def handle(msg: dict, repo: str) -> dict | None:
         if not tool:
             return _error(id_, -32601, f"unknown tool {name!r}")
         import json as _json
+        from .flightlog import record
+        args = params.get("arguments", {})
         try:
-            data = tool["fn"](repo, params.get("arguments", {}))
+            data = tool["fn"](repo, args)
+            record(repo, name, args,
+                   ok=not (isinstance(data, dict) and "error" in data))
             return _result(id_, {"content": [
                 {"type": "text", "text": _json.dumps(data, indent=2)}]})
         except Exception as e:                       # never crash the agent
+            record(repo, name, args, ok=False)
             return _result(id_, {"content": [
                 {"type": "text",
                  "text": _json.dumps({"error": f"{type(e).__name__}: {e}"})}],

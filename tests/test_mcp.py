@@ -203,3 +203,31 @@ def test_summary_knowledge_census(built):
     assert by_q2["src.auth.sign"]["any_stale"] is True
     # stale coordinates sort first: the queue surfaces problems on top
     assert k2["entries"][0]["any_stale"] is True
+
+
+def test_flight_recorder_logs_tool_calls(built):
+    """Every MCP tool call leaves one line in .coord/log/usage.jsonl:
+    tool name, entity ref, ok flag, shared session id. Local-only,
+    reference-only (never payload text), and a failed lookup is
+    recorded ok=false - which tools fail is itself a pattern."""
+    def call(name, arguments):
+        return mcp.handle({"jsonrpc": "2.0", "id": 1,
+                           "method": "tools/call",
+                           "params": {"name": name,
+                                      "arguments": arguments}}, built)
+
+    call("coordsys_summary", {})
+    call("coordsys_show", {"ref": "sign"})
+    call("coordsys_show", {"ref": "no_such_entity_xyz"})
+
+    log = Path(built) / ".coord" / "log" / "usage.jsonl"
+    assert log.exists()
+    lines = [json.loads(l) for l in log.read_text().splitlines()]
+    assert [l["tool"] for l in lines] == [
+        "coordsys_summary", "coordsys_show", "coordsys_show"]
+    assert lines[1]["ref"] == "sign"
+    assert [l["ok"] for l in lines] == [True, True, False]
+    assert len({l["session"] for l in lines}) == 1
+    # reference-only contract: no payload text fields ever
+    assert all(set(l) <= {"ts", "session", "tool", "ref", "ok"}
+               for l in lines)
