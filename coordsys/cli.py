@@ -1,7 +1,11 @@
 """coordsys - a map of your codebase: coordinates, flow, and memory.
 
+Quickstart:  pip install coordsys && coordsys setup .
+             (builds the map, wires your agent, installs workflow rules)
+
 Workflow: grep finds it; coordsys explains it and remembers it.
 
+  coordsys setup [repo]                 one-command onboarding (see above)
   coordsys init <repo>                  build/refresh the map
   coordsys index <repo>                 re-index (incremental)
   coordsys harvest <repo>               mine docstrings + git history
@@ -9,11 +13,12 @@ Workflow: grep finds it; coordsys explains it and remembers it.
   coordsys show <repo> <ref>            entity dossier: edges + knowledge
   coordsys meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
   coordsys lineage <repo> [ref]         identity history through renames
+  coordsys mcp [repo]                   run the MCP server (agent wiring)
   coordsys --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
-  claude mcp add coordsys -- python3 -m coordsys.mcp <repo>
+  claude mcp add coordsys -- coordsys mcp .
 """
 
 import json
@@ -209,10 +214,79 @@ def cmd_harvest(repo):
     print("(provenance-tagged; re-running skips already-mined entries)")
 
 
+# The three measured rules (Phase B of the write-back experiment):
+# unconfigured agents execute perfectly and remember nothing; these
+# lines convert that into before-edit briefings, verified changes,
+# and reasons that outlive the session. Exact tool names matter -
+# agents should not have to guess (finding #14).
+_AGENT_RULES = """\
+# Project rules
+
+This repo uses coordsys (MCP tools prefixed `coordsys_`) as its
+memory layer.
+
+- Before editing any function or class, call `coordsys_before_edit`
+  on it and heed any attached knowledge.
+- After completing changes, call `coordsys_verify_change` to confirm
+  impact.
+- When a task, design doc, or conversation supplies a REASON a piece
+  of code is the way it is (constraints, incidents, tuning
+  rationale), record that reason with `coordsys_meta` on the relevant
+  entity - reasons must outlive this session.
+"""
+
+# Portable wiring: relies on the `coordsys` console script being on
+# PATH and on agents launching MCP servers with cwd = repo root, so
+# the file survives clones and moves (no absolute paths, no venv
+# paths). This is what lets a committed map travel with the repo.
+_MCP_JSON = {
+    "mcpServers": {
+        "coordsys": {"command": "coordsys", "args": ["mcp", "."]}
+    }
+}
+
+
+def cmd_setup(repo="."):
+    """One-command onboarding: map + agent wiring + workflow rules.
+    Idempotent - never overwrites files the user already has."""
+    repo_p = Path(repo).resolve()
+    if (repo_p / ".coord").exists():
+        print(f"map exists at {repo_p / '.coord'} - leaving it")
+    else:
+        cmd_init(repo)
+    mcp_file = repo_p / ".mcp.json"
+    if mcp_file.exists():
+        print(".mcp.json exists - leaving it")
+    else:
+        mcp_file.write_text(json.dumps(_MCP_JSON, indent=2) + "\n")
+        print("wrote .mcp.json (agent server wiring)")
+    rules = repo_p / "CLAUDE.md"
+    if rules.exists():
+        print("CLAUDE.md exists - leaving it "
+              "(coordsys rules: see `coordsys` usage text)")
+    else:
+        rules.write_text(_AGENT_RULES)
+        print("wrote CLAUDE.md (the three measured workflow rules)")
+    print("\nnext steps:")
+    print("  1. restart your agent in this directory "
+          "(it will pick up .mcp.json)")
+    print('  2. ask it: "what does this repo know?"')
+
+
+def cmd_mcp(repo="."):
+    """Run the MCP server (what .mcp.json launches)."""
+    from . import mcp as _mcp_mod
+    if not (Path(repo) / ".coord").exists():
+        sys.stderr.write(f"coordsys: no index at {repo}; "
+                         f"run 'coordsys init {repo}' first\n")
+        sys.exit(1)
+    _mcp_mod.serve(repo)
+
+
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
-    "at": cmd_at,
+    "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
 }
 
 
@@ -238,7 +312,7 @@ def main():
             print(_json.dumps({"error": f"{type(e).__name__}: {e}"}))
             sys.exit(1)
         return
-    if len(args) < 2 or args[0] not in COMMANDS:
+    if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
     COMMANDS[args[0]](*args[1:])
