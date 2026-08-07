@@ -62,15 +62,62 @@ def test_show_unknown_ref_is_error_not_exception(built):
     assert "error" in d
 
 
-def test_hybrid_ref_resolution(built):
-    """Hybrid refs like 'auth.py:sign' should resolve to entities in that file."""
-    d = query.show(built, "auth.py:sign")
+def test_hybrid_ref_resolution(tmp_path):
+    """Hybrid refs: basic resolution, exact beats suffix, shortest wins ties."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "__init__.py").write_text("")
+    # Basic hybrid ref test: simple function
+    (tmp_path / "src" / "auth.py").write_text('''"""Auth."""
+
+def sign(request, key):
+    """Attach credentials to an outgoing request."""
+    return request
+''')
+    # File with both a function "check" and a method "Validator.check"
+    (tmp_path / "src" / "validator.py").write_text('''
+def check(value):
+    """Top-level check function."""
+    return True
+
+class Validator:
+    def check(self, value):
+        """Method check."""
+        return False
+''')
+    # File with nested classes, all having a "run" method
+    (tmp_path / "src" / "runner.py").write_text('''
+class Task:
+    def run(self):
+        pass
+
+class Job:
+    class Inner:
+        def run(self):
+            pass
+''')
+    cli.cmd_init(str(tmp_path))
+
+    # Basic: "auth.py:sign" resolves
+    d = query.show(str(tmp_path), "auth.py:sign")
     assert "error" not in d
     assert d["qualname"].endswith(".sign")
     # Also test with path prefix
-    d2 = query.show(built, "src/auth.py:sign")
+    d2 = query.show(str(tmp_path), "src/auth.py:sign")
     assert "error" not in d2
     assert d2["qualname"].endswith(".sign")
+
+    # Exact beats suffix: "validator.py:check" should resolve to the shorter
+    # "src.validator.check" (exact function) not "src.validator.Validator.check"
+    d3 = query.show(str(tmp_path), "validator.py:check")
+    assert "error" not in d3
+    assert d3["qualname"] == "src.validator.check"
+    assert d3["kind"] == "function"
+
+    # Deterministic shortest wins: both "src.runner.Task.run" and
+    # "src.runner.Job.Inner.run" match "run" exactly; shortest wins
+    d4 = query.show(str(tmp_path), "runner.py:run")
+    assert "error" not in d4
+    assert d4["qualname"] == "src.runner.Task.run"
 
 
 def test_error_payload_contains_closest_and_hint(built):

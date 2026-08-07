@@ -539,25 +539,33 @@ class Indexer:
         path component ending in .py and resolve the remainder against
         qualnames in that file's module."""
         # Hybrid ref support: "ratelimit.py:refill_bucket" or "path/ratelimit.py:refill_bucket"
+        # Tiered matching: exact last-component beats suffix; shortest qualname wins ties.
         if ":" in ref and ref.count(":") == 1:
             path_part, name_part = ref.split(":", 1)
             # If path_part ends with .py, treat as hybrid ref
             if path_part.endswith(".py"):
                 # Strip leading path components to get just the filename
                 filename = path_part.split("/")[-1]
-                # Find the module for this file
-                module_name = filename[:-3]  # remove .py
-                # Try to find entities in this module
+                # Collect all entities in the matching file
+                exact_matches = []
+                suffix_matches = []
                 for q, cid in self.by_qualname.items():
                     e = self.entities[cid]
                     # Check if this entity's path matches the filename
                     if e.path.endswith(path_part) or e.path.endswith(filename):
-                        # Try to match the name part as a suffix of the qualname
-                        if q.endswith(name_part) or q.endswith("." + name_part):
-                            return e
-                        # Also try exact match on the last component
+                        # Tier 1: exact last-component match
                         if q.rsplit(".", 1)[-1] == name_part:
-                            return e
+                            exact_matches.append((len(q), q, cid))
+                        # Tier 2: suffix match (but not already exact)
+                        elif q.endswith(name_part) or q.endswith("." + name_part):
+                            suffix_matches.append((len(q), q, cid))
+                # Prefer exact matches, then suffix matches; shortest qualname wins
+                if exact_matches:
+                    exact_matches.sort()  # sort by (length, qualname, cid)
+                    return self.entities[exact_matches[0][2]]
+                if suffix_matches:
+                    suffix_matches.sort()
+                    return self.entities[suffix_matches[0][2]]
                 # If no match found with hybrid ref, fall through to normal resolution
 
         if ref in self.entities:
