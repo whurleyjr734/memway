@@ -63,6 +63,27 @@ def _entity_dict(e, meta=None) -> dict:
     return d
 
 
+def _resolve_error(ref: str, ix) -> dict:
+    """Generate an actionable error when ref doesn't resolve.
+    Returns top-3 fuzzy qualname matches and a hint on how to resolve."""
+    from difflib import SequenceMatcher
+
+    # Find fuzzy matches
+    all_qualnames = list(ix.by_qualname.keys())
+    scored = []
+    for qn in all_qualnames:
+        ratio = SequenceMatcher(None, ref, qn).ratio()
+        scored.append((ratio, qn))
+    scored.sort(reverse=True)
+    closest = [qn for _, qn in scored[:3]]
+
+    return {
+        "error": f"no entity matches {ref!r}",
+        "closest": closest,
+        "hint": "try memway_at <file:line> or a bare function name"
+    }
+
+
 # --------------------------------------------------------------- queries
 
 def show(repo: str, ref: str) -> dict:
@@ -72,7 +93,7 @@ def show(repo: str, ref: str) -> dict:
     _, _, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
-        return {"error": f"no entity matches {ref!r}"}
+        return _resolve_error(ref, ix)
     out = _entity_dict(e, meta)
     rel = []
     for edge in neighbors(edges, e.coord_id):
@@ -221,7 +242,7 @@ def before_edit(repo: str, ref: str) -> dict:
     repo_p, coord, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
-        return {"error": f"no entity matches {ref!r}"}
+        return _resolve_error(ref, ix)
 
     ms = MetricsStore(coord)
     ms.load()
@@ -570,7 +591,7 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     repo_p, coord, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
-        return {"error": f"no entity matches {ref!r}"}
+        return _resolve_error(ref, ix)
     # stamp with logic_hash: the note survives comment/docstring edits and
     # flags stale only when BEHAVIOR changes (falls back to body hash)
     meta.add(e.coord_id, channel, text, author=author,

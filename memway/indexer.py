@@ -533,7 +533,33 @@ class Indexer:
         """Resolve a coordinate ID or qualname (or suffix of one).
         Phase A: suffix lookups go through a last-segment index instead
         of scanning all qualnames (O(1) vs O(entities) per call - the
-        difference between 45s and unbounded on 59k-entity repos)."""
+        difference between 45s and unbounded on 59k-entity repos).
+
+        Hybrid refs (file.py:name or path/file.py:name): strip the leading
+        path component ending in .py and resolve the remainder against
+        qualnames in that file's module."""
+        # Hybrid ref support: "ratelimit.py:refill_bucket" or "path/ratelimit.py:refill_bucket"
+        if ":" in ref and ref.count(":") == 1:
+            path_part, name_part = ref.split(":", 1)
+            # If path_part ends with .py, treat as hybrid ref
+            if path_part.endswith(".py"):
+                # Strip leading path components to get just the filename
+                filename = path_part.split("/")[-1]
+                # Find the module for this file
+                module_name = filename[:-3]  # remove .py
+                # Try to find entities in this module
+                for q, cid in self.by_qualname.items():
+                    e = self.entities[cid]
+                    # Check if this entity's path matches the filename
+                    if e.path.endswith(path_part) or e.path.endswith(filename):
+                        # Try to match the name part as a suffix of the qualname
+                        if q.endswith(name_part) or q.endswith("." + name_part):
+                            return e
+                        # Also try exact match on the last component
+                        if q.rsplit(".", 1)[-1] == name_part:
+                            return e
+                # If no match found with hybrid ref, fall through to normal resolution
+
         if ref in self.entities:
             return self.entities[ref]
         if ref in self.by_qualname:

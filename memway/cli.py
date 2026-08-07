@@ -226,7 +226,10 @@ This repo uses memway (MCP tools prefixed `memway_`) as its
 memory layer.
 
 - Before editing any function or class, call `memway_before_edit`
-  on it and heed any attached knowledge.
+  on it and heed any attached knowledge. If `memway_before_edit`
+  returns an error, do NOT edit - resolve the ref first (try a
+  bare function name, module.qualname, or memway_at <file:line>)
+  and retry before_edit.
 - After completing changes, call `memway_verify_change` to confirm
   impact.
 - When a task, design doc, or conversation supplies a REASON a piece

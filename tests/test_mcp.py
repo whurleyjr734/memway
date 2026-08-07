@@ -62,6 +62,28 @@ def test_show_unknown_ref_is_error_not_exception(built):
     assert "error" in d
 
 
+def test_hybrid_ref_resolution(built):
+    """Hybrid refs like 'auth.py:sign' should resolve to entities in that file."""
+    d = query.show(built, "auth.py:sign")
+    assert "error" not in d
+    assert d["qualname"].endswith(".sign")
+    # Also test with path prefix
+    d2 = query.show(built, "src/auth.py:sign")
+    assert "error" not in d2
+    assert d2["qualname"].endswith(".sign")
+
+
+def test_error_payload_contains_closest_and_hint(built):
+    """When ref doesn't resolve, error should include fuzzy matches and hint."""
+    d = query.show(built, "does_not_exist")
+    assert "error" in d
+    assert "closest" in d
+    assert isinstance(d["closest"], list)
+    assert len(d["closest"]) == 3
+    assert "hint" in d
+    assert "memway_at" in d["hint"]
+
+
 def test_query_on_missing_index_returns_error(tmp_path):
     assert "error" in query.summary(str(tmp_path / "nope"))
 
