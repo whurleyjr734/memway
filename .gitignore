@@ -17,3 +17,4 @@ build/
 # usage log is personal-machine data, not team knowledge:
 .coord/log/
 .coord/versions/
+.mcp.json
