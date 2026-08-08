@@ -1,0 +1,1 @@
+{"ts": "2026-08-08T05:36:40Z", "author": "human", "text": "reviewed 2026-08-07: added js_sig() and leading_doc() helpers; walk logic and existing inline comments remain accurate. Signature/doc extraction is stated in the class docstring.", "body_hash": "c072941f8d2324a9"}

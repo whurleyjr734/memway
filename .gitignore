@@ -16,3 +16,4 @@ build/
 .coord/cache/
 # usage log is personal-machine data, not team knowledge:
 .coord/log/
+.coord/versions/
