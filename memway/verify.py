@@ -27,10 +27,34 @@ from collections import deque
 from pathlib import Path
 
 
+_TEST_FILE = {
+    ".py":   lambda n: n.startswith("test_") or n.endswith("_test.py"),
+    ".go":   lambda n: n.endswith("_test.go"),
+    ".js":   lambda n: ".test." in n or ".spec." in n,
+    ".jsx":  lambda n: ".test." in n or ".spec." in n,
+    ".ts":   lambda n: ".test." in n or ".spec." in n,
+    ".tsx":  lambda n: ".test." in n or ".spec." in n,
+    ".java": lambda n: n.endswith("Test.java") or n.endswith("Tests.java"),
+}
+
+_RUNNER = {".go": "go test", ".js": "node", ".jsx": "node", ".ts": "node",
+           ".tsx": "node", ".java": "junit"}
+
+
 def _is_test_entity(e) -> bool:
+    """Is this entity part of a test source, in ANY supported language?
+
+    This was path-only ("tests"/"test" dir, or a test_ prefix), which are
+    Python conventions: Go's foo_test.go and TS's foo.spec.ts never
+    matched. A change to Go code therefore reported "0 test(s) reached via
+    graph edges" - an answer shaped like "nothing covers this" - while the
+    graph itself held the covering edge TestClampBounds -> clamp.
+    """
     p = Path(e.path)
-    return any(part in ("tests", "test") for part in p.parts) \
-        or p.name.startswith("test_")
+    if any(part in ("tests", "test", "__tests__") for part in p.parts):
+        return True
+    pat = _TEST_FILE.get(p.suffix)
+    return bool(pat and pat(p.name))
 
 
 def _is_runnable_test(e, repo_root: Path) -> bool:
@@ -45,8 +69,10 @@ def _is_runnable_test(e, repo_root: Path) -> bool:
     """
     if e.kind not in ("function", "method") or not _is_test_entity(e):
         return False
-    name = Path(e.path).name
-    if not (name.startswith("test_") or name.endswith("_test.py")):
+    p = Path(e.path)
+    if p.suffix != ".py":
+        return False              # pytest is the only runner we shell out to
+    if not (p.name.startswith("test_") or p.name.endswith("_test.py")):
         return False                                   # python_files
     parts = _pytest_node(e, repo_root).split("::")[1:]
     if not parts or not parts[-1].startswith("test"):
@@ -109,11 +135,23 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
                 q.append((n, d + 1))
 
     grounded, grounded_files = [], set()
+    other_language = []
     for cid in seen:
         e = ents.get(cid)
-        if e and _is_runnable_test(e, repo_root):
+        if not e or e.kind not in ("function", "method") \
+                or not _is_test_entity(e):
+            continue
+        if _is_runnable_test(e, repo_root):
             grounded.append(_pytest_node(e, repo_root))
             grounded_files.add(e.path)
+        elif Path(e.path).suffix != ".py":
+            # Reached through real edges, but we have no runner for it.
+            # Reporting it is the whole point: silently dropping these is
+            # how "0 tests reached" comes to mean "no coverage exists"
+            # when the graph in fact proved coverage does.
+            other_language.append({
+                "test": e.qualname, "path": e.path,
+                "runner": _RUNNER.get(Path(e.path).suffix, "unknown")})
 
     # name-hit tier: test files mentioning a changed entity's short name
     # with no resolved edge into the impact set. A guess - and labeled one.
@@ -121,7 +159,10 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
               for c in changed_ids if c in ents}
     shorts = {s for s in shorts if len(s) > 3}          # skip noise names
     name_hit = set()
-    test_files = {e.path for e in ents.values() if _is_test_entity(e)}
+    # .py only: name_hit files are handed to pytest verbatim below, and a
+    # non-Python path there is the same exit-4 abort that fixture ids caused.
+    test_files = {e.path for e in ents.values()
+                  if _is_test_entity(e) and Path(e.path).suffix == ".py"}
     for tf in test_files:
         if tf in grounded_files:
             continue
@@ -138,10 +179,15 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
         "tests": {
             "grounded": sorted(grounded),
             "name_hit": sorted(name_hit),
+            "other_language": sorted(other_language,
+                                     key=lambda t: t["test"]),
         },
         "note": (f"{len(grounded)} test(s) reached via graph edges; "
                  f"{len(name_hit)} file(s) selected by name only - "
-                 f"treat those as guesses"),
+                 f"treat those as guesses"
+                 + (f"; {len(other_language)} covering test(s) in other "
+                    "languages were reached but CANNOT be run here - see "
+                    "tests.other_language" if other_language else "")),
     }
 
     if run and (grounded or name_hit):
