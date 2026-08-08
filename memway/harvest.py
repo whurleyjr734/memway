@@ -292,6 +292,13 @@ def harvest_docs(repo_root, ix, coord_dir):
     docs_dir = repo_root / "docs"
     if docs_dir.is_dir():
         for md in sorted(docs_dir.rglob("*.md")):
+            # Skip docs/**/examples/** - documentation OF the tool, not
+            # design docs GOVERNING entities. A repo publishing a site
+            # from /docs accumulates plenty of the former, and binding it
+            # dirties docbindings.json on every reindex, which teaches
+            # people to ignore a dirty map.
+            if "examples" in md.relative_to(docs_dir).parts[:-1]:
+                continue
             rel = str(md.relative_to(repo_root))
             try:
                 text = md.read_text()

@@ -96,3 +96,43 @@ def test_design_doc_binding_and_drift(tmp_path):
     b = query.before_edit(str(repo), "price")
     assert b["design_docs"][0]["status"] == "entity-changed-since-doc"
     assert any("GOVERNED BY" in w for w in b["warnings"])
+
+
+def test_examples_dir_is_not_scanned_for_design_bindings(tmp_path):
+    """docs/**/examples/** is documentation OF the tool, not design docs.
+
+    A repo publishing a site from /docs accumulates such files. Binding
+    them rewrites docbindings.json on every reindex, leaving a dirty map
+    in a clean tree - which teaches people to ignore a dirty map, the
+    opposite of what the map is for.
+    """
+    import json
+    repo = tmp_path / "r"; repo.mkdir()
+    (repo / "m.py").write_text(V1)
+
+    real = repo / "docs" / "design"; real.mkdir(parents=True)
+    (real / "001-pricing.md").write_text(
+        "# Pricing\nThe `m.price` function implements the flat model.\n")
+    # both shapes the fix must exclude
+    ex = repo / "docs" / "examples"; ex.mkdir(parents=True)
+    (ex / "README.md").write_text(
+        "# Example\nWire it up around `m.price` like this.\n")
+    nested = repo / "docs" / "guides" / "examples"; nested.mkdir(parents=True)
+    (nested / "hooks.md").write_text(
+        "# Hook example\nSee `m.price` for the shape.\n")
+
+    _idx(repo)
+    b = query.before_edit(str(repo), "price")   # triggers harvest_docs
+    assert b["design_docs"] == [
+        {"doc": "docs/design/001-pricing.md", "status": "fresh"}]
+    bindings = json.loads((repo / ".coord" / "docbindings.json").read_text())
+    bound = set(bindings)
+    assert "docs/design/001-pricing.md" in bound, "real design docs still bind"
+    assert not [p for p in bound if "examples" in p], f"examples bound: {bound}"
+
+    # the reported symptom: a second reindex must not rewrite the file
+    before = (repo / ".coord" / "docbindings.json").read_bytes()
+    _idx(repo)
+    query.before_edit(str(repo), "price")
+    assert (repo / ".coord" / "docbindings.json").read_bytes() == before, \
+        "reindex rewrote docbindings.json - the map dirties on every index"
