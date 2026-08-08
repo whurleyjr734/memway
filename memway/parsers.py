@@ -27,6 +27,10 @@ class RawEntity:
     short_name: str    # for shape-hash rename detection
     signature: str = ""
     parent_qualname: str = ""
+    doc: str = ""      # leading doc comment. Brace-family languages put
+                       # documentation ABOVE the declaration, so unlike a
+                       # Python docstring it is not inside body_text and
+                       # has to be carried out of the parser explicitly.
 
 
 @dataclass
@@ -212,6 +216,10 @@ class PythonParser(LanguageParser):
 # --------------------------------------------------------------------------
 
 class JavaScriptParser(LanguageParser):
+    """JS/TS extraction: declarations, classes, methods, arrow functions,
+    imports and call edges - plus each entity's signature and its leading
+    doc comment, which TS puts above the declaration rather than inside
+    the body the way Python does."""
     extensions = (".js", ".mjs", ".jsx")
     language = "javascript"
 
@@ -240,6 +248,34 @@ class JavaScriptParser(LanguageParser):
                     return node_text(c)
             return None
 
+        def leading_doc(n):
+            """Contiguous comment lines immediately above a declaration."""
+            out, line, pv = [], n.start_point[0], n.prev_sibling
+            while pv is not None and pv.type == "comment" \
+                    and pv.end_point[0] >= line - 1:
+                out.append(node_text(pv))
+                line, pv = pv.start_point[0], pv.prev_sibling
+            return "\n".join(reversed(out))
+
+        def js_sig(n, nm, value=None):
+            """name(params): ret - the caller-visible contract.
+
+            The TypeScript grammar exposes return_type; plain JS simply has
+            none, so the annotation is included when the source declares it
+            and omitted when it does not. Without this the whole .js/.ts
+            tier carries signature="" and before_edit cannot describe an
+            entity it is briefing you on.
+            """
+            src = value if value is not None else n
+            params = src.child_by_field_name("parameters")
+            if params is None:
+                params = src.child_by_field_name("parameter")
+            out = nm + (node_text(params) if params is not None else "()")
+            ret = src.child_by_field_name("return_type")
+            if ret is not None:
+                out += node_text(ret)
+            return " ".join(out.split())
+
         def walk(node, parent_qual, in_class):
             for c in node.children:
                 t = c.type
@@ -250,7 +286,8 @@ class JavaScriptParser(LanguageParser):
                         entities.append(RawEntity(
                             "function", q, c.start_point[0] + 1,
                             c.end_point[0] + 1,
-                            node_text(c), nm, parent_qualname=parent_qual))
+                            node_text(c), nm, signature=js_sig(c, nm),
+                            doc=leading_doc(c), parent_qualname=parent_qual))
                         walk(c, q, False)
                         continue
                 elif t == "class_declaration":
@@ -270,7 +307,8 @@ class JavaScriptParser(LanguageParser):
                         entities.append(RawEntity(
                             "method", q, c.start_point[0] + 1,
                             c.end_point[0] + 1,
-                            node_text(c), nm, parent_qualname=parent_qual))
+                            node_text(c), nm, signature=js_sig(c, nm),
+                            doc=leading_doc(c), parent_qualname=parent_qual))
                         walk(c, q, False)
                         continue
                 elif t in ("lexical_declaration", "variable_declaration"):
@@ -287,6 +325,8 @@ class JavaScriptParser(LanguageParser):
                                     "function", q, c.start_point[0] + 1,
                                     c.end_point[0] + 1,
                                     node_text(c), nm,
+                                    signature=js_sig(c, nm, val),
+                                    doc=leading_doc(c),
                                     parent_qualname=parent_qual))
                                 walk(val, q, False)
                 walk(c, parent_qual, in_class)
@@ -410,7 +450,9 @@ class TypeScriptParser(JavaScriptParser):
 
 class GoParser(LanguageParser):
     """Deep Go: functions, receiver-qualified methods (Type.Method),
-    structs/interfaces, imports, call edges."""
+    structs/interfaces, imports, call edges. Each callable also carries
+    its `name(params) result` signature and the doc comment block
+    immediately above its declaration."""
     extensions = (".go",)
     language = "go"
 
@@ -432,6 +474,29 @@ class GoParser(LanguageParser):
             return source[n.start_byte:n.end_byte].decode(
                 errors="replace")
 
+        def leading_doc(n, txt):
+            """Contiguous comment lines immediately above a declaration."""
+            out, line, pv = [], n.start_point[0], n.prev_sibling
+            while pv is not None and pv.type == "comment" \
+                    and pv.end_point[0] >= line - 1:
+                out.append(txt(pv))
+                line, pv = pv.start_point[0], pv.prev_sibling
+            return "\n".join(reversed(out))
+
+        def sig(n, nm):
+            """name(params) result - the caller-visible contract.
+
+            Without this every Go entity carries signature="", so a
+            before_edit briefing cannot state what the function takes or
+            returns and the agent has to open the file anyway.
+            """
+            params = n.child_by_field_name("parameters")
+            out = ntext(nm) + (ntext(params) if params is not None else "()")
+            result = n.child_by_field_name("result")
+            if result is not None:
+                out += " " + ntext(result)
+            return " ".join(out.split())
+
         def add_calls(scope, n):
             if n.type == "call_expression":
                 fn = n.child_by_field_name("function")
@@ -449,7 +514,8 @@ class GoParser(LanguageParser):
                     q = f"{mod}.{ntext(nm)}"
                     ents.append(RawEntity("function", q,
                         n.start_point[0] + 1, n.end_point[0] + 1,
-                        ntext(n), ntext(nm)))
+                        ntext(n), ntext(nm), signature=sig(n, nm),
+                        doc=leading_doc(n, ntext)))
                     edges.append(RawEdge(mod, q, "contains"))
                     add_calls(q, n)
                 return
@@ -464,7 +530,8 @@ class GoParser(LanguageParser):
                          else f"{mod}.{ntext(nm)}")
                     ents.append(RawEntity("method", q,
                         n.start_point[0] + 1, n.end_point[0] + 1,
-                        ntext(n), ntext(nm)))
+                        ntext(n), ntext(nm), signature=sig(n, nm),
+                        doc=leading_doc(n, ntext)))
                     edges.append(RawEdge(mod, q, "contains"))
                     add_calls(q, n)
                 return
@@ -583,7 +650,9 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 2      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 3      # 2: scope-aware call resolution
+                              # 3: signatures + leading doc comments
+                              #    for go/js/ts entities
 
 PARSERS: dict[str, LanguageParser] = {}
 _PARSER_ERRORS: dict[str, str] = {}
