@@ -22,6 +22,40 @@ What does this repo know?
 
 The answer will be empty. Here's why that changes.
 
+## The three rules
+
+`setup` writes this `CLAUDE.md`. It is the entire configuration — the
+mechanism behind Phase B below, and the reason a map fills itself instead
+of sitting empty:
+
+```markdown
+# Project rules
+
+This repo uses memway (MCP tools prefixed `memway_`) as its
+memory layer.
+
+- Before editing any function or class, call `memway_before_edit`
+  on it and heed any attached knowledge. If `memway_before_edit`
+  returns an error, do NOT edit - resolve the ref first (try a
+  bare function name, module.qualname, or memway_at <file:line>)
+  and retry before_edit.
+- After completing changes, call `memway_verify_change` to confirm
+  impact.
+- When a task, design doc, or conversation supplies a REASON a piece
+  of code is the way it is (constraints, incidents, tuning
+  rationale), record that reason with `memway_meta` on the relevant
+  entity - reasons must outlive this session.
+```
+
+Three properties matter. Tool names are **exact** — agents that have to
+guess a name skip the call. The error branch is **explicit**, so a failed
+lookup stops the edit rather than silently proceeding without the
+briefing. And the write-back rule names *reasons*, not summaries: what
+the code cannot express on its own.
+
+If you already have a `CLAUDE.md`, `setup` leaves it alone and prints a
+notice — paste the three bullets in yourself.
+
 ## The experiment this is built on
 
 We gave a fresh coding agent the same task twice on a repo it had never seen: *implement a feature per the design doc*. The doc contained a constraint whose reason the code cannot express — a rate-limit window that must stay at 10 seconds because billing reconciles in 10-second buckets, learned the hard way in an incident.
@@ -43,14 +77,10 @@ Unconfigured agents execute perfectly and remember nothing. Three lines of confi
 - **Token economy.** The map returns coordinates *into* files, never copies *of* them — measured 56–472× token savings versus reading source. Agents use the map to aim surgical reads.
 - **Transparent by construction.** Everything persisted is plain, greppable JSONL under `.coord/`. The included usage log is local-only and reference-only: no telemetry, no phone-home, ever. Commit `.coord/` and your teammates — and their agents — clone the repo *with its memory*.
 
-## Related work
-
-[codebase-memory-mcp](https://github.com/deusdata/codebase-memory-mcp) is the strongest tool in this space — 158 languages, 15 MCP tools, excellent graph extraction, and it deserves its 32k stars. If you want the best possible *map* of what your code is right now, use it. memway is deliberately aimed at what a map cannot be: it keeps identity *through time* (their refactor is a delete + an add; ours is the same entity with its history and knowledge intact), and it holds *learned* knowledge — stamped, staleness-checked, agent-writable — rather than derived facts. The two are more complementary than competing.
-
 ## Honest limits
 
 This is a young tool that has been tested hard in a narrow way. Known limits, from our own findings ledger: scale is characterized to ~2.5K entities per repo (larger is unmeasured); Python is first-class while JS/TS/Go/Java parsing is optional (`pip install memway[languages]`); cyclomatic complexity is a triage input, not a risk verdict; knowledge quality over months of accumulation is unproven (staleness flags, the attention queue, and note scoping are the designed defenses); and the usage log's session id tracks server processes, not conversations. The full dogfooding ledger — including the time an agent's recovery instinct was to delete the memory, and what we changed because of it — ships in `docs/`.
 
 ## Status
 
-Built and dogfooded on itself: the map indexes memway, agents maintain memway through the map, and the lessons in the ledger were written into the map by the agents that learned them. 126 tests. AGPL-3.0. No features are planned until real usage asks for them — the usage log exists so that answer comes from evidence.
+Built and dogfooded on itself: the map indexes memway, agents maintain memway through the map, and the lessons in the ledger were written into the map by the agents that learned them. 133 tests. AGPL-3.0. No features are planned until real usage asks for them — the usage log exists so that answer comes from evidence.
