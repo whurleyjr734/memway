@@ -1,1 +1,1 @@
-{"ts": "2026-08-08T05:36:40Z", "author": "human", "text": "reviewed 2026-08-07: added extension dispatch to _c_style_comments; docstring updated to state it. Python tokenize path unchanged.", "body_hash": "4d637d8cadc7bed1"}
+{"ts": "2026-08-08T05:36:40Z", "author": "cli", "text": "reviewed 2026-08-07: added extension dispatch to _c_style_comments; docstring updated to state it. Python tokenize path unchanged.", "body_hash": "4d637d8cadc7bed1"}
