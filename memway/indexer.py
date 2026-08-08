@@ -190,7 +190,47 @@ def _annotations(body_text: str):
     return params, ret
 
 
-def _comments(body_text: str) -> list:
+_C_STYLE_EXTS = (".go", ".js", ".jsx", ".ts", ".tsx", ".java")
+
+
+def _c_style_comments(body_text: str) -> list:
+    """Harvest // and /* */ comments for brace-family languages.
+
+    Python's tokenize sees no COMMENT token in Go/TS/Java source, so
+    without this every non-Python entity harvests zero comments - and
+    since rot detection is gated on a non-empty comment list, the entire
+    non-Python tier is silently exempt from drift detection.
+    """
+    out, in_block = [], False
+    for i, line in enumerate(body_text.splitlines(), start=1):
+        s = line.strip()
+        if in_block:
+            text = s[:s.index("*/")] if "*/" in s else s
+            text = text.lstrip("*").strip()
+            if text:
+                out.append({"line": i, "text": text[:200], "kind": "comment"})
+            if "*/" in s:
+                in_block = False
+            continue
+        if s.startswith("/*"):
+            in_block = "*/" not in s
+            text = s[2:s.index("*/")] if "*/" in s else s[2:]
+            text = text.strip().lstrip("*").strip()
+            if text:
+                out.append({"line": i, "text": text[:200], "kind": "comment"})
+            continue
+        # only a line whose CODE part ends before the // counts; a // inside
+        # a string literal would otherwise be harvested as intent.
+        idx = s.find("//")
+        if idx >= 0 and s.count('"', 0, idx) % 2 == 0 \
+                and s.count("'", 0, idx) % 2 == 0:
+            text = s[idx + 2:].strip()
+            if text:
+                out.append({"line": i, "text": text[:200], "kind": "comment"})
+    return out
+
+
+def _comments(body_text: str, ext: str = ".py") -> list:
     """Harvest comments with entity-relative line numbers.
 
     Comments are the ORIGINAL edit-time intent capture - written at the
@@ -198,9 +238,14 @@ def _comments(body_text: str) -> list:
     (and therefore logic_hash) deliberately ignores. Harvesting them
     gives agents the line-level "why"; hashing them separately enables
     comment-rot detection (see Entity.comment_rot).
+
+    Dispatches on file extension: Python source goes through tokenize
+    plus its docstring, brace-family source through _c_style_comments.
     """
     import io as _io
     import tokenize as _tk
+    if ext in _C_STYLE_EXTS:
+        return _c_style_comments(body_text)
     out = []
     try:
         for tok in _tk.generate_tokens(_io.StringIO(body_text).readline):
@@ -447,7 +492,15 @@ class Indexer:
             shape_hash = _structure_hash(re_.body_text, re_.short_name)
             logic_hash = _logic_hash(re_.body_text)
             p_types, r_type = _annotations(re_.body_text)
-            cmts = _comments(re_.body_text)
+            cmts = _comments(re_.body_text, Path(rel).suffix)
+            # the leading doc block sits ABOVE the declaration, so it is not
+            # in body_text; line 0 marks it as preceding the entity.
+            _doc = getattr(re_, "doc", "")
+            if _doc:
+                _dt = " ".join(c["text"] for c in _c_style_comments(_doc))
+                if _dt:
+                    cmts.insert(0, {"line": 0, "text": _dt[:200],
+                                    "kind": "docstring"})
             c_hash = hashlib.sha256(
                 "\n".join(c["text"] for c in cmts).encode()
             ).hexdigest()[:16] if cmts else ""
