@@ -12,6 +12,7 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway at <repo> <file:line>        grep hit -> entity (the handoff)
   memway show <repo> <ref>            entity dossier: edges + knowledge
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
+                                        [--author WHO] (default: cli)
   memway lineage <repo> [ref]         identity history through renames
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
@@ -151,7 +152,16 @@ def cmd_show(repo, ref):
                   f"{entry['text']}")
 
 
-def cmd_meta(repo, ref, channel, text):
+def cmd_meta(repo, ref, channel, text, author="cli"):
+    """Attach knowledge at a coordinate.
+
+    author defaults to "cli", NOT "human": MetaStore.add's own default is
+    "human", so every CLI write silently claimed human review. Five
+    confirm entries in this repo were stamped that way by an agent
+    driving the CLI. A confirm is an attestation - who vouched is the
+    entire content of it - so the interface must not assert a person was
+    involved when it cannot know. Pass --author to say who really did.
+    """
     # import, do not duplicate: this list had drifted from metadata.CHANNELS
     # and omitted 'confirm', which is the ONLY way to clear a comment-rot
     # flag (see query.before_edit). Rot was therefore permanent for anyone
@@ -165,7 +175,8 @@ def cmd_meta(repo, ref, channel, text):
     if not e:
         print(f"no entity matches {ref!r}")
         return
-    meta.add(e.coord_id, channel, text, body_hash=e.body_hash)
+    meta.add(e.coord_id, channel, text, author=author,
+             body_hash=e.body_hash)
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
 
@@ -319,10 +330,27 @@ def main():
             print(_json.dumps({"error": f"{type(e).__name__}: {e}"}))
             sys.exit(1)
         return
+    # --author is pulled out before dispatch because COMMANDS entries are
+    # called with positional argv passthrough; only meta accepts it, and
+    # anything else is a typo worth failing on rather than ignoring.
+    author = None
+    for i, a in enumerate(args):
+        if a == "--author" and i + 1 < len(args):
+            author, args = args[i + 1], args[:i] + args[i + 2:]
+            break
+        if a.startswith("--author="):
+            author, args = a.split("=", 1)[1], args[:i] + args[i + 1:]
+            break
     if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
-    COMMANDS[args[0]](*args[1:])
+    if author is not None:
+        if args[0] != "meta":
+            sys.stderr.write("--author applies to 'meta' only\n")
+            sys.exit(1)
+        COMMANDS[args[0]](*args[1:], author=author)
+    else:
+        COMMANDS[args[0]](*args[1:])
 
 
 if __name__ == "__main__":

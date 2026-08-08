@@ -230,3 +230,47 @@ def test_corrupt_index_without_snapshots_exits_with_help(tmp_path,
 def test_show_signature_line(repo, capsys):
     cli.cmd_show(str(repo), "price")
     assert "sig=" in out(capsys)
+
+
+def test_meta_author_is_not_asserted_as_human(repo, monkeypatch):
+    """The CLI must not claim human review it cannot verify.
+
+    MetaStore.add defaults author to "human", and cmd_meta passed nothing,
+    so every CLI write was stamped human - including five confirm entries
+    in this repo written by an agent driving the CLI. A confirm is an
+    attestation; who vouched is the entire content of it.
+    """
+    import json as _json
+    from memway import query
+
+    def authors(ref, channel):
+        from memway.indexer import Indexer
+        ix = Indexer(repo, repo / ".coord")
+        ix.load_existing()
+        cid = ix.resolve(ref).coord_id
+        p = repo / ".coord" / "meta" / cid / f"{channel}.jsonl"
+        return [_json.loads(l)["author"]
+                for l in p.read_text().splitlines() if l.strip()]
+
+    cli.cmd_meta(str(repo), "price", "notes", "default author")
+    assert authors("price", "notes") == ["cli"], "must not be 'human'"
+
+    cli.cmd_meta(str(repo), "price", "notes", "explicit", author="wdh")
+    assert authors("price", "notes")[-1] == "wdh"
+
+    # the flag travels through argv dispatch, and only applies to meta
+    monkeypatch.setattr(
+        sys, "argv",
+        ["memway", "meta", str(repo), "price", "notes", "viaflag",
+         "--author", "reviewer-x"])
+    cli.main()
+    assert authors("price", "notes")[-1] == "reviewer-x"
+
+    monkeypatch.setattr(sys, "argv", ["memway", "show", str(repo),
+                                      "price", "--author", "nope"])
+    with pytest.raises(SystemExit):
+        cli.main()
+
+    # the MCP path keeps its own identity, unchanged
+    query.agent_meta(str(repo), "price", "notes", "from mcp")
+    assert authors("price", "notes")[-1] == "agent"
