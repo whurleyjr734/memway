@@ -109,7 +109,7 @@ def _resolve_callable(indexer, ref, namespaces):
 def probe(indexer, edges, repo_root, ref: str,
           args: list | None = None, kwargs: dict | None = None,
           setup: str = "", record: bool = False,
-          max_events: int = 2000) -> dict:
+          max_events: int = 2000, max_bytes: int = 50_000) -> dict:
     repo_root = Path(repo_root)
     for p in (repo_root, repo_root / "src"):
         if p.is_dir() and str(p) not in sys.path:
@@ -207,6 +207,24 @@ def probe(indexer, edges, repo_root, ref: str,
                 {"src": qn(s), "dst": qn(d)} for s, d in sorted(discovered)],
         },
     })
+
+    # Bound the PAYLOAD, not just the frame count. max_events caps how many
+    # frames we trace; a caller's budget is bytes. Probing one real function
+    # produced 369 events -> ~200KB, i.e. 18% of the event cap already past
+    # what any MCP client will accept, while truncated stayed False because
+    # by its own measure nothing was dropped. Trim head+tail (the call's
+    # shape lives at both ends) and keep flow_vs_map over the FULL trace.
+    if max_bytes and len(json.dumps(events)) > max_bytes:
+        keep = len(events)
+        while keep > 2 and len(json.dumps(result["flow"])) > max_bytes:
+            keep = max(2, int(keep * 0.7))
+            head = keep // 2
+            result["flow"] = events[:head] + events[len(events) - (keep - head):]
+        result["truncated"] = True
+        result["flow_note"] = (
+            f"flow trimmed to {len(result['flow'])} of {len(events)} events to "
+            f"fit {max_bytes} bytes (head+tail kept); flow_vs_map counts below "
+            "are computed over the complete trace, not the trimmed flow")
 
     if record and discovered:
         new = [{"src": s, "dst": d, "kind": "calls",
