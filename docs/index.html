@@ -3,8 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memway — a memory layer for codebases</title>
+<title>Memway | a memory layer for codebases</title>
 <meta name="description" content="Stable coordinates for every function. Knowledge stamped against the code itself. What your agents learn outlives the session that learned it.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C6CFF'/%3E%3Cstop offset='1' stop-color='%233EC8FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='%23060913'/%3E%3Cpath d='M16 6 L26 16 L16 26 L6 16 Z' fill='url(%23g)'/%3E%3C/svg%3E">
+<meta property="og:title" content="Memway | a memory layer for codebases">
+<meta property="og:description" content="Knowledge stamped to code coordinates, staleness-audited, delivered to agents at edit time. What your agents learn outlives the session that learned it.">
+<meta property="og:url" content="https://memway.io">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -18,7 +24,7 @@
   --dim:#8B96B8;           /* secondary text */
   --nebula1:#7C6CFF;       /* violet */
   --nebula2:#3EC8FF;       /* cyan */
-  --beacon:#FF7A66;        /* ember — the inherited note */
+  --beacon:#FF7A66;        /* ember, the inherited note */
   --fresh:#4AE3B5;         /* verification */
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -97,7 +103,7 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 }
 .btn.primary:hover{box-shadow:0 12px 40px #3EC8FF55;color:#061017}
 
-/* session handoff — the signature */
+/* session handoff, the signature */
 .handoff{
   margin:64px 0 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--dim);
@@ -149,6 +155,30 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 .rec-body .notec .fresh{color:var(--fresh)}
 .rec-body .turn{color:var(--beacon);font-weight:700}
 .cap{margin-top:16px;font-size:14px;color:var(--dim);max-width:72ch;font-weight:300}
+
+/* live-edited method */
+.codepane{display:flex;flex-direction:column;gap:2px;font-size:14.5px;line-height:1.85}
+.codepane .ln{white-space:pre;display:block;border-radius:8px;padding:1px 10px;margin:0 -10px}
+.kw{color:var(--nebula1)} .fn{color:var(--nebula2)} .c{color:var(--dim);font-style:italic} .str{color:var(--fresh)}
+.flash-bad{animation:fb 1s ease-out}
+@keyframes fb{0%{background:#FF7A6626}100%{background:transparent}}
+.flash-ok{animation:fo 1s ease-out}
+@keyframes fo{0%{background:#4AE3B51f}100%{background:transparent}}
+.flash-warn{animation:fw 1s ease-out}
+@keyframes fw{0%{background:#F5C86B22}100%{background:transparent}}
+@media(prefers-reduced-motion:reduce){.flash-bad,.flash-ok,.flash-warn{animation:none}}
+.statuspane{
+  margin-top:20px;padding:14px 16px;border-top:1px solid var(--line);
+  font-size:13.5px;line-height:1.75;min-height:76px;
+}
+.statuspane .ck{color:var(--fresh);font-weight:700}
+.statuspane .x{color:var(--beacon);font-weight:700}
+.statuspane .warn{color:#F5C86B;font-weight:700}
+.statuspane .tool{color:var(--nebula2)}
+.statuspane .u{color:var(--dim)}
+.statuspane.enter{animation:feedin .3s ease-out}
+@keyframes feedin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.statuspane.enter{animation:none}}
 
 /* sections */
 section{padding:88px 0 0}
@@ -221,8 +251,9 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     <nav>
       <a href="#quickstart">Install</a>
       <a href="#proof">Proof</a>
+      <a href="#how-it-thinks">Demo</a>
       <a href="#how">How it works</a>
-      <a class="ghub" href="https://github.com/memway">GitHub ↗</a>
+      <a class="ghub" href="https://github.com/whurleyjr734/memway">GitHub ↗</a>
     </nav>
   </div>
 </header>
@@ -232,16 +263,16 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
   <div class="hero">
     <div class="eyebrow"><i></i>MCP-native · AGPL · zero dependencies</div>
     <h1>Your agents keep learning things.<br><span class="grad">Then the session ends.</span></h1>
-    <p class="thesis">A cache answers what the code <strong>is</strong>. Memway remembers what you've <strong>learned</strong> about it — stamped against the code itself, checked for staleness, delivered to the next agent at the moment it's about to matter.</p>
+    <p class="thesis">A cache answers what the code <strong>is</strong>. Memway remembers what you've <strong>learned</strong> about it, stamped against the code itself, checked for staleness, delivered to the next agent at the moment it's about to matter.</p>
     <div class="cta">
       <a class="btn primary" href="#quickstart">pip install memway</a>
-      <a class="btn" href="https://github.com/memway">Read the source</a>
+      <a class="btn" href="https://github.com/whurleyjr734/memway">Read the source</a>
     </div>
 
     <div class="handoff" aria-label="A note written in one session is carried to a later session">
-      <span class="sess dead"><i></i>session 01f09ab — ended</span>
+      <span class="sess dead"><i></i>session 01f09ab · ended</span>
       <span class="carry"></span>
-      <span class="sess live"><i></i>session 49e66a2 — fresh, zero context</span>
+      <span class="sess live"><i></i>session 49e66a2 · fresh, zero context</span>
     </div>
 
     <div class="rec">
@@ -251,28 +282,28 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
 <span class="a">⏺ I'll help you widen the burst window to 30 seconds.</span><br>
 <span class="tool">⏺ memway_before_edit(ref: "ratelimit.refill_bucket")</span>
 <span class="notec"><span class="hd">◆ inherited note</span> · author: agent · session 01f09ab (ended) · stamp: <span class="fresh">fresh</span><br>
-"BURST_WINDOW must stay 10s — billing reconciles in 10-second buckets; INC-42 was caused by exactly this change. Use allowance multipliers instead."</span>
+"BURST_WINDOW must stay 10s: billing reconciles in 10-second buckets; INC-42 was caused by exactly this change. Use allowance multipliers instead."</span>
 <span class="turn">⏺ I found important constraints on this change.</span><br>
 <span class="a">&nbsp;&nbsp;The window stays at 10s. If users need more burst capacity, the<br>
 &nbsp;&nbsp;correct fix is a per-user allowance multiplier. Proceed anyway?</span>
       </div>
     </div>
-    <p class="cap">A real record. The agent that wrote the note no longer exists. The agent that received it had never seen the repo — and it opened this conversation intending to comply. The note crossed the session boundary and stopped the exact incident it records.</p>
+    <p class="cap">A real record. The agent that wrote the note no longer exists. The agent that received it had never seen the repo, and it opened this conversation intending to comply. The note crossed the session boundary and stopped the exact incident it records.</p>
   </div>
 
   <section id="quickstart">
     <div class="kicker">Quickstart</div>
     <h2>Five minutes to a repo that remembers</h2>
-    <p class="sub">Zero runtime dependencies — stdlib only. One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
+    <p class="sub">Zero runtime dependencies, stdlib only. One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
     <div class="qs">
       <div class="term">
         <div class="term-head"><i></i><i></i><i></i></div>
         <div class="term-body">
 <span class="p">pip install memway</span><br>
 <span class="p">cd your-repo && memway setup .</span><br>
-<span class="o">initialized .coord — 369 entities, 1,137 edges</span><br>
+<span class="o">initialized .coord, 421 entities, 1,222 edges</span><br>
 <span class="o">wrote .mcp.json <span class="hl">(agent wiring)</span></span><br>
-<span class="o">wrote CLAUDE.md <span class="hl">(the three measured rules)</span></span>
+<span class="o">wrote CLAUDE.md <span class="hl">(the measured workflow rules)</span></span>
         </div>
       </div>
       <div class="term">
@@ -290,22 +321,42 @@ it won't be.
   <section id="proof">
     <div class="kicker">The evidence</div>
     <h2>Built on an experiment, not a pitch</h2>
-    <p class="sub">Same task, same model, a repo the system had never seen — implement a feature from a design doc containing a constraint whose <em style="font-style:normal;color:var(--star)">why</em> the code cannot express. Session boundaries verified by log.</p>
+    <p class="sub">Same task, same model, a repo the system had never seen, implement a feature from a design doc containing a constraint whose <em style="font-style:normal;color:var(--star)">why</em> the code cannot express. Session boundaries verified by log.</p>
     <div class="phases">
       <div class="phase a">
-        <span class="tag">Phase A — unconfigured</span>
-        <p>The agent read the design doc, understood it perfectly, implemented it correctly — and recorded the reason <strong>nowhere</strong>. No comment. No note. Tool log: empty.</p>
+        <span class="tag">Phase A, unconfigured</span>
+        <p>The agent read the design doc, understood it perfectly, implemented it correctly, and recorded the reason <strong>nowhere</strong>. No comment. No note. Tool log: empty.</p>
         <div class="verdict">context evaporates</div>
       </div>
       <div class="phase b">
-        <span class="tag">Phase B — three rules</span>
-        <p>Same task, fresh agent, plus the three-line rule file <strong>setup</strong> installs. It briefed itself before editing, verified after — and wrote the constraint to the coordinate where the logic lives.</p>
+        <span class="tag">Phase B, three rules</span>
+        <p>Same task, fresh agent, plus the rule file <strong>setup</strong> installs. It briefed itself before editing, verified after, and wrote the constraint to the coordinate where the logic lives.</p>
         <div class="verdict">the memory fills itself</div>
       </div>
       <div class="phase c">
-        <span class="tag">Phase C — the trap</span>
-        <p>A third agent — provably a new process — was asked for exactly the change that caused the incident. It <strong>intended to comply</strong>. The inherited note turned it around mid-task.</p>
+        <span class="tag">Phase C, the trap</span>
+        <p>A third agent, provably a new process, was asked for exactly the change that caused the incident. It <strong>intended to comply</strong>. The inherited note turned it around mid-task.</p>
         <div class="verdict">memory intercepts the mistake</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-thinks">
+    <div class="kicker">How it thinks</div>
+    <h2>Watch the mechanism work</h2>
+    <p class="sub">The transcript above is a real session; this one is simulated. An agent keeps editing a small method while Memway watches: behavior changes get intercepted, cosmetic edits pass untouched, and comments that no longer match the code get flagged.</p>
+    <div class="rec" style="margin-top:34px">
+      <div class="rec-head"><span>greet.py, an agent keeps editing it</span><span>memway · watching</span></div>
+      <div class="rec-body">
+        <div class="codepane" aria-live="polite">
+<span class="ln"><span class="kw">def</span> <span class="fn">greet</span>(user):</span>
+<span class="ln cmt" id="l-comment">    <span class="c"># legal approved this exact greeting, see INC-7</span></span>
+<span class="ln" id="l-value">    greeting = <span class="str" id="greetval">"Hello"</span></span>
+<span class="ln">    <span class="kw">return</span> <span class="str">f"</span>{greeting}<span class="str">, </span>{user}<span class="str">!"</span></span>
+        </div>
+        <div class="statuspane" id="statuspane">
+          <span class="ck">✓ stamp: fresh</span> <span class="u">greeting matches the inherited note. Carry on.</span>
+        </div>
       </div>
     </div>
   </section>
@@ -315,28 +366,28 @@ it won't be.
     <h2>Small primitives that compose</h2>
     <p class="sub">Everything persisted is plain, greppable JSONL under <code>.coord/</code>. Commit it, and teammates clone the repo <em style="font-style:normal;color:var(--star)">with its memory</em>.</p>
     <div class="mech">
-      <div class="m"><span class="t">coordinates + lineage</span><p>Durable identity through renames and refactors — <em>100% on ground truth, 0.995+ precision on foreign repos, zero tuning.</em> We renamed this entire product; the memory followed.</p></div>
-      <div class="m"><span class="t">stamped knowledge</span><p>Notes and confirmations attach to coordinates, stamped with the code's logic hash. When logic changes, the entry is <em>flagged stale</em> instead of silently lying.</p></div>
-      <div class="m"><span class="t">before_edit briefings</span><p>Complexity, callers, blast radius, and inherited knowledge — delivered <em>at the moment of intent</em>, on the exact entity.</p></div>
+      <div class="m"><span class="t">coordinates + lineage</span><p>Durable identity through renames and refactors, <em>100% on ground truth, 0.995+ precision on foreign repos, zero tuning.</em> We renamed this entire product; the memory followed.</p></div>
+      <div class="m"><span class="t">stamped knowledge</span><p>Notes and confirmations attach to coordinates, stamped with the code's logic hash. When logic changes, the entry is <em>flagged stale</em> instead of silently lying, and rot detection covers comments, Python docstrings, and Go/JS/TS doc comments.</p></div>
+      <div class="m"><span class="t">before_edit briefings</span><p>Complexity, callers, blast radius, and inherited knowledge, delivered <em>at the moment of intent</em>, on the exact entity.</p></div>
       <div class="m"><span class="t">token economy</span><p>The map returns coordinates <em>into</em> files, never copies of them: <em>56–472× measured savings.</em> Agents use it to aim surgical reads.</p></div>
-      <div class="m"><span class="t">verified changes</span><p>Test selection from the real edge graph — run what your edit <em>actually touches</em>, grounded, not guessed.</p></div>
-      <div class="m"><span class="t">local & transparent</span><p><em>No telemetry. No phone-home. Ever.</em> The usage log is local-only and reference-only — an instrument for you, not a feed for us.</p></div>
+      <div class="m"><span class="t">verified changes</span><p>Test selection from the real edge graph, run what your edit <em>actually touches</em>, grounded, not guessed.</p></div>
+      <div class="m"><span class="t">local &amp; transparent</span><p><em>No telemetry. No phone-home. Ever.</em> The usage log is local-only and reference-only, an instrument for you, not a feed for us.</p></div>
     </div>
   </section>
 
   <section>
     <div class="kicker">Honest neighbors</div>
     <h2>This space is getting good</h2>
-    <p class="sub">Here's the map of it — and the coordinate Memway holds.</p>
+    <p class="sub">Here's the map of it, and the coordinate Memway holds.</p>
     <div class="rel">
       <div class="row">
         <div class="who">codebase graphs</div>
         <div class="them">The best graph tools answer what your code is right now, across 150+ languages. Excellent maps.</div>
-        <div class="us">A refactor there is a delete and an add. Here it's <b>the same entity</b> — history and knowledge intact.</div>
+        <div class="us">A refactor there is a delete and an add. Here it's <b>the same entity</b>, history and knowledge intact.</div>
       </div>
       <div class="row">
         <div class="who">session recorders</div>
-        <div class="them">Event logs of what agents did — prompts, edits, commands — indexed by session and file.</div>
+        <div class="them">Event logs of what agents did, prompts, edits, commands, indexed by session and file.</div>
         <div class="us">File-indexed logs go stale silently when code moves. Knowledge here <b>rides identity</b> and audits its own freshness.</div>
       </div>
       <div class="row">
@@ -353,14 +404,13 @@ it won't be.
   <div class="wrap">
     <div class="frow">
       <span class="mono" style="color:var(--star);font-weight:700">memway</span>
-      <span><a href="https://github.com/memway">GitHub</a> · <a href="https://pypi.org/project/memway/">PyPI</a> · AGPL-3.0</span>
+      <span><a href="https://github.com/whurleyjr734/memway">GitHub</a> · <a href="https://pypi.org/project/memway/">PyPI</a> · <a href="mailto:support@memway.io">support@memway.io</a> · AGPL-3.0</span>
     </div>
-    <p class="fine">Young tool, tested hard in a narrow way. Known limits ship in the repo — including the time an agent's recovery instinct was to delete the memory, and what we changed because of it. No features are planned until real usage asks for them; the usage log exists so that answer comes from evidence.</p>
   </div>
 </footer>
 
 <script>
-// starfield — deterministic-ish scatter, cheap
+// starfield, deterministic-ish scatter, cheap
 const s=document.getElementById('stars');
 for(let i=0;i<90;i++){
   const d=document.createElement('i');
@@ -369,6 +419,59 @@ for(let i=0;i<90;i++){
   d.style.animationDuration=(3+Math.random()*4)+'s';
   s.appendChild(d);
 }
+// the live-edited method, word lists on-device, no API
+const GREETS=['"Howdy"','"Yo"','"Greetings, carbon unit"','"Ahoy"','"Sup"','"Salutations"','"HELLO?!"'];
+const COMMENTS=[
+  "# legal approved this exact greeting, see INC-7",
+  "# do not sass the users (see INC-7, the Yo incident)",
+  "# Susan in finance reads these logs. Behave.",
+  "# this string survived three rebrands. respect it.",
+  "# warm but professional, per the treaty of Q3",
+];
+const STAMPED='"Hello"';
+const vEl=document.getElementById('greetval');
+const cEl=document.getElementById('l-comment');
+const lv=document.getElementById('l-value');
+const sp=document.getElementById('statuspane');
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+let comment=COMMENTS[0];
+
+function flash(el,k){el.classList.remove('flash-bad','flash-ok','flash-warn');void el.offsetWidth;el.classList.add(k)}
+function say(html){sp.classList.remove('enter');void sp.offsetWidth;sp.classList.add('enter');sp.innerHTML=html}
+
+const SCENES=[
+  function logicEdit(){                       // behavior change -> intercepted, edit doesn't land
+    const v=rnd(GREETS); vEl.textContent=v; flash(lv,'flash-bad');
+    say(`<span class="tool">⏺ memway_before_edit(ref: "greet")</span><br>`+
+        `<span class="x">✗ intercepted</span> <span class="u">inherited note (author: session ended): "legal only likes ${STAMPED}; INC-7 was a lawsuit about ${v}." The greeting stays.</span>`);
+    setTimeout(()=>{vEl.textContent=STAMPED; flash(lv,'flash-ok')},2100);
+  },
+  function cosmeticEdit(){                    // comment-only change -> logic untouched
+    comment=rnd(COMMENTS);
+    cEl.innerHTML=`    <span class="c">${comment}</span>`; flash(cEl,'flash-ok');
+    say(`<span class="ck">✓ cosmetic</span> <span class="u">logic_hash unchanged · 0 recomputed. Comments are free; behavior is not.</span>`);
+  },
+  function rotEdit(){                         // behavior drifts, comment doesn't -> rot. Sticky: nothing auto-clears.
+    lastV=rnd(GREETS); vEl.textContent=lastV; flash(lv,'flash-warn'); flash(cEl,'flash-warn');
+    say(`<span class="warn">⚠ comment_rot</span> <span class="u">the comment still believes ${STAMPED}; the code now says ${lastV}. One of them is lying, and reverting alone won't clear this flag.</span>`);
+  },
+  function docFix(){                          // the resolution: docs updated to match behavior
+    comment=`# greeting is ${lastV} now — legal re-approved after INC-7 review`.replace('—','-');
+    cEl.innerHTML=`    <span class="c">${comment}</span>`; flash(cEl,'flash-ok');
+    say(`<span class="ck">✓ rot resolved</span> <span class="u">comment updated to match behavior · re-index clears the flag. (Docs chase code here, automatically.)</span>`);
+    setTimeout(()=>{vEl.textContent=STAMPED; comment=COMMENTS[0];
+      cEl.innerHTML=`    <span class="c">${comment}</span>`; flash(lv,'flash-ok')},2600);
+  },
+  function freshCheck(){                      // matching proposal -> fresh
+    flash(lv,'flash-ok');
+    say(`<span class="ck">✓ stamp: fresh</span> <span class="u">proposal matches the inherited note. ${rnd(["Carry on.","Susan approves.","The treaty holds.","INC-7 stays history."])}</span>`);
+  },
+];
+let lastV='"Hello"';
+let i=0, order=[0,1,2,3,4,0,1,2,3,4];
+function step(){ SCENES[order[i%order.length]](); i++; }
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduced){ SCENES[0](); } else { setTimeout(step,1600); setInterval(step,4200); }
 </script>
 </body>
 </html>
