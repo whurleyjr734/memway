@@ -106,6 +106,13 @@ def show(repo: str, ref: str) -> dict:
             "coord_id": other if not str(other).startswith("EVT:") else None,
             "target": ix.entities[other].qualname if oe
                       else str(other),
+            # how this edge was established. Runtime-recorded edges (from
+            # probe) are indistinguishable from statically-derived ones
+            # without this, and a reader that cannot tell will assume the
+            # source says what the graph says - which for dynamic dispatch
+            # is exactly backwards.
+            "resolution": edge.get("resolution", "unknown"),
+            "confidence": edge.get("confidence", 1.0),
         })
     out["edges"] = rel
     return out
