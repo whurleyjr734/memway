@@ -14,6 +14,8 @@ and confidence) is surfaced in before_edit to calibrate trust in static analysis
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 from .indexer import Indexer
@@ -63,10 +65,88 @@ def _entity_dict(e, meta=None) -> dict:
     return d
 
 
-def _resolve_error(ref: str, ix) -> dict:
+_COORD_REF = re.compile(r"^C-[0-9a-fA-F]{4,}$")
+
+
+def _supersession(ref: str, coord) -> list:
+    """Follow a retired coordinate id forward through the lineage store.
+
+    A rename mints a NEW coordinate id and migrates metadata to it; the
+    old id simply stops resolving. So any id written down OUTSIDE the
+    index - a PR comment, a design doc, an agent's memory - dies at the
+    next refactor, which is precisely when the map is most wanted.
+
+    lineage.jsonl records old -> new explicitly, so this is an exact
+    forward pointer rather than a guess. Returns the chain of hops
+    [{"from","to","note"}], oldest first; empty if ref was never retired.
+    """
+    path = Path(coord) / "lineage" / "lineage.jsonl"
+    if not path.exists():
+        return []
+    fwd = {}
+    try:
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            olds, news = r.get("old") or [], r.get("new") or []
+            if len(olds) == 1 and len(news) == 1:
+                fwd[olds[0]] = (news[0], r.get("note", ""))
+    except (OSError, ValueError):
+        return []                       # a damaged log is not an error here
+    chain, seen, cur = [], {ref}, ref
+    while cur in fwd:
+        nxt, note = fwd[cur]
+        if nxt in seen:
+            break                       # defensive: cycle in the log
+        chain.append({"from": cur, "to": nxt, "note": note})
+        seen.add(nxt)
+        cur = nxt
+    return chain
+
+
+def _resolve_with_lineage(ref: str, ix, coord):
+    """ix.resolve(), then follow supersession for retired coordinate ids.
+
+    Returns (entity_or_None, hops). Only coordinate-shaped refs are
+    chased: a qualname that no longer exists is already served well by
+    the fuzzy `closest` list, but a hex id scored by string similarity
+    produces pure noise.
+    """
+    e = ix.resolve(ref)
+    if e is not None or coord is None or not _COORD_REF.match(str(ref)):
+        return e, []
+    hops = _supersession(str(ref), coord)
+    if not hops:
+        return None, []
+    return ix.resolve(hops[-1]["to"]), hops
+
+
+def _mark_superseded(out: dict, ref: str, e, hops: list) -> dict:
+    """Annotate a payload served for a retired id, never silently."""
+    if hops:
+        out["superseded_from"] = ref
+        out["supersession"] = hops
+        out["note"] = (f"{ref} is retired; superseded by {e.coord_id} "
+                       f"({e.qualname}) - payload below is the successor's")
+    return out
+
+
+def _resolve_error(ref: str, ix, coord=None) -> dict:
     """Generate an actionable error when ref doesn't resolve.
     Returns top-3 fuzzy qualname matches and a hint on how to resolve."""
     from difflib import SequenceMatcher
+
+    if coord is not None and _COORD_REF.match(str(ref)):
+        hops = _supersession(str(ref), coord)
+        if hops:
+            last = hops[-1]["to"]
+            return {
+                "error": f"coordinate {ref!r} is retired, not unknown",
+                "superseded_by": last,
+                "supersession": hops,
+                "hint": f"re-query with {last}",
+            }
 
     # Find fuzzy matches
     all_qualnames = list(ix.by_qualname.keys())
@@ -90,11 +170,11 @@ def show(repo: str, ref: str) -> dict:
     ctx = _ctx(repo)
     if not ctx:
         return {"error": f"no index at {repo}; run memway init first"}
-    _, _, ix, edges, meta = ctx
-    e = ix.resolve(ref)
+    _, coord, ix, edges, meta = ctx
+    e, _hops = _resolve_with_lineage(ref, ix, coord)
     if not e:
-        return _resolve_error(ref, ix)
-    out = _entity_dict(e, meta)
+        return _resolve_error(ref, ix, coord)
+    out = _mark_superseded(_entity_dict(e, meta), ref, e, _hops)
     rel = []
     for edge in neighbors(edges, e.coord_id):
         other = edge["dst"] if edge["src"] == e.coord_id else edge["src"]
@@ -247,9 +327,9 @@ def before_edit(repo: str, ref: str) -> dict:
     if not ctx:
         return {"error": f"no index at {repo}; run memway init first"}
     repo_p, coord, ix, edges, meta = ctx
-    e = ix.resolve(ref)
+    e, _hops = _resolve_with_lineage(ref, ix, coord)
     if not e:
-        return _resolve_error(ref, ix)
+        return _resolve_error(ref, ix, coord)
 
     ms = MetricsStore(coord)
     ms.load()
@@ -598,7 +678,11 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     repo_p, coord, ix, edges, meta = ctx
     e = ix.resolve(ref)
     if not e:
-        return _resolve_error(ref, ix)
+        # deliberately a POINTER, not a redirect: reads may be served from
+        # the successor, but silently writing knowledge to a coordinate the
+        # caller did not name is the kind of surprise that erodes trust in
+        # the store. Caller re-issues against superseded_by.
+        return _resolve_error(ref, ix, coord)
     # stamp with logic_hash: the note survives comment/docstring edits and
     # flags stale only when BEHAVIOR changes (falls back to body hash)
     meta.add(e.coord_id, channel, text, author=author,

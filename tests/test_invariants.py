@@ -420,3 +420,62 @@ def test_inheritance_block_and_knowledge_flow(tmp_path):
     assert inherited and inherited[0]["inherited_from"] == "m.Base.handle"
     assert inherited[0]["hops_up"] == 2
     assert inherited[0]["stale"] is False
+
+
+def test_retired_coordinate_resolves_through_lineage(repo):
+    """A coordinate id written down elsewhere must survive a refactor.
+
+    Renames mint a NEW id and migrate metadata to it, so the old id stops
+    resolving - and scoring a hex id by string similarity returned pure
+    noise ("closest": three unrelated modules). The lineage log records
+    old -> new exactly, so reads follow it; writes must only POINT, never
+    silently land on a coordinate the caller did not name.
+    """
+    from memway import query
+
+    ix, _, _ = index(repo)
+    store = VersionStore(repo / ".coord")
+    meta = MetaStore(repo / ".coord")
+    old_id = ix.resolve("pkg.a.alpha").coord_id
+
+    (repo / "pkg" / "a.py").write_text(
+        '"""Module A."""\n'
+        "def alpha_v2(x):\n"
+        '    """Adds one."""\n'
+        "    if x > 0:\n"
+        "        return x + 1\n"
+        "    return x\n"
+    )
+    ix2 = Indexer(repo, repo / ".coord")
+    ix2.load_existing()
+    detect_lineage(ix2.index(), ix2, store, meta)
+    ix2.save()
+    eb = EdgeBuilder(ix2)
+    eb.build()
+    eb.save(repo / ".coord")
+
+    new = ix2.resolve("pkg.a.alpha_v2")
+    assert new.coord_id != old_id, "precondition: rename mints a new id"
+
+    out = query.show(str(repo), old_id)
+    assert "error" not in out
+    assert out["coord_id"] == new.coord_id
+    assert out["superseded_from"] == old_id
+    assert out["supersession"][-1]["to"] == new.coord_id
+    assert "retired" in out["note"]
+
+    be = query.before_edit(str(repo), old_id)
+    assert be["entity"]["coord_id"] == new.coord_id
+
+    # writes point rather than redirect
+    m = query.agent_meta(str(repo), old_id, "notes", "x")
+    assert m["superseded_by"] == new.coord_id
+    assert "retired" in m["error"]
+    assert not meta.read(new.coord_id, "notes",
+                         current_hash={new.logic_hash, new.body_hash}), \
+        "agent_meta must not write to a coordinate the caller did not name"
+
+    # a genuinely unknown id still gets the ordinary fuzzy error
+    unknown = query.show(str(repo), "C-000000")
+    assert "superseded_by" not in unknown
+    assert "closest" in unknown
