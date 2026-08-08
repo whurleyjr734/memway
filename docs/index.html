@@ -249,10 +249,10 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
   <div class="wrap mast">
     <div class="wordmark">mem<b>way</b></div>
     <nav>
-      <a href="#quickstart">Install</a>
+      <a href="#install">Install</a>
       <a href="#proof">Proof</a>
-      <a href="#how-it-thinks">Demo</a>
-      <a href="#how">How it works</a>
+      <a href="#demo">Demo</a>
+      <a href="#how-it-works">How it works</a>
       <a class="ghub" href="https://github.com/whurleyjr734/memway">GitHub ↗</a>
     </nav>
   </div>
@@ -265,7 +265,7 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     <h1>Your agents keep learning things.<br><span class="grad">Then the session ends.</span></h1>
     <p class="thesis">A cache answers what the code <strong>is</strong>. Memway remembers what you've <strong>learned</strong> about it, stamped against the code itself, checked for staleness, delivered to the next agent at the moment it's about to matter.</p>
     <div class="cta">
-      <a class="btn primary" href="#quickstart">pip install memway</a>
+      <a class="btn primary" href="#install">pip install memway</a>
       <a class="btn" href="https://github.com/whurleyjr734/memway">Read the source</a>
     </div>
 
@@ -291,7 +291,7 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     <p class="cap">A real record. The agent that wrote the note no longer exists. The agent that received it had never seen the repo, and it opened this conversation intending to comply. The note crossed the session boundary and stopped the exact incident it records.</p>
   </div>
 
-  <section id="quickstart">
+  <section id="install">
     <div class="kicker">Quickstart</div>
     <h2>Five minutes to a repo that remembers</h2>
     <p class="sub">Zero runtime dependencies, stdlib only. One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
@@ -341,7 +341,7 @@ it won't be.
     </div>
   </section>
 
-  <section id="how-it-thinks">
+  <section id="demo">
     <div class="kicker">How it thinks</div>
     <h2>Watch the mechanism work</h2>
     <p class="sub">The transcript above is a real session; this one is simulated. An agent keeps editing a small method while Memway watches: behavior changes get intercepted, cosmetic edits pass untouched, and comments that no longer match the code get flagged.</p>
@@ -361,7 +361,7 @@ it won't be.
     </div>
   </section>
 
-  <section id="how">
+  <section id="how-it-works">
     <div class="kicker">Mechanism</div>
     <h2>Small primitives that compose</h2>
     <p class="sub">Everything persisted is plain, greppable JSONL under <code>.coord/</code>. Commit it, and teammates clone the repo <em style="font-style:normal;color:var(--star)">with its memory</em>.</p>
