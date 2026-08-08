@@ -9,7 +9,7 @@ description = "A coordinate system for code: stable entity identity through refa
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "AGPL-3.0-or-later" }
-authors = [{ name = "William Hurley" }]
+authors = [{ name = "William Hurley", email = "support@memway.io" }]
 keywords = [
     "mcp", "agents", "code-intelligence", "knowledge", "lineage",
     "static-analysis", "claude-code", "codebase-memory",
