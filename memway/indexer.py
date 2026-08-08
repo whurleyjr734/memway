@@ -207,8 +207,31 @@ def _comments(body_text: str) -> list:
             if tok.type == _tk.COMMENT:
                 text = tok.string.lstrip("#").strip()
                 if text:
-                    out.append({"line": tok.start[0], "text": text[:200]})
+                    out.append({"line": tok.start[0], "text": text[:200],
+                                "kind": "comment"})
     except (_tk.TokenizeError, IndentationError, SyntaxError):
+        pass
+    # Docstrings are STRING tokens, never COMMENT, so the loop above cannot
+    # see them - and rot detection is gated on a non-empty result, which left
+    # every docstring-only entity permanently exempt from drift detection.
+    # They are the same kind of edit-time intent, and logic_hash already
+    # ignores them, so the comparison machinery works on them unchanged.
+    try:
+        import ast as _ast
+        import textwrap as _tw
+        _tree = _ast.parse(_tw.dedent(body_text))
+        _node = _tree.body[0] if _tree.body else None
+        if isinstance(_node, (_ast.FunctionDef, _ast.AsyncFunctionDef,
+                              _ast.ClassDef)):
+            _doc, _line = _ast.get_docstring(_node), _node.body[0].lineno
+        else:                       # module entity: body_text is a whole file
+            _doc = _ast.get_docstring(_tree)
+            _line = _tree.body[0].lineno if _tree.body else 1
+        if _doc and _doc.strip():
+            out.insert(0, {"line": _line,
+                           "text": " ".join(_doc.split())[:200],
+                           "kind": "docstring"})
+    except (SyntaxError, IndentationError, ValueError, RecursionError):
         pass
     return out
 
