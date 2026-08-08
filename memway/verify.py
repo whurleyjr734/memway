@@ -33,6 +33,27 @@ def _is_test_entity(e) -> bool:
         or p.name.startswith("test_")
 
 
+def _is_runnable_test(e, repo_root: Path) -> bool:
+    """Would pytest actually COLLECT this entity, not merely contain it?
+
+    _is_test_entity is path-based, so it is also true for fixtures and
+    module-level helpers that live in tests/. Handing pytest one of those as
+    a node id is a usage error (exit 4) and pytest aborts the whole run
+    before executing a single test - one bad id silently zeroes out an
+    otherwise correct selection. So mirror pytest's own default collection
+    rules here rather than trusting the path alone.
+    """
+    if e.kind not in ("function", "method") or not _is_test_entity(e):
+        return False
+    name = Path(e.path).name
+    if not (name.startswith("test_") or name.endswith("_test.py")):
+        return False                                   # python_files
+    parts = _pytest_node(e, repo_root).split("::")[1:]
+    if not parts or not parts[-1].startswith("test"):
+        return False                                   # python_functions
+    return all(p.startswith("Test") for p in parts[:-1])   # python_classes
+
+
 def _pytest_node(e, repo_root: Path) -> str:
     """entity -> pytest node id (file::Class::method or file::function)."""
     module_parts = Path(e.path).with_suffix("").parts
@@ -90,7 +111,7 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
     grounded, grounded_files = [], set()
     for cid in seen:
         e = ents.get(cid)
-        if e and e.kind in ("function", "method") and _is_test_entity(e):
+        if e and _is_runnable_test(e, repo_root):
             grounded.append(_pytest_node(e, repo_root))
             grounded_files.add(e.path)
 
