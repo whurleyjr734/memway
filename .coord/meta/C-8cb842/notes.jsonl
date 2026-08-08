@@ -1,0 +1,1 @@
+{"ts": "2026-08-08T19:56:22Z", "author": "cli", "text": "Reads the entire lineage.jsonl on every call, deliberately. The log is append-only and grows O(renames), not O(entities), so typical repos stay well under 1KB - the simplicity of reading the whole file beats maintaining an index for data that small.", "body_hash": "d0155f64277f158e"}
