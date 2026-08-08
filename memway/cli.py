@@ -250,7 +250,13 @@ memory layer.
 - When a task, design doc, or conversation supplies a REASON a piece
   of code is the way it is (constraints, incidents, tuning
   rationale), record that reason with `memway_meta` on the relevant
-  entity - reasons must outlive this session.
+  entity - reasons must outlive this session. This is due whenever a
+  reason or finding SURFACES, not only when a change lands: tasks you
+  decline, block on, investigate, or leave unfinished count too. The
+  reason a change was refused is often the most valuable thing to
+  record - a constraint strong enough to stop work is exactly what the
+  next session needs and exactly what the code cannot say on its own.
+  Capture it before you reply.
 """
 
 # Portable wiring: relies on the `memway` console script being on
