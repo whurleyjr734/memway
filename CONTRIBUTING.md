@@ -46,7 +46,11 @@ add a bot and say so.
 - **Update the map.** If your change adds, removes, or renames entities,
   run `memway index .` and include the resulting `.coord/` changes. The
   map is committed on purpose — it travels with the repo, so a clone
-  arrives with the project's memory intact.
+  arrives with the project's memory intact. `.coord/meta` is authored
+  knowledge and always belongs in the commit; `.coord/index` is derived
+  and regenerates, and this repo is small enough to commit it too. Very
+  large repos gitignore the index instead — authored is precious,
+  derived regenerates.
 - **Editing `memway/parsers.py`?** Parser output is cached by file
   content, so a change that alters what the parsers *emit* needs
   `PARSE_SCHEMA_VERSION` bumped or every existing index silently replays
