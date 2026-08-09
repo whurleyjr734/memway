@@ -165,6 +165,24 @@ def test_merge_unions_bundle_and_local_at_same_coordinate(tmp_path):
     assert len([l for l in notes.read_text().splitlines() if l.strip()]) == 2
 
 
+def test_replace_meta_alone_is_refused(tmp_path, monkeypatch, capsys):
+    """The destructive path must be harder to type than the safe one."""
+    import sys as _sys
+    from memway import cli
+    _local_map(tmp_path)
+    monkeypatch.setattr(_sys, "argv",
+                        ["memway", "pull", "django", "--replace-meta",
+                         "--into", str(tmp_path)])
+    with pytest.raises(SystemExit) as ei:
+        cli.main()
+    msg = str(ei.value)
+    assert "destructive" in msg
+    assert "deletes locally authored knowledge" in msg
+    assert "requires explicit --force" in msg
+    assert (tmp_path / ".coord" / "meta" / "C-local" / "notes.jsonl").exists(), \
+        "nothing touched when the guard fires"
+
+
 def test_replace_meta_actually_replaces(tmp_path):
     notes = _local_map(tmp_path)
     blob = _good_bundle()

@@ -197,9 +197,15 @@ def cmd_pull(name, into=".", source=None, force=False,
     """
     from .registry import pull, PullError, DEFAULT_SOURCE
     try:
+        # --replace-meta deliberately does NOT imply --force. The
+        # destructive path should be harder to type than the safe one,
+        # and typing both is the moment you notice which you asked for.
+        if replace_meta and not force:
+            raise SystemExit(
+                "destructive: deletes locally authored knowledge; "
+                "requires explicit --force")
         r = pull(name, into=into, source=source or DEFAULT_SOURCE,
-                 force=bool(force) or bool(replace_meta),
-                 replace_meta=bool(replace_meta))
+                 force=bool(force), replace_meta=bool(replace_meta))
     except PullError as e:
         raise SystemExit(f"pull failed: {e}")
     except Exception as e:
