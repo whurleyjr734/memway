@@ -42,6 +42,12 @@ DEFAULT_SOURCE = ("https://github.com/whurleyjr734/memway-maps/releases/"
 DEFAULT_VERSION = "latest"
 CHECKSUM_SUFFIX = ".sha256"
 
+# Derived from the tree: regenerates on `memway index`, safe to replace
+# wholesale. Everything NOT in here under .coord/ is treated as authored
+# until proven otherwise - which today means meta/, the one directory
+# whose contents nobody can reconstruct.
+DERIVED_DIRS = ("index", "cache", "metrics", "versions")
+
 
 class PullError(Exception):
     """Anything that should stop an install, phrased for a human."""
@@ -149,8 +155,48 @@ def _local_head(repo: Path) -> str:
         return ""
 
 
+def _merge_meta(bundle_meta: Path, local_meta: Path) -> dict:
+    """Union bundle knowledge into local knowledge. Never deletes.
+
+    Knowledge is authored - somebody's reason for something, and the one
+    part of a map that cannot be regenerated from the tree. A pull is an
+    inheritance, not a replacement: entries the bundle brings are added,
+    entries only you have stay, and an entry present in both appears
+    once. Channels are append-only JSONL, so union is well defined and
+    dedup on the exact line is enough.
+    """
+    stats = {"coords_from_bundle": 0, "entries_added": 0,
+             "coords_local_kept": 0}
+    local_meta.mkdir(parents=True, exist_ok=True)
+    already = {p.name for p in local_meta.iterdir() if p.is_dir()}
+    # counted before the early return: a bundle with no knowledge of its
+    # own still preserves yours, and the report should say so
+    stats["coords_local_kept"] = len(already)
+    if not bundle_meta.is_dir():
+        return stats
+    for cdir in sorted(bundle_meta.iterdir()):
+        if not cdir.is_dir():
+            continue
+        if cdir.name not in already:
+            stats["coords_from_bundle"] += 1
+        target = local_meta / cdir.name
+        target.mkdir(parents=True, exist_ok=True)
+        for f in sorted(cdir.glob("*.jsonl")):
+            tf = target / f.name
+            local_lines = ([l for l in tf.read_text().splitlines() if l.strip()]
+                           if tf.exists() else [])
+            merged, seen = list(local_lines), set(local_lines)
+            for line in f.read_text().splitlines():
+                if line.strip() and line not in seen:
+                    merged.append(line)
+                    seen.add(line)
+                    stats["entries_added"] += 1
+            tf.write_text("\n".join(merged) + "\n" if merged else "")
+    return stats
+
+
 def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
-         force: bool = False, fetch=None) -> dict:
+         force: bool = False, replace_meta: bool = False, fetch=None) -> dict:
     """Fetch, verify, and unpack a map bundle. Returns a report dict.
 
     `fetch` is injectable so the whole path is testable without network.
@@ -161,9 +207,10 @@ def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
 
     if coord.exists() and not force:
         raise PullError(
-            f"{coord} already exists - refusing to overwrite.\n"
-            "  pass --force to replace it. Anything authored in "
-            ".coord/meta is lost if you do.")
+            f"{coord} already exists - refusing to install over it.\n"
+            "  --force replaces the derived index and MERGES the bundle's\n"
+            "  knowledge into your own; locally authored entries are kept.\n"
+            "  --replace-meta additionally deletes locally authored knowledge.")
 
     url, sum_url, base, version = resolve_url(name, source)
     blob = fetch(url)
@@ -185,14 +232,31 @@ def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
         src = staged / ".coord"
         if not src.is_dir():
             raise PullError("bundle has no .coord/ at its root - refusing")
-        if coord.exists():
+        merged = None
+        if not coord.exists():
+            shutil.move(str(src), str(coord))
+        elif replace_meta:
             shutil.rmtree(coord)
-        shutil.move(str(src), str(coord))
+            shutil.move(str(src), str(coord))
+        else:
+            # Derived is replaced; authored is merged. Same line the
+            # storage guidance and the CI pipeline design both land on.
+            for item in src.iterdir():
+                if item.name == "meta":
+                    continue
+                dest_item = coord / item.name
+                if dest_item.is_dir():
+                    shutil.rmtree(dest_item)
+                elif dest_item.exists():
+                    dest_item.unlink()
+                shutil.move(str(item), str(dest_item))
+            merged = _merge_meta(src / "meta", coord / "meta")
 
     report = _describe(coord)
     report.update({"name": base, "version": version, "url": url,
                    "sha256": digest, "installed_to": str(coord),
-                   "members": len(members)})
+                   "members": len(members), "merged": merged,
+                   "replaced_meta": bool(replace_meta and merged is None)})
     head = _local_head(into)
     report["drifted"] = bool(head and report.get("sha")
                              and not head.startswith(str(report["sha"])))

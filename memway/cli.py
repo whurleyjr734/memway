@@ -14,7 +14,11 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
   memway pull <name>[@version]        fetch a published map into .coord
-                                        [--into DIR] [--source URL] [--force]
+                                        [--into DIR] [--source URL]
+                                        [--force] replace the derived index;
+                                          local knowledge is merged, not lost
+                                        [--replace-meta] DELETES locally
+                                          authored knowledge
   memway lineage <repo> [ref]         identity history through renames
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
@@ -183,7 +187,8 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
 
 
 
-def cmd_pull(name, into=".", source=None, force=False):
+def cmd_pull(name, into=".", source=None, force=False,
+             replace_meta=False):
     """Fetch a published map and install it into <into>/.coord.
 
     A map is worth more when you do not have to build it: someone
@@ -193,7 +198,8 @@ def cmd_pull(name, into=".", source=None, force=False):
     from .registry import pull, PullError, DEFAULT_SOURCE
     try:
         r = pull(name, into=into, source=source or DEFAULT_SOURCE,
-                 force=bool(force))
+                 force=bool(force) or bool(replace_meta),
+                 replace_meta=bool(replace_meta))
     except PullError as e:
         raise SystemExit(f"pull failed: {e}")
     except Exception as e:
@@ -206,6 +212,13 @@ def cmd_pull(name, into=".", source=None, force=False):
     if r.get("repo"):
         print(f"  source repo: {r['repo']}"
               + (f" @ {r['sha'][:12]}" if r.get("sha") else ""))
+    m = r.get("merged")
+    if m is not None:
+        print(f"  knowledge merged: +{m['entries_added']} entries, "
+              f"{m['coords_from_bundle']} new coordinates; "
+              f"{m['coords_local_kept']} local coordinate(s) preserved")
+    elif r.get("replaced_meta"):
+        print("  knowledge REPLACED: locally authored entries were deleted")
     if r.get("drifted"):
         # Honesty at the seam: the map describes a commit, the working
         # tree is at another. Staleness machinery handles the rest, but
@@ -375,7 +388,7 @@ def main():
     # command owns it; anywhere else it is a typo worth failing on rather
     # than silently ignoring.
     VALUE_FLAGS = {"--author": "meta", "--source": "pull", "--into": "pull"}
-    BOOL_FLAGS = {"--force": "pull"}
+    BOOL_FLAGS = {"--force": "pull", "--replace-meta": "pull"}
     opts, owners = {}, {}
     changed = True
     while changed:
@@ -396,7 +409,7 @@ def main():
                 changed = True
                 break
             if name in BOOL_FLAGS:
-                opts[name[2:]] = True
+                opts[name[2:].replace("-", "_")] = True
                 owners[name] = BOOL_FLAGS[name]
                 args = args[:i] + args[i + 1:]
                 changed = True

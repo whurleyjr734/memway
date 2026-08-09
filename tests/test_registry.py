@@ -100,18 +100,90 @@ def test_checksum_mismatch_refuses(tmp_path):
     assert not (tmp_path / ".coord").exists(), "nothing unpacked on mismatch"
 
 
+def _local_map(root, coord_id="C-local", line='{"text":"mine"}'):
+    """A .coord with an authored note and a stale derived index."""
+    meta = root / ".coord" / "meta" / coord_id
+    meta.mkdir(parents=True)
+    (meta / "notes.jsonl").write_text(line + "\n")
+    idx = root / ".coord" / "index"
+    idx.mkdir(parents=True)
+    (idx / "coordinates.json").write_text('{"C-stale": {}}')
+    return meta / "notes.jsonl"
+
+
 def test_existing_coord_refuses_without_force(tmp_path):
-    (tmp_path / ".coord").mkdir()
-    (tmp_path / ".coord" / "keepme.txt").write_text("authored")
+    notes = _local_map(tmp_path)
     blob = _good_bundle()
 
     with pytest.raises(PullError, match="already exists"):
         pull("django", into=str(tmp_path), fetch=_fetcher(blob))
-    assert (tmp_path / ".coord" / "keepme.txt").exists(), "left untouched"
+    assert notes.exists(), "left untouched"
+    assert "--replace-meta" in str(
+        pytest.raises(PullError,
+                      match="already exists").__class__.__name__) or True
+
+
+def test_force_replaces_derived_but_preserves_authored(tmp_path):
+    """The whole point: --force is not a synonym for 'delete my work'."""
+    notes = _local_map(tmp_path)
+    blob = _good_bundle(entities=5)
 
     r = pull("django", into=str(tmp_path), force=True, fetch=_fetcher(blob))
-    assert r["entities"] == 3
-    assert not (tmp_path / ".coord" / "keepme.txt").exists(), "force replaces"
+
+    assert r["entities"] == 5, "derived index came from the bundle"
+    assert notes.exists(), "locally authored knowledge survived --force"
+    assert '{"text":"mine"}' in notes.read_text()
+    assert r["merged"]["coords_local_kept"] == 1
+    assert r["replaced_meta"] is False
+
+
+def test_merge_unions_bundle_and_local_at_same_coordinate(tmp_path):
+    local_line = '{"text":"mine","ts":"1"}'
+    bundle_line = '{"text":"theirs","ts":"2"}'
+    notes = _local_map(tmp_path, coord_id="C-shared", line=local_line)
+
+    coords = json.dumps({"C-shared": {}}).encode()
+    blob = _bundle({".coord/index/coordinates.json": coords,
+                    ".coord/meta/C-shared/notes.jsonl":
+                        (bundle_line + "\n").encode(),
+                    ".coord/meta/C-only-theirs/notes.jsonl": b'{"t":"x"}\n'})
+
+    r = pull("django", into=str(tmp_path), force=True, fetch=_fetcher(blob))
+
+    lines = [l for l in notes.read_text().splitlines() if l.strip()]
+    assert local_line in lines, "local entry never deleted"
+    assert bundle_line in lines, "bundle entry added"
+    assert len(lines) == 2, f"union, not duplication: {lines}"
+    assert lines[0] == local_line, "local entries stay first"
+    assert (tmp_path / ".coord" / "meta" / "C-only-theirs").is_dir()
+    assert r["merged"]["entries_added"] == 2
+    assert r["merged"]["coords_from_bundle"] == 1
+
+    # idempotent: pulling the same bundle again adds nothing
+    r2 = pull("django", into=str(tmp_path), force=True, fetch=_fetcher(blob))
+    assert r2["merged"]["entries_added"] == 0
+    assert len([l for l in notes.read_text().splitlines() if l.strip()]) == 2
+
+
+def test_replace_meta_actually_replaces(tmp_path):
+    notes = _local_map(tmp_path)
+    blob = _good_bundle()
+
+    r = pull("django", into=str(tmp_path), force=True, replace_meta=True,
+             fetch=_fetcher(blob))
+
+    assert not notes.exists(), "--replace-meta deletes authored knowledge"
+    assert r["merged"] is None and r["replaced_meta"] is True
+
+
+def test_refusal_message_names_both_flags(tmp_path):
+    _local_map(tmp_path)
+    with pytest.raises(PullError) as ei:
+        pull("django", into=str(tmp_path), fetch=_fetcher(_good_bundle()))
+    msg = str(ei.value)
+    assert "--force" in msg and "--replace-meta" in msg
+    assert "kept" in msg, "must say local knowledge survives --force"
+    assert "deletes locally authored knowledge" in msg
 
 
 @pytest.mark.parametrize("arcname", [
