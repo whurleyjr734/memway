@@ -13,6 +13,8 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway show <repo> <ref>            entity dossier: edges + knowledge
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
+  memway pull <name>[@version]        fetch a published map into .coord
+                                        [--into DIR] [--source URL] [--force]
   memway lineage <repo> [ref]         identity history through renames
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
@@ -181,6 +183,37 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
 
 
 
+def cmd_pull(name, into=".", source=None, force=False):
+    """Fetch a published map and install it into <into>/.coord.
+
+    A map is worth more when you do not have to build it: someone
+    indexes a large dependency once and everyone else inherits the
+    coordinates and the knowledge attached to them.
+    """
+    from .registry import pull, PullError, DEFAULT_SOURCE
+    try:
+        r = pull(name, into=into, source=source or DEFAULT_SOURCE,
+                 force=bool(force))
+    except PullError as e:
+        raise SystemExit(f"pull failed: {e}")
+    except Exception as e:
+        raise SystemExit(f"pull failed: {type(e).__name__}: {e}")
+
+    ents = r["entities"]
+    print(f"installed {r['name']}@{r['version']} -> {r['installed_to']}")
+    print(f"  {ents if ents is not None else 'unknown'} entities"
+          f"  |  {r['members']} files  |  sha256 {r['sha256'][:16]}...")
+    if r.get("repo"):
+        print(f"  source repo: {r['repo']}"
+              + (f" @ {r['sha'][:12]}" if r.get("sha") else ""))
+    if r.get("drifted"):
+        # Honesty at the seam: the map describes a commit, the working
+        # tree is at another. Staleness machinery handles the rest, but
+        # silence here would let someone trust a map for code it never saw.
+        print(f"  note: this map describes {str(r['sha'])[:12]}; your tree is "
+              f"at {r['local_head'][:12]} - local code may have drifted")
+
+
 def cmd_at(repo, location):
     """file:line -> the entity containing it (the grep handoff)."""
     from . import query
@@ -311,6 +344,7 @@ COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
+    "pull": cmd_pull,
 }
 
 
@@ -336,27 +370,46 @@ def main():
             print(_json.dumps({"error": f"{type(e).__name__}: {e}"}))
             sys.exit(1)
         return
-    # --author is pulled out before dispatch because COMMANDS entries are
-    # called with positional argv passthrough; only meta accepts it, and
-    # anything else is a typo worth failing on rather than ignoring.
-    author = None
-    for i, a in enumerate(args):
-        if a == "--author" and i + 1 < len(args):
-            author, args = args[i + 1], args[:i] + args[i + 2:]
-            break
-        if a.startswith("--author="):
-            author, args = a.split("=", 1)[1], args[:i] + args[i + 1:]
-            break
+    # Flags are pulled out before dispatch because COMMANDS entries are
+    # called with positional argv passthrough. Each flag declares which
+    # command owns it; anywhere else it is a typo worth failing on rather
+    # than silently ignoring.
+    VALUE_FLAGS = {"--author": "meta", "--source": "pull", "--into": "pull"}
+    BOOL_FLAGS = {"--force": "pull"}
+    opts, owners = {}, {}
+    changed = True
+    while changed:
+        changed = False
+        for i, a in enumerate(args):
+            name = a.split("=", 1)[0]
+            if name in VALUE_FLAGS:
+                if "=" in a:
+                    opts[name[2:]] = a.split("=", 1)[1]
+                    args = args[:i] + args[i + 1:]
+                elif i + 1 < len(args):
+                    opts[name[2:]] = args[i + 1]
+                    args = args[:i] + args[i + 2:]
+                else:
+                    sys.stderr.write(f"{name} needs a value\n")
+                    sys.exit(1)
+                owners[name] = VALUE_FLAGS[name]
+                changed = True
+                break
+            if name in BOOL_FLAGS:
+                opts[name[2:]] = True
+                owners[name] = BOOL_FLAGS[name]
+                args = args[:i] + args[i + 1:]
+                changed = True
+                break
     if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
-    if author is not None:
-        if args[0] != "meta":
-            sys.stderr.write("--author applies to 'meta' only\n")
-            sys.exit(1)
-        COMMANDS[args[0]](*args[1:], author=author)
-    else:
-        COMMANDS[args[0]](*args[1:])
+    wrong = [f for f, owner in owners.items() if owner != args[0]]
+    if wrong:
+        sys.stderr.write(f"{', '.join(sorted(wrong))} "
+                         f"applies to '{owners[wrong[0]]}' only\n")
+        sys.exit(1)
+    COMMANDS[args[0]](*args[1:], **opts)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,20 @@
     "path": "tests/test_units.py",
     "provenance": "computed"
   },
+  "C-01836c": {
+    "body_hash": "01acbb6b4b8a10bf",
+    "churn": 0,
+    "complexity": 9,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 74,
+    "line_start": 64,
+    "loc": 11,
+    "logic_hash": "3dd02430674557ef",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-020b6c": {
     "body_hash": "9c45e1275d66d490",
     "churn": 0,
@@ -33,8 +47,8 @@
     "fan_in": 0,
     "fan_out": 2,
     "kind": "function",
-    "line_end": 180,
-    "line_start": 155,
+    "line_end": 182,
+    "line_start": 157,
     "loc": 26,
     "logic_hash": "c255d1b50fbf7b9f",
     "path": "memway/cli.py",
@@ -206,6 +220,20 @@
     "path": "memway/query.py",
     "provenance": "computed"
   },
+  "C-0a3884": {
+    "body_hash": "9aa9fab6a5e0772c",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 1,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 149,
+    "line_start": 142,
+    "loc": 8,
+    "logic_hash": "f240bbf2bf3bfbd8",
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
   "C-0a4524": {
     "body_hash": "3d1457ec84e072f5",
     "churn": 0,
@@ -347,6 +375,20 @@
     "logic_hash": "fdbd2b1046f340be",
     "n_children": 4,
     "path": "tests/test_grand_tour.py",
+    "provenance": "computed"
+  },
+  "C-0df741": {
+    "body_hash": "22ec10977ec90269",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 128,
+    "line_start": 123,
+    "loc": 6,
+    "logic_hash": "eec9cfdfe8919557",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-0e1645": {
@@ -514,6 +556,20 @@
     "path": "tests/test_invariants.py",
     "provenance": "computed"
   },
+  "C-16628b": {
+    "body_hash": "c7b17007a9c923b8",
+    "churn": 0,
+    "complexity": 2,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 90,
+    "line_start": 88,
+    "loc": 3,
+    "logic_hash": "7d3b44c1491550d1",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-169a02": {
     "body_hash": "c81ed2ee5282cdbf",
     "churn": 0,
@@ -567,6 +623,34 @@
     "path": "memway/indexer.py",
     "provenance": "computed"
   },
+  "C-18d4be": {
+    "body_hash": "b51ed1347a284e32",
+    "churn": 0,
+    "complexity": 11,
+    "fan_in": 2,
+    "fan_out": 8,
+    "kind": "function",
+    "line_end": 200,
+    "line_start": 152,
+    "loc": 49,
+    "logic_hash": "6bae023456ffc961",
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
+  "C-19738c": {
+    "body_hash": "1ea5fe8e753bbce8",
+    "churn": 0,
+    "complexity": 7,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 85,
+    "line_start": 77,
+    "loc": 9,
+    "logic_hash": "a972f80e6ef4151c",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-1b9789": {
     "body_hash": "c72547c53d7ade36",
     "churn": 0,
@@ -610,6 +694,20 @@
     "path": "memway/verify.py",
     "provenance": "computed"
   },
+  "C-1e868b": {
+    "body_hash": "985a802d531ba5ce",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 184,
+    "line_start": 175,
+    "loc": 10,
+    "logic_hash": "341a96f4339a7269",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-1fac48": {
     "body_hash": "247af6673b481d74",
     "churn": 0,
@@ -638,6 +736,20 @@
     "path": "tests/test_mcp.py",
     "provenance": "computed"
   },
+  "C-201400": {
+    "body_hash": "eb1887ade85a44a9",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 48,
+    "line_start": 40,
+    "loc": 9,
+    "logic_hash": "326d72be2aae15bc",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-20e1bb": {
     "body_hash": "02f94a272b2dca0b",
     "churn": 0,
@@ -662,6 +774,20 @@
     "line_start": 142,
     "loc": 8,
     "path": "tests/test_units_core.py",
+    "provenance": "computed"
+  },
+  "C-21524f": {
+    "body_hash": "287ab465c4d6dc67",
+    "churn": 0,
+    "complexity": 2,
+    "fan_in": 0,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 54,
+    "line_start": 50,
+    "loc": 5,
+    "logic_hash": "eee0be007256fe77",
+    "path": "memway/registry.py",
     "provenance": "computed"
   },
   "C-21e17f": {
@@ -699,8 +825,8 @@
     "fan_in": 0,
     "fan_out": 5,
     "kind": "function",
-    "line_end": 229,
-    "line_start": 221,
+    "line_end": 262,
+    "line_start": 254,
     "loc": 9,
     "logic_hash": "c9cfd654cd122aa2",
     "path": "memway/cli.py",
@@ -734,6 +860,20 @@
     "path": "memway/query.py",
     "provenance": "computed"
   },
+  "C-23f329": {
+    "body_hash": "da3e3b43969b60c8",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 1,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 85,
+    "line_start": 73,
+    "loc": 13,
+    "logic_hash": "6219e48459e540df",
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
   "C-242957": {
     "agg_complexity": 29,
     "body_hash": "267ae31392999ce2",
@@ -748,6 +888,20 @@
     "logic_hash": "20c1f391cc0f6a83",
     "n_children": 3,
     "path": "memway/parsers.py",
+    "provenance": "computed"
+  },
+  "C-2429c4": {
+    "body_hash": "2c15ea3a39bc9baa",
+    "churn": 0,
+    "complexity": 8,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 214,
+    "line_start": 186,
+    "loc": 29,
+    "logic_hash": "f827f0b0fa39fcb8",
+    "path": "memway/cli.py",
     "provenance": "computed"
   },
   "C-245a84": {
@@ -1087,8 +1241,8 @@
     "fan_in": 5,
     "fan_out": 4,
     "kind": "function",
-    "line_end": 53,
-    "line_start": 40,
+    "line_end": 55,
+    "line_start": 42,
     "loc": 14,
     "logic_hash": "29880ac557ed5000",
     "path": "memway/cli.py",
@@ -1381,6 +1535,20 @@
     "path": "memway/agentmap.py",
     "provenance": "computed"
   },
+  "C-419d5e": {
+    "body_hash": "4eac3882f5b5baab",
+    "churn": 0,
+    "complexity": 2,
+    "fan_in": 1,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 58,
+    "line_start": 55,
+    "loc": 4,
+    "logic_hash": "69b0854f75d6efe8",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-41b95c": {
     "body_hash": "9bcfb6d29ef3f3a0",
     "churn": 0,
@@ -1429,8 +1597,8 @@
     "fan_in": 0,
     "fan_out": 1,
     "kind": "function",
-    "line_end": 199,
-    "line_start": 184,
+    "line_end": 232,
+    "line_start": 217,
     "loc": 16,
     "logic_hash": "65a4dad6e87341fc",
     "path": "memway/cli.py",
@@ -1715,6 +1883,20 @@
     "loc": 7,
     "logic_hash": "c0e9187147fad026",
     "path": "memway/parsers.py",
+    "provenance": "computed"
+  },
+  "C-4ec452": {
+    "body_hash": "0ae6ba620574869a",
+    "churn": 0,
+    "complexity": 6,
+    "fan_in": 1,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 70,
+    "line_start": 57,
+    "loc": 14,
+    "logic_hash": "614cf5f9971622cb",
+    "path": "memway/registry.py",
     "provenance": "computed"
   },
   "C-4ef3dc": {
@@ -2046,6 +2228,20 @@
     "path": "polyglot/report.ts",
     "provenance": "computed"
   },
+  "C-59f8db": {
+    "body_hash": "8777ab5e7322f967",
+    "churn": 0,
+    "complexity": 1,
+    "fan_in": 5,
+    "fan_out": 0,
+    "kind": "class",
+    "line_end": 47,
+    "line_start": 46,
+    "loc": 2,
+    "logic_hash": "c6cde6fe477229ed",
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
   "C-5a82b9": {
     "agg_complexity": 27,
     "body_hash": "dcaf62db0ba14467",
@@ -2317,18 +2513,18 @@
     "provenance": "computed"
   },
   "C-642291": {
-    "agg_complexity": 71,
-    "body_hash": "a07487350a92064b",
+    "agg_complexity": 81,
+    "body_hash": "30673dfecd11de1c",
     "churn": 0,
-    "complexity": 61,
+    "complexity": 70,
     "fan_in": 1,
-    "fan_out": 14,
+    "fan_out": 17,
     "kind": "module",
-    "line_end": 363,
+    "line_end": 416,
     "line_start": 1,
-    "loc": 364,
-    "logic_hash": "e68053cc1554aeec",
-    "n_children": 12,
+    "loc": 417,
+    "logic_hash": "89e06db5ccc53a0d",
+    "n_children": 13,
     "path": "memway/cli.py",
     "provenance": "computed"
   },
@@ -2493,6 +2689,20 @@
     "loc": 3,
     "logic_hash": "1703214c8c4cf8e0",
     "path": "memway/mcp.py",
+    "provenance": "computed"
+  },
+  "C-6b835c": {
+    "body_hash": "ae097b717d87834b",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 2,
+    "kind": "function",
+    "line_end": 143,
+    "line_start": 131,
+    "loc": 13,
+    "logic_hash": "04a63f397706801b",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-6cd884": {
@@ -2760,6 +2970,20 @@
     "path": "memway/verify.py",
     "provenance": "computed"
   },
+  "C-729105": {
+    "body_hash": "6514b9640d8a90a4",
+    "churn": 0,
+    "complexity": 14,
+    "fan_in": 1,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 121,
+    "line_start": 88,
+    "loc": 34,
+    "logic_hash": "d9ed248fd9ee4dae",
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
   "C-729c58": {
     "body_hash": "f6b245b66432622b",
     "churn": 0,
@@ -2835,8 +3059,8 @@
     "fan_in": 0,
     "fan_out": 4,
     "kind": "function",
-    "line_end": 217,
-    "line_start": 202,
+    "line_end": 250,
+    "line_start": 235,
     "loc": 16,
     "logic_hash": "45f010c68a6c58c0",
     "path": "memway/cli.py",
@@ -2870,6 +3094,20 @@
     "path": "memway/indexer.py",
     "provenance": "computed"
   },
+  "C-7995e2": {
+    "body_hash": "f290bd92c14c0337",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 153,
+    "line_start": 146,
+    "loc": 8,
+    "logic_hash": "cf86d2d2dd6ea37f",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-79cfd7": {
     "body_hash": "0050ec7b1827b610",
     "churn": 0,
@@ -2882,6 +3120,20 @@
     "loc": 10,
     "logic_hash": "d72af396aa7167d4",
     "path": "tests/test_mcp.py",
+    "provenance": "computed"
+  },
+  "C-7b0948": {
+    "body_hash": "3db94a6e12cb21ab",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 37,
+    "line_start": 22,
+    "loc": 16,
+    "logic_hash": "f7b5908bd7ea739e",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-7b8cde": {
@@ -3338,7 +3590,7 @@
     "body_hash": "7644f9ae3054a356",
     "churn": 0,
     "complexity": 1,
-    "fan_in": 4,
+    "fan_in": 5,
     "fan_out": 3,
     "kind": "method",
     "line_end": 53,
@@ -3477,6 +3729,20 @@
     "loc": 17,
     "logic_hash": "8f974ff1436e630a",
     "path": "memway/indexer.py",
+    "provenance": "computed"
+  },
+  "C-99dac0": {
+    "body_hash": "3129b1d7b4605875",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 2,
+    "kind": "function",
+    "line_end": 172,
+    "line_start": 165,
+    "loc": 8,
+    "logic_hash": "06df1a3f2fae4ca8",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-99e827": {
@@ -3632,6 +3898,22 @@
     "path": "memway/mcp.py",
     "provenance": "computed"
   },
+  "C-a30bfe": {
+    "agg_complexity": 48,
+    "body_hash": "69c6533441dd59c6",
+    "churn": 0,
+    "complexity": 41,
+    "fan_in": 1,
+    "fan_out": 0,
+    "kind": "module",
+    "line_end": 200,
+    "line_start": 1,
+    "loc": 201,
+    "logic_hash": "db8040d6df1c9fdb",
+    "n_children": 8,
+    "path": "memway/registry.py",
+    "provenance": "computed"
+  },
   "C-a34f46": {
     "body_hash": "89a64a9c78d43edd",
     "churn": 0,
@@ -3726,6 +4008,20 @@
     "loc": 2,
     "logic_hash": "70c4c74a196cb801",
     "path": "memway/parsers.py",
+    "provenance": "computed"
+  },
+  "C-a6e5e8": {
+    "body_hash": "e4ba77d9eb5c9109",
+    "churn": 0,
+    "complexity": 5,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 114,
+    "line_start": 103,
+    "loc": 12,
+    "logic_hash": "48a8fe21726732ec",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-a716b8": {
@@ -3849,8 +4145,8 @@
     "fan_in": 0,
     "fan_out": 2,
     "kind": "function",
-    "line_end": 297,
-    "line_start": 273,
+    "line_end": 330,
+    "line_start": 306,
     "loc": 25,
     "logic_hash": "ad57bd174c9896dc",
     "path": "memway/cli.py",
@@ -3884,6 +4180,22 @@
     "loc": 1,
     "logic_hash": "97ea75dd9b646b3e",
     "path": "memway/parsers.py",
+    "provenance": "computed"
+  },
+  "C-aaf156": {
+    "agg_complexity": 57,
+    "body_hash": "7ed2851522f3a8d9",
+    "churn": 0,
+    "complexity": 44,
+    "fan_in": 0,
+    "fan_out": 6,
+    "kind": "module",
+    "line_end": 184,
+    "line_start": 1,
+    "loc": 185,
+    "logic_hash": "d56e14498039684a",
+    "n_children": 14,
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-aafcca": {
@@ -4198,6 +4510,20 @@
     "path": "memway/probe.py",
     "provenance": "computed"
   },
+  "C-b70aff": {
+    "body_hash": "75e640cf35b2e11e",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 162,
+    "line_start": 156,
+    "loc": 7,
+    "logic_hash": "f033399817147706",
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
   "C-b7fcb5": {
     "body_hash": "5e4c3eafe9d2d86c",
     "churn": 0,
@@ -4205,8 +4531,8 @@
     "fan_in": 0,
     "fan_out": 1,
     "kind": "function",
-    "line_end": 307,
-    "line_start": 300,
+    "line_end": 340,
+    "line_start": 333,
     "loc": 8,
     "logic_hash": "01faac701a1c4f43",
     "path": "memway/cli.py",
@@ -4300,8 +4626,8 @@
     "fan_in": 2,
     "fan_out": 1,
     "kind": "function",
-    "line_end": 37,
-    "line_start": 35,
+    "line_end": 39,
+    "line_start": 37,
     "loc": 3,
     "logic_hash": "3e6e9e8cce74dc7b",
     "path": "memway/cli.py",
@@ -4665,8 +4991,8 @@
     "fan_in": 1,
     "fan_out": 2,
     "kind": "function",
-    "line_end": 63,
-    "line_start": 56,
+    "line_end": 65,
+    "line_start": 58,
     "loc": 8,
     "logic_hash": "97685d1e4421589f",
     "path": "memway/cli.py",
@@ -4706,7 +5032,7 @@
     "body_hash": "55bb574068fbaf04",
     "churn": 0,
     "complexity": 22,
-    "fan_in": 19,
+    "fan_in": 22,
     "fan_out": 0,
     "kind": "method",
     "line_end": 670,
@@ -4974,8 +5300,8 @@
     "fan_in": 0,
     "fan_out": 4,
     "kind": "function",
-    "line_end": 152,
-    "line_start": 129,
+    "line_end": 154,
+    "line_start": 131,
     "loc": 24,
     "logic_hash": "926c12a5855ccc8c",
     "path": "memway/cli.py",
@@ -5090,6 +5416,20 @@
     "line_start": 114,
     "loc": 7,
     "path": "tests/test_invariants.py",
+    "provenance": "computed"
+  },
+  "C-dc36e6": {
+    "body_hash": "7961b9a3df3e12f8",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 100,
+    "line_start": 95,
+    "loc": 6,
+    "logic_hash": "f5f13562d2364a4d",
+    "path": "tests/test_registry.py",
     "provenance": "computed"
   },
   "C-dc8b1c": {
@@ -5273,17 +5613,33 @@
     "path": "tests/test_units.py",
     "provenance": "computed"
   },
-  "C-e77e0a": {
-    "body_hash": "8649812a0ccffcac",
+  "C-e74b87": {
+    "agg_complexity": 2,
+    "body_hash": "0b62fdc4d474b5be",
     "churn": 0,
-    "complexity": 16,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 59,
+    "line_start": 51,
+    "loc": 9,
+    "logic_hash": "d565f3a150c8b37b",
+    "n_children": 1,
+    "path": "tests/test_registry.py",
+    "provenance": "computed"
+  },
+  "C-e77e0a": {
+    "body_hash": "20e90607af2dd8de",
+    "churn": 0,
+    "complexity": 18,
     "fan_in": 1,
     "fan_out": 0,
     "kind": "function",
-    "line_end": 359,
-    "line_start": 317,
-    "loc": 40,
-    "logic_hash": "a094e74ab68ce1e1",
+    "line_end": 412,
+    "line_start": 351,
+    "loc": 62,
+    "logic_hash": "49bfbbe0cede4d6f",
     "path": "memway/cli.py",
     "provenance": "computed"
   },
@@ -5575,6 +5931,20 @@
     "loc": 1,
     "logic_hash": "5961d1bd3e7aac73",
     "path": "memway/indexer.py",
+    "provenance": "computed"
+  },
+  "C-ef043e": {
+    "body_hash": "5aa2f05b31687f84",
+    "churn": 0,
+    "complexity": 7,
+    "fan_in": 1,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 139,
+    "line_start": 124,
+    "loc": 16,
+    "logic_hash": "99bf23c58c06aca3",
+    "path": "memway/registry.py",
     "provenance": "computed"
   },
   "C-ef0704": {
@@ -5967,8 +6337,8 @@
     "fan_in": 1,
     "fan_out": 11,
     "kind": "function",
-    "line_end": 126,
-    "line_start": 66,
+    "line_end": 128,
+    "line_start": 68,
     "loc": 61,
     "logic_hash": "888b539b4fff5742",
     "path": "memway/cli.py",
