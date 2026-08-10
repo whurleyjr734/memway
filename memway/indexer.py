@@ -300,12 +300,15 @@ class Indexer:
 
     # ------------------------------------------------------------------ load
 
-    def load_existing(self):
+    def load_existing(self, write_cache: bool = True):
+        """write_cache=False makes this a pure read - no pickle warmed.
+        Required by read-only tools (see memway/dig.py's fence)."""
         db = self.coord_dir / "index" / "coordinates.json"
         if db.exists():
             from .access_cache import load_json_cached
             try:
-                data = load_json_cached(db, self.coord_dir)
+                data = load_json_cached(db, self.coord_dir,
+                                        write=write_cache)
             except (json.JSONDecodeError, EOFError):
                 data = self._recover_from_snapshot()
             for cid, e in data.items():

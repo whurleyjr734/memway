@@ -22,8 +22,15 @@ def _fingerprint(src: Path):
     return (st.st_mtime_ns, st.st_size)
 
 
-def load_json_cached(src: Path, coord_dir: Path):
-    """Parse src (JSON), using/refreshing a fingerprint-keyed pickle."""
+def load_json_cached(src: Path, coord_dir: Path, *, write: bool = True):
+    """Parse src (JSON), using/refreshing a fingerprint-keyed pickle.
+
+    `write=False` still USES a valid cache but never creates or refreshes
+    one. Read-only tools need it: `memway dig` promises it does not touch
+    .coord, and warming a cache is a write like any other - it breaks a
+    read-only checkout and makes "did anything change?" unanswerable for
+    the caller.
+    """
     if not src.exists():
         return None
     cache_dir = coord_dir / "cache"
@@ -38,6 +45,8 @@ def load_json_cached(src: Path, coord_dir: Path):
         except Exception:
             pass                       # corrupt/old cache: fall through
     data = json.loads(src.read_text())
+    if not write:
+        return data
     try:
         cache_dir.mkdir(parents=True, exist_ok=True)
         tmp = pkl.with_suffix(".tmp")

@@ -160,7 +160,36 @@ TOOLS = [
             "ref": {"type": "string"}}, "required": ["ref"]},
         "fn": lambda repo, a: query.lineage(repo, a["ref"]),
     },
+    {
+        "name": "memway_dig",
+        "description": "Mine ONE entity's history on demand, when the "
+                       "code's reasoning is not obvious and you want to "
+                       "know WHY it is like that. Resolves the entity "
+                       "through the map, walks git history for its exact "
+                       "line range, labels commits that predate the "
+                       "entity (the range's earlier life), follows "
+                       "(#NNNN) references to their forge PR bodies - "
+                       "which is often where the only real explanation "
+                       "lives - and reports which releases each commit "
+                       "shipped in, warning when a commit is in no tag "
+                       "and may have shipped under a backported sha. "
+                       "RETURNS CANDIDATES: judging which commits explain "
+                       "WHY versus merely restate WHAT is the caller's "
+                       "job, and so is writing anything worth keeping "
+                       "back to the map with memway_meta. This tool never "
+                       "gates, never scores, and never writes.",
+        "inputSchema": {"type": "object", "properties": {
+            "ref": {"type": "string"}}, "required": ["ref"]},
+        "fn": lambda repo, a: _dig_capped(repo, a["ref"]),
+    },
 ]
+
+
+def _dig_capped(repo, ref):
+    """MCP path is byte-capped; the CLI --json path is not (finding #41:
+    PR bodies are large and a dig can carry dozens of them)."""
+    from .dig import dig, MCP_CAP_BYTES
+    return dig(repo, ref, cap_bytes=MCP_CAP_BYTES)
 _BY_NAME = {t["name"]: t for t in TOOLS}
 
 

@@ -157,6 +157,7 @@ def test_tools_list_advertises_every_tool(built):
     r = mcp.handle(rpc("tools/list"), built)
     names = {t["name"] for t in r["result"]["tools"]}
     assert names == {"memway_summary", "memway_at",
+                     "memway_dig",
                      "memway_verify_change", "memway_probe", "memway_meta",
                      "memway_attention",
                      "memway_show", "memway_lineage",
@@ -199,7 +200,7 @@ def test_serve_loop_processes_lines(built):
     mcp.serve(built, stdin=inp, stdout=outp)
     lines = [json.loads(l) for l in outp.getvalue().splitlines() if l]
     assert lines[0]["result"]["serverInfo"]["name"] == "memway"
-    assert len(lines[1]["result"]["tools"]) == 9
+    assert len(lines[1]["result"]["tools"]) == 10
 
 
 # ------------------------------------------------------- before_edit

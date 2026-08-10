@@ -626,7 +626,15 @@ QUERIES = {
     "at": lambda repo, a: at(repo, a[0]),
     "summary": lambda repo, a: summary(repo),
     "before-edit": lambda repo, a: before_edit(repo, a[0]),
+    # UNCAPPED on purpose: a file on disk has no context window, and the
+    # MCP path is the only one that needs a byte ceiling (see dig.py).
+    "dig": lambda repo, a: _dig(repo, a[0]),
 }
+
+
+def _dig(repo, ref):
+    from .dig import dig as _d
+    return _d(repo, ref)
 
 
 def verify_change(repo_root, run=False):

@@ -14,6 +14,12 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
   memway lineage <repo> [ref]         identity history through renames
+  memway dig <repo> <ref>             mine ONE entity's history: commits
+                                        touching its exact range, forge PR
+                                        bodies, release tags. Returns
+                                        CANDIDATES - judging rationale vs
+                                        restatement is the caller's job.
+                                        Never gates, scores, or writes.
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
@@ -307,10 +313,49 @@ def cmd_mcp(repo="."):
     _mcp_mod.serve(repo)
 
 
+def cmd_dig(repo, ref):
+    """Demand-paged history for one entity. Candidates only - see dig.py."""
+    from .dig import dig, REGION_HISTORY
+    out = dig(repo, ref)
+    if "error" in out:
+        print(out["error"])
+        for c in out.get("closest", []):
+            print(f"  did you mean: {c}")
+        sys.exit(1)
+    e, d, n = out["entity"], out["dig"], out["counts"]
+    print(f"{e['coord_id']}  {e['qualname']}")
+    print(f"  {e['path']}:{e['lineno']}-{e['end_lineno']}")
+    print(f"  {d['command']}")
+    print(f"  {n['total']} commits touched this range "
+          f"({n['entity_history']} entity-history, "
+          f"{n['region_history']} region-history)")
+    if d["creation_boundary"]:
+        print(f"  creation boundary: {d['creation_boundary'][:10]}")
+    for note in out.get("notes", []):
+        print(f"  ! {note}")
+    print()
+    for c in out["candidates"]:
+        mark = "~" if c["provenance"] == REGION_HISTORY else " "
+        print(f"{mark} {c['short_sha']}  {c['date']}  {c['subject'][:66]}")
+        if c["provenance"] == REGION_HISTORY:
+            print(f"    [{REGION_HISTORY}]")
+        for r in c.get("pr_refs", []):
+            if r.get("body"):
+                print(f"    PR #{r['number']}: {r['body'].splitlines()[0][:60] if r['body'].strip() else '(empty)'}")
+            else:
+                print(f"    PR #{r['number']}: unavailable "
+                      f"({r.get('unavailable_reason')})")
+        for w in c.get("warnings", []):
+            print(f"    ! {w}")
+    print("\ncandidates only - judging rationale vs restatement, and writing "
+          "anything back to the map, is YOUR job. This tool never gates, "
+          "scores, or writes.")
+
+
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
-    "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
+    "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp, "dig": cmd_dig,
 }
 
 
