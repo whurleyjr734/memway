@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>memway — itsdangerous, the real map</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1626;        /* chart ground */
+    --chartline:#1B2A44;  /* graticule */
+    --bone:#E9E4D6;       /* primary text */
+    --dim:#8B96A8;        /* secondary text */
+    --module:#7C9CBF;     /* surveyed kinds */
+    --class:#5FB3A1;
+    --func:#C9CBD6;
+    --method:#A08FCB;
+    --attribute:#6E7B91;
+    --amber:#E8A33D;      /* knowledge stamp */
+    --coral:#E06552;      /* stale / warning */
+    --panel:#111C30;
+    --edge:#33445F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--ink); color:var(--bone);
+    font-family:'Archivo',sans-serif; overflow:hidden;
+  }
+  /* faint chart graticule over the whole ground */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(var(--chartline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--chartline) 1px, transparent 1px);
+    background-size:72px 72px; opacity:.28;
+  }
+
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; gap:18px;
+    padding:14px 20px;
+    background:linear-gradient(180deg, rgba(14,22,38,.96), rgba(14,22,38,.72) 80%, transparent);
+  }
+  .wordmark{display:flex; align-items:baseline; gap:10px; white-space:nowrap}
+  .wordmark h1{font-family:'Fraunces',serif; font-weight:650; font-size:21px; letter-spacing:.2px}
+  .wordmark .sub{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim)}
+  .repo-chip{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--amber);
+    border:1px solid rgba(232,163,61,.35); border-radius:3px; padding:3px 8px;
+  }
+  .spacer{flex:1}
+  .search{
+    background:var(--panel); border:1px solid var(--edge); border-radius:4px;
+    color:var(--bone); font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    padding:7px 10px; width:min(300px,30vw); outline:none;
+  }
+  .search:focus{border-color:var(--amber)}
+  .btn{
+    background:transparent; border:1px solid var(--edge); color:var(--dim);
+    border-radius:4px; padding:7px 11px; font-family:'Archivo'; font-size:12.5px;
+    cursor:pointer; transition:color .15s,border-color .15s;
+  }
+  .btn:hover,.btn:focus-visible{color:var(--bone); border-color:var(--dim); outline:none}
+  .btn.active{color:var(--amber); border-color:rgba(232,163,61,.5)}
+
+  /* filter rail */
+  .rail{
+    position:fixed; top:64px; left:20px; z-index:15;
+    display:flex; flex-direction:column; gap:8px;
+    background:rgba(17,28,48,.88); border:1px solid var(--edge); border-radius:6px;
+    padding:12px 14px; backdrop-filter:blur(6px); width:196px;
+  }
+  .rail .rail-title{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    color:var(--dim); text-transform:uppercase; margin-bottom:2px;
+  }
+  .kind-row{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; user-select:none}
+  .kind-row input{accent-color:var(--amber)}
+  .swatch{width:10px; height:10px; border-radius:50%; flex:0 0 auto}
+  .rail label.slider-lab{font-size:11.5px; color:var(--dim); margin-top:6px}
+  .rail input[type=range]{width:100%; accent-color:var(--amber)}
+  .rail .kn-toggle{margin-top:6px}
+
+  /* the chart */
+  #chart{position:fixed; inset:0; z-index:5; cursor:grab}
+  #chart:active{cursor:grabbing}
+  .link{stroke:var(--edge); stroke-width:1px; stroke-opacity:.55}
+  .link.inherits{stroke:#5FB3A1; stroke-dasharray:4 3; stroke-opacity:.7}
+  .link.imports{stroke:#26364F; stroke-opacity:.4}
+  .link.contains{stroke:#1E2C45; stroke-opacity:.35}
+  .link.dimmed{stroke-opacity:.08}
+  .link.lit{stroke:var(--amber); stroke-opacity:.85; stroke-width:1.4px}
+  .node{cursor:pointer}
+  .node circle.core{stroke:var(--ink); stroke-width:1.5px}
+  .node.dimmed{opacity:.14}
+  .node text{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; fill:var(--dim);
+    pointer-events:none; opacity:0; transition:opacity .15s;
+  }
+  .node:hover text,.node.selected text,.node.hit text{opacity:1; fill:var(--bone)}
+  .node .stamp-ring{fill:none; stroke:var(--amber); stroke-width:1.6px}
+  .node .stamp-ring.stale{stroke:var(--coral); stroke-dasharray:3 3}
+  .node.selected circle.core{stroke:var(--bone); stroke-width:2px}
+
+  /* detail panel — the coordinate card */
+  aside{
+    position:fixed; top:64px; right:20px; bottom:20px; z-index:15;
+    width:min(392px, 92vw);
+    background:rgba(17,28,48,.94); border:1px solid var(--edge); border-radius:8px;
+    backdrop-filter:blur(8px); overflow-y:auto;
+    transform:translateX(calc(100% + 24px)); transition:transform .25s ease;
+  }
+  aside.open{transform:none}
+  .card{padding:20px 22px}
+  .card .coord{
+    font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:500;
+    color:var(--amber); letter-spacing:.5px;
+  }
+  .card .kind-eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:6px;
+  }
+  .card h2{font-family:'Fraunces',serif; font-weight:500; font-size:17px; line-height:1.35; margin:10px 0 2px; word-break:break-word}
+  .card .loc{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--dim); margin-bottom:14px}
+  .statgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px}
+  .stat{border:1px solid var(--edge); border-radius:5px; padding:8px 10px}
+  .stat .v{font-family:'IBM Plex Mono',monospace; font-size:16px}
+  .stat .k{font-size:10px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase; margin-top:2px}
+  .stat.hot .v{color:var(--coral)}
+  .kn-head{
+    display:flex; align-items:center; gap:8px; margin:4px 0 10px;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--dim);
+  }
+  .kn-head::after{content:""; flex:1; height:1px; background:var(--edge)}
+  .note{
+    border-left:2px solid var(--amber); background:rgba(232,163,61,.06);
+    padding:10px 12px; border-radius:0 5px 5px 0; margin-bottom:10px;
+    font-size:12.5px; line-height:1.55;
+  }
+  .note.stale{border-left-color:var(--coral); background:rgba(224,101,82,.06)}
+  .note .seal{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em;
+    color:var(--amber); text-transform:uppercase; margin-bottom:6px;
+  }
+  .note.stale .seal{color:var(--coral)}
+  .seal .dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor}
+  .note.stale .seal .dot{border-style:dashed}
+  .empty-k{font-size:12.5px; color:var(--dim); font-style:italic}
+  .close-x{
+    position:absolute; top:10px; right:12px; background:none; border:none;
+    color:var(--dim); font-size:18px; cursor:pointer; line-height:1;
+  }
+  .close-x:hover{color:var(--bone)}
+
+  /* load-your-own modal */
+  .modal-wrap{position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(8,12,22,.7)}
+  .modal-wrap.open{display:flex}
+  .modal{
+    width:min(640px,94vw); max-height:86vh; overflow-y:auto;
+    background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:24px;
+  }
+  .modal h3{font-family:'Fraunces',serif; font-weight:500; font-size:18px; margin-bottom:8px}
+  .modal p{font-size:12.5px; color:var(--dim); line-height:1.55; margin-bottom:12px}
+  .modal textarea{
+    width:100%; height:170px; background:var(--ink); color:var(--bone);
+    border:1px solid var(--edge); border-radius:5px; padding:10px;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; resize:vertical;
+  }
+  .modal pre{
+    background:var(--ink); border:1px solid var(--edge); border-radius:5px;
+    padding:12px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    color:var(--dim); overflow-x:auto; margin:10px 0 14px; line-height:1.5;
+  }
+  .modal .row{display:flex; gap:10px; justify-content:flex-end}
+  .err{color:var(--coral); font-size:12px; margin-top:8px; display:none}
+
+  footer{
+    position:fixed; left:20px; bottom:16px; z-index:15;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--dim);
+  }
+  footer .amber{color:var(--amber)}
+
+  @media (max-width:760px){
+    .rail{display:none}
+    aside{top:auto; left:12px; right:12px; bottom:12px; max-height:52vh; transform:translateY(calc(100% + 16px))}
+    aside.open{transform:none}
+    .search{width:38vw}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">
+    <h1>memway</h1><span class="sub">map explorer</span>
+  </div>
+  <span class="repo-chip" id="repoChip">encode/httpx · timeout &amp; pooling survey</span>
+  <div class="spacer"></div>
+  <input class="search" id="search" type="search" placeholder="search qualname or C-xxxxxx" aria-label="Search entities">
+  <button class="btn" id="loadBtn">Load your map</button>
+</header>
+
+<div class="rail" role="group" aria-label="Filters">
+  <div class="rail-title">Surveyed kinds</div>
+  <label class="kind-row"><input type="checkbox" data-kind="module" checked><span class="swatch" style="background:var(--module)"></span>module</label>
+  <label class="kind-row"><input type="checkbox" data-kind="class" checked><span class="swatch" style="background:var(--class)"></span>class</label>
+  <label class="kind-row"><input type="checkbox" data-kind="function" checked><span class="swatch" style="background:var(--func)"></span>function</label>
+  <label class="kind-row"><input type="checkbox" data-kind="method" checked><span class="swatch" style="background:var(--method)"></span>method</label>
+  <label class="kind-row"><input type="checkbox" data-kind="attribute" checked><span class="swatch" style="background:var(--attribute)"></span>attribute</label>
+  <label class="slider-lab">min complexity <span id="cxVal">0</span></label>
+  <input type="range" id="cxSlider" min="0" max="18" value="0" step="1">
+  <label class="kind-row kn-toggle"><input type="checkbox" id="knOnly"><span class="swatch" style="background:var(--amber)"></span>knowledge only</label>
+  <div class="rail-title" style="margin-top:8px">Edges</div>
+  <label class="kind-row"><input type="checkbox" data-ekind="calls" checked><span class="swatch" style="background:#33445F;border-radius:1px;height:3px"></span>calls</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="inherits" checked><span class="swatch" style="background:#5FB3A1;border-radius:1px;height:3px"></span>inherits</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="imports"><span class="swatch" style="background:#26364F;border-radius:1px;height:3px"></span>imports</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="contains"><span class="swatch" style="background:#1E2C45;border-radius:1px;height:3px"></span>contains</label>
+</div>
+
+<svg id="chart" role="img" aria-label="Force-directed graph of code entities and call edges"></svg>
+
+<aside id="panel" aria-live="polite">
+  <button class="close-x" id="closePanel" aria-label="Close details">×</button>
+  <div class="card" id="card"></div>
+</aside>
+
+<div class="modal-wrap" id="modalWrap">
+  <div class="modal">
+    <h3>Load your own map</h3>
+    <p>Paste JSON in the shape below (field names are matched tolerantly — <code>coord_id/id</code>, <code>caller/source</code> all work). Export from a memway repo with a script like:</p>
+    <pre>import json, pathlib
+idx = json.loads(pathlib.Path(".coord/index/coordinates.json").read_text())
+# adapt to your on-disk layout; emit:
+# {"repo":"name","entities":[{"id","qualname","kind","file","lines","complexity",
+#   "knowledge":[{"text","stale","channel"}]}],"edges":[{"source","target","kind"}]}</pre>
+    <textarea id="jsonIn" placeholder='{"repo":"my/repo","entities":[...],"edges":[...]}'></textarea>
+    <div class="err" id="jsonErr"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="cancelLoad">Cancel</button>
+      <button class="btn active" id="doLoad">Render map</button>
+    </div>
+  </div>
+</div>
+
+<footer>drag to pan · scroll to zoom · click a point to read its <span class="amber">stamped knowledge</span> · amber ring = knowledge attached</footer>
+
+<script>
+/* ---------- sample data: the real httpx neighborhood from the validation run ----------
+   Coord IDs, files, complexities, and the six excavated notes mirror the campaign
+   transcripts; peripheral caller/test nodes are illustrative. */
+const SAMPLE = __MEMWAY_DATA__;
+
+const KIND_COLOR = {module:"var(--module)", class:"var(--class)", function:"var(--func)", method:"var(--method)", attribute:"var(--attribute)"};
+const svg = d3.select("#chart");
+let W = innerWidth, H = innerHeight;
+svg.attr("viewBox", [0,0,W,H]);
+const zoomLayer = svg.append("g");
+svg.call(d3.zoom().scaleExtent([.3, 4]).on("zoom", e => zoomLayer.attr("transform", e.transform)));
+
+let nodes=[], links=[], sim, selected=null;
+
+function normalize(raw){
+  const ents=(raw.entities||[]).map(e=>({
+    id:e.id||e.coord_id||e.coord, qualname:e.qualname||e.name||"",
+    kind:(e.kind||"function").toLowerCase(), file:e.file||"", lines:e.lines||"",
+    complexity:+e.complexity||0,
+    knowledge:(e.knowledge||e.notes||[]).map(n=> typeof n==="string" ? {text:n,stale:false} : {text:n.text||"",stale:!!(n.stale||n.any_stale),channel:n.channel||"",author:n.author||""})
+  })).filter(e=>e.id);
+  const ids=new Set(ents.map(e=>e.id));
+  const eds=(raw.edges||[]).map(ed=>Array.isArray(ed)?{source:ed[0],target:ed[1],kind:"calls"}:{source:ed.source||ed.caller,target:ed.target||ed.callee,kind:(ed.kind||"calls")}).filter(ed=>ids.has(ed.source)&&ids.has(ed.target));
+  return {repo:raw.repo||"custom map", entities:ents, edges:eds};
+}
+
+function render(data){
+  document.getElementById("repoChip").textContent = data.repo;
+  zoomLayer.selectAll("*").remove();
+  selected=null; document.getElementById("panel").classList.remove("open");
+  nodes = data.entities.map(d=>Object.assign({},d));
+  links = data.edges.map(d=>Object.assign({},d));
+
+  sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d=>d.id).distance(52).strength(.6))
+    .force("charge", d3.forceManyBody().strength(-200))
+    .force("center", d3.forceCenter(W/2, H/2))
+    .force("collide", d3.forceCollide().radius(d=>r(d)+8));
+
+  const link = zoomLayer.append("g").selectAll("line").data(links).join("line").attr("class",d=>"link "+(d.kind||"calls"));
+
+  const node = zoomLayer.append("g").selectAll("g").data(nodes).join("g")
+    .attr("class","node")
+    .call(d3.drag()
+      .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(.25).restart();d.fx=d.x;d.fy=d.y;})
+      .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}))
+    .on("click",(e,d)=>{e.stopPropagation();select(d,link,node);});
+
+  node.append("circle").attr("class","core")
+    .attr("r",d=>r(d)).attr("fill",d=>KIND_COLOR[d.kind]||"var(--func)");
+  node.filter(d=>d.knowledge.length).append("circle")
+    .attr("class",d=>"stamp-ring"+(d.knowledge.some(k=>k.stale)?" stale":""))
+    .attr("r",d=>r(d)+4.5);
+  node.append("text").attr("dy",d=>-(r(d)+9)).attr("text-anchor","middle")
+    .text(d=>d.qualname.split(".").slice(-1)[0]);
+
+  svg.on("click",()=>{clearSel(link,node);});
+  sim.on("tick",()=>{
+    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+    node.attr("transform",d=>`translate(${d.x},${d.y})`);
+  });
+  window._refs={link,node};
+  applyFilters();
+}
+
+function r(d){ return 6 + Math.min(14, d.complexity*0.9); }
+
+function select(d, link, node){
+  selected=d.id;
+  const hood=new Set([d.id]);
+  links.forEach(l=>{ if(l.source.id===d.id)hood.add(l.target.id); if(l.target.id===d.id)hood.add(l.source.id); });
+  node.classed("selected",n=>n.id===d.id).classed("dimmed",n=>!hood.has(n.id));
+  link.classed("lit",l=>l.source.id===d.id||l.target.id===d.id)
+      .classed("dimmed",l=>l.source.id!==d.id&&l.target.id!==d.id);
+  const callers=links.filter(l=>l.target.id===d.id).length;
+  const callees=links.filter(l=>l.source.id===d.id).length;
+  const c=document.getElementById("card");
+  c.innerHTML = `
+    <div class="kind-eyebrow">${d.kind} · surveyed coordinate</div>
+    <div class="coord">${d.id}</div>
+    <h2>${d.qualname}</h2>
+    <div class="loc">${d.file}${d.lines?":"+d.lines:""}</div>
+    <div class="statgrid">
+      <div class="stat ${d.complexity>=15?"hot":""}"><div class="v">${d.complexity}</div><div class="k">complexity</div></div>
+      <div class="stat"><div class="v">${callers}</div><div class="k">callers</div></div>
+      <div class="stat"><div class="v">${callees}</div><div class="k">callees</div></div>
+    </div>
+    <div class="kn-head">stamped knowledge</div>
+    ${d.knowledge.length ? d.knowledge.map(k=>`
+      <div class="note ${k.stale?"stale":""}">
+        <div class="seal"><span class="dot"></span>${k.channel?`<b>${escapeHtml(k.channel)}</b> · `:""}${k.stale?"stale — logic changed since stamp":"fresh at current logic hash"}</div>
+        ${escapeHtml(k.text)}
+      </div>`).join("") : `<div class="empty-k">Nothing recorded here yet. The next session that learns something durable about this entity writes it — and it lands on this card.</div>`}
+  `;
+  document.getElementById("panel").classList.add("open");
+}
+function clearSel(link,node){
+  selected=null;
+  node.classed("selected",false).classed("dimmed",false);
+  link.classed("lit",false).classed("dimmed",false);
+  document.getElementById("panel").classList.remove("open");
+  applyFilters();
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+/* filters + search */
+const kindBoxes=[...document.querySelectorAll("[data-kind]")];
+const edgeBoxes=[...document.querySelectorAll("[data-ekind]")];
+const cxSlider=document.getElementById("cxSlider"), cxVal=document.getElementById("cxVal");
+const knOnly=document.getElementById("knOnly"), searchIn=document.getElementById("search");
+function applyFilters(){
+  if(!window._refs) return;
+  const kinds=new Set(kindBoxes.filter(b=>b.checked).map(b=>b.dataset.kind));
+  const minCx=+cxSlider.value, kOnly=knOnly.checked, q=searchIn.value.trim().toLowerCase();
+  cxVal.textContent=minCx;
+  const visible=d=>kinds.has(d.kind)&&d.complexity>=minCx&&(!kOnly||d.knowledge.length);
+  window._refs.node
+    .style("display",d=>visible(d)?null:"none")
+    .classed("hit",d=>q&&(d.qualname.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)));
+  const ekinds=new Set(edgeBoxes.filter(b=>b.checked).map(b=>b.dataset.ekind));
+  window._refs.link.style("display",l=>visible(l.source)&&visible(l.target)&&ekinds.has(l.kind||"calls")?null:"none");
+}
+kindBoxes.forEach(b=>b.addEventListener("change",applyFilters));
+edgeBoxes.forEach(b=>b.addEventListener("change",applyFilters));
+cxSlider.addEventListener("input",applyFilters);
+knOnly.addEventListener("change",applyFilters);
+searchIn.addEventListener("input",applyFilters);
+
+/* load-your-own */
+const wrap=document.getElementById("modalWrap");
+document.getElementById("loadBtn").onclick=()=>wrap.classList.add("open");
+document.getElementById("cancelLoad").onclick=()=>wrap.classList.remove("open");
+document.getElementById("doLoad").onclick=()=>{
+  const err=document.getElementById("jsonErr");
+  try{
+    const raw=JSON.parse(document.getElementById("jsonIn").value);
+    const data=normalize(raw);
+    if(!data.entities.length) throw new Error("No entities found after normalization.");
+    wrap.classList.remove("open"); err.style.display="none";
+    render(data);
+  }catch(ex){ err.textContent="Could not parse: "+ex.message; err.style.display="block"; }
+};
+document.getElementById("closePanel").onclick=()=>{ if(window._refs) clearSel(window._refs.link,window._refs.node); };
+
+addEventListener("resize",()=>{W=innerWidth;H=innerHeight;svg.attr("viewBox",[0,0,W,H]);});
+render(normalize(SAMPLE));
+</script>
+</body>
+</html>

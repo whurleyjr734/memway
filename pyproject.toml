@@ -43,4 +43,4 @@ memway = "memway.cli:main"
 packages = ["memway"]
 
 [tool.setuptools.package-data]
-memway = ["lens_template.html"]
+memway = ["lens_template.html", "viz_template.html"]

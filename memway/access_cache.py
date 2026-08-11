@@ -26,10 +26,11 @@ def load_json_cached(src: Path, coord_dir: Path, *, write: bool = True):
     """Parse src (JSON), using/refreshing a fingerprint-keyed pickle.
 
     `write=False` still USES a valid cache but never creates or refreshes
-    one. Read-only tools need it: `memway dig` promises it does not touch
-    .coord, and warming a cache is a write like any other - it breaks a
-    read-only checkout and makes "did anything change?" unanswerable for
-    the caller.
+    one. Read-only tools need it: `memway dig`, `memway viz`, `memway
+    evidence` and the console's GET endpoints all promise they do not
+    touch .coord, and warming a cache is a write like any other - it
+    breaks a read-only checkout and makes "did anything change?"
+    unanswerable for the caller.
     """
     if not src.exists():
         return None

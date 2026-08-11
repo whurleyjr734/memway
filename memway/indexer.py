@@ -302,7 +302,8 @@ class Indexer:
 
     def load_existing(self, write_cache: bool = True):
         """write_cache=False makes this a pure read - no pickle warmed.
-        Required by read-only tools (see memway/dig.py's fence)."""
+        Required by read-only tools - see the fences in memway/dig.py,
+        memway/viz.py and memway/console.py."""
         db = self.coord_dir / "index" / "coordinates.json"
         if db.exists():
             from .access_cache import load_json_cached

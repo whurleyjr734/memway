@@ -226,12 +226,18 @@ class EdgeBuilder:
         os.replace(_t, idx_dir / "edges.json")
 
     @staticmethod
-    def load(coord_dir: str) -> list[dict]:
+    def load(coord_dir: str, write_cache: bool = True) -> list[dict]:
+        """write_cache=False makes this a pure read.
+
+        Read-only tools (viz, dig) must not warm .coord/cache/edges.pkl -
+        this is the SECOND cache on the load path, and missing it is why
+        the viz fence still failed after the coordinates cache was fixed.
+        """
         p = Path(coord_dir) / "index" / "edges.json"
         if not p.exists():
             return []
         from .access_cache import load_json_cached
-        return load_json_cached(p, Path(coord_dir))
+        return load_json_cached(p, Path(coord_dir), write=write_cache)
 
 
 def neighbors(edges: list[dict], coord_id: str) -> list[dict]:

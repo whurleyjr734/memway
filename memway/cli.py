@@ -23,6 +23,11 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         CANDIDATES - judging rationale vs
                                         restatement is the caller's job.
                                         Never gates, scores, or writes.
+  memway viz <repo> [--out F]         render the real map as a single
+                                        interactive HTML file (read-only;
+                                        --filter <qualname-prefix> for a
+                                        subtree, --force above 1500
+                                        entities; never samples silently)
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
@@ -418,13 +423,44 @@ def cmd_evidence(repo, ref="", which=""):
             for line in body.splitlines()[:4]:
                 print(f"      {line[:76]}")
         print()
+def cmd_viz(repo, *args):
+    """Render the map as a self-contained HTML explorer. Read-only."""
+    from .viz import viz
+    out, prefix, force = "", "", False
+    rest = list(args)
+    while rest:
+        a = rest.pop(0)
+        if a == "--out" and rest:
+            out = rest.pop(0)
+        elif a.startswith("--out="):
+            out = a.split("=", 1)[1]
+        elif a == "--filter" and rest:
+            prefix = rest.pop(0)
+        elif a.startswith("--filter="):
+            prefix = a.split("=", 1)[1]
+        elif a == "--force":
+            force = True
+        else:
+            raise SystemExit(f"unknown flag {a!r} - "
+                             f"use --out F, --filter PREFIX, --force")
+    r = viz(repo, out, filter_prefix=prefix, force=force)
+    if "error" in r:
+        print(r["error"])
+        if r.get("hint"):
+            print(f"  {r['hint']}")
+        sys.exit(1)
+    print(f"wrote {r['out']}")
+    print(f"  {r['line']}")
+    if r["census"].get("boundary"):
+        print(f"  {r['census']['boundary']} boundary nodes "
+              f"(outside the filter, kept so edges are not silently cut)")
 
 
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
-    "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp, "dig": cmd_dig,
-    "evidence": cmd_evidence,
+    "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
+    "dig": cmd_dig, "evidence": cmd_evidence, "viz": cmd_viz,
 }
 
 
