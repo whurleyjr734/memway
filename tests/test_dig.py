@@ -63,11 +63,11 @@ def two_era(tmp_path):
     (R / "mod.py").write_text("def alpha(x):\n    return x\n")
     commit(R, "c1: add alpha\n\nBecause the caller needed identity.")
     (R / "mod.py").write_text("def alpha(x):\n    return x + 1\n")
-    commit(R, "c2: alpha adds one\n\nOff-by-one at the call site. Fixes #11.")
+    commit(R, "c2: alpha adds one (#11)\n\nOff-by-one at the call site.")
     (R / "mod.py").write_text("def beta(x):\n    return x * 2\n")
     commit(R, "c3: replace alpha with beta\n\nDoubling is the new contract.")
     (R / "mod.py").write_text("def beta(x):\n    return x * 3\n")
-    commit(R, "c4: beta triples\n\nPricing moved to thirds. See #22.")
+    commit(R, "c4: beta triples (#22)\n\nPricing moved to thirds.")
     # gamma is APPENDED onto lines that never held anything else, so its
     # range has no prior era. It is the control for the labelling test:
     # without it, "everything is region-history" would also pass.
@@ -268,6 +268,25 @@ def test_entity_with_no_prior_region_has_no_region_history(two_era):
     assert all(c["provenance"] == ENTITY_HISTORY for c in out["candidates"])
 
 
+def test_entity_older_than_the_range_history_is_proven_not_guessed(
+        two_era, monkeypatch):
+    """Measured on matplotlib: get_width_height was introduced 2005-06-18
+    while its range's own -L history starts 2005-07-22. The creation
+    commit is outside the candidate set, but it is an ANCESTOR of the
+    oldest candidate - so 'all entity-history' is provable. Reporting
+    'unverified' there would overclaim uncertainty."""
+    from memway.dig import PREDATES_RANGE
+    monkeypatch.setattr(digmod, "_creation_boundary",
+                        lambda *a, **k: PREDATES_RANGE)
+    out = dig(str(two_era), "mod.beta")
+    assert out["dig"]["creation_boundary"] == PREDATES_RANGE
+    assert out["counts"]["region_history"] == 0
+    assert all(c["provenance"] == ENTITY_HISTORY for c in out["candidates"])
+    assert any("proven by ancestry" in n for n in out["notes"])
+    assert not any("unverified" in n for n in out["notes"]), \
+        "must not claim uncertainty it does not have"
+
+
 def test_missing_boundary_degrades_honestly(two_era, monkeypatch):
     """Unknown provenance must be stated, not assumed."""
     monkeypatch.setattr(digmod, "_creation_boundary", lambda *a, **k: None)
@@ -309,8 +328,8 @@ def test_forge_refs_extracted_and_fetched(two_era, monkeypatch):
                 pr_body="Because the pricing table stores thirds.")
     out = dig(str(two_era), "mod.beta")
     refs = {r["number"]: r for c in out["candidates"] for r in c["pr_refs"]}
-    assert 22 in refs, "#22 from c4's body must be extracted"
-    assert 11 in refs, "#11 from c2's body must be extracted"
+    assert 22 in refs, "#22 from c4's subject trailer must be extracted"
+    assert 11 in refs, "#11 from c2's subject trailer must be extracted"
     assert refs[22]["body"] == "Because the pricing table stores thirds."
     assert refs[22]["unavailable_reason"] is None
 
@@ -345,6 +364,58 @@ def test_forge_degrades_gracefully_with_a_reason(two_era, monkeypatch,
     assert refs, "refs must still be listed, just unresolved"
     assert all(r["body"] is None for r in refs)
     assert {r["unavailable_reason"] for r in refs} == {reason}
+
+
+def test_trac_style_refs_are_reported_but_never_fetched(two_era, monkeypatch):
+    """MEASURED on the Django answer key: bare '#NNNN' in a commit message
+    is a TRAC ticket there, and django/django on GitHub has PRs in the same
+    numeric range. Fetching by bare number attached four unrelated PR
+    bodies - 'Fixed #1142 -- multiple database support' got PR #1142 about
+    Urdu RTL locales. Confidently wrong is worse than unavailable.
+    """
+    fetched = []
+    _fake_forge(monkeypatch, remote="https://github.com/o/r.git")
+    real = digmod._fetch_pr
+    monkeypatch.setattr(digmod, "_fetch_pr",
+                        lambda s, n, c: (fetched.append(n), real(s, n, c))[1])
+    monkeypatch.setattr(digmod, "_log_range", lambda *a, **k: [
+        {"sha": "a" * 40, "short_sha": "aaaaaaa", "date": "2026-01-01",
+         "author": "T", "subject": "Fixed #1142 -- Added multiple db support",
+         "body": "Refs #14357 and see #20413"}])
+    out = dig(str(two_era), "mod.beta")
+    refs = out["candidates"][0]["pr_refs"]
+    assert {r["number"] for r in refs} == {1142, 14357, 20413}, \
+        "the numbers must still be REPORTED so the caller can look them up"
+    assert all(r["body"] is None for r in refs)
+    assert all(r["unavailable_reason"] == digmod.AMBIGUOUS_REF for r in refs)
+    assert fetched == [], f"no bare-number ref may be fetched: {fetched}"
+
+
+@pytest.mark.parametrize("subject,body,expect_fetch", [
+    ("ci: make eslint fail (#32183)", "", True),        # squash trailer
+    ("Backport PR #32038: fix canvas", "", True),       # explicit PR
+    ("Merge pull request #77 from x/y", "", True),      # merge commit
+    ("Fixed #36795 -- Enforced quoting", "", False),    # Trac prose
+    ("Refs #14357 -- Deprecated Meta", "", False),      # Trac prose
+    ("fix crash", "closes #91", False),                 # bare body ref
+])
+def test_only_github_shaped_refs_are_resolved(two_era, monkeypatch,
+                                              subject, body, expect_fetch):
+    fetched = []
+    _fake_forge(monkeypatch, remote="https://github.com/o/r.git")
+    real = digmod._fetch_pr
+    monkeypatch.setattr(digmod, "_fetch_pr",
+                        lambda s, n, c: (fetched.append(n), real(s, n, c))[1])
+    monkeypatch.setattr(digmod, "_log_range", lambda *a, **k: [
+        {"sha": "a" * 40, "short_sha": "aaaaaaa", "date": "2026-01-01",
+         "author": "T", "subject": subject, "body": body}])
+    out = dig(str(two_era), "mod.beta")
+    refs = out["candidates"][0]["pr_refs"]
+    assert refs, "the number must be reported either way"
+    assert bool(fetched) is expect_fetch, \
+        f"{subject!r}: fetched={fetched}, expected fetch={expect_fetch}"
+    if not expect_fetch:
+        assert refs[0]["unavailable_reason"] == digmod.AMBIGUOUS_REF
 
 
 def test_forge_leg_can_be_skipped_entirely(two_era):
@@ -493,7 +564,7 @@ def test_bodies_are_verbatim_when_uncapped(two_era):
     so the text must be the commit's own."""
     out = dig(str(two_era), "mod.beta")
     c4 = next(c for c in out["candidates"] if c["subject"].startswith("c4"))
-    assert c4["body"] == "Pricing moved to thirds. See #22."
+    assert c4["body"] == "Pricing moved to thirds."
     assert "truncated" not in c4
     real = subprocess.run(["git", "-C", str(two_era), "log", "-1",
                            "--format=%b", c4["sha"]],

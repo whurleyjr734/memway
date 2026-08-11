@@ -84,8 +84,31 @@ BACKPORT_WARNING = ("absent from all tags - may be released under a "
 
 REGION_HISTORY = "region-history (predates this entity)"
 ENTITY_HISTORY = "entity-history"
+# The entity is older than the range's own recorded history: every
+# candidate is entity history, and that is PROVEN, not merely unfound.
+PREDATES_RANGE = "entity-predates-recorded-range-history"
 
 _ISSUE_REF = re.compile(r"#(\d{1,7})\b")
+
+# Which #NNNN are actually GitHub PRs, and which are some other tracker's
+# ticket numbers that merely look identical.
+#
+# MEASURED FAILURE (Django answer key): Django's messages carry TRAC ticket
+# numbers - "Fixed #1142 -- Added multiple database support." - and
+# django/django on GitHub also has a PR #1142, about Urdu RTL locales.
+# Fetching by bare number attached four unrelated PR bodies to four
+# commits. That is worse than unavailable: it is confidently wrong, the
+# same failure class the backport warning exists to prevent.
+#
+# So fetch only refs in a GitHub-shaped position: the squash-merge
+# trailer "subject (#NNNN)", an explicit "PR #NNNN", or a merge commit.
+# Everything else is still REPORTED - the caller sees the number and can
+# look it up - but is not resolved against the wrong tracker.
+_GH_REF = re.compile(r"\(#(\d{1,7})\)|\bPR #(\d{1,7})\b|"
+                     r"\bMerge pull request #(\d{1,7})\b")
+AMBIGUOUS_REF = ("ref is not in a GitHub-PR position (looks like another "
+                 "tracker's ticket number); not fetched to avoid attaching "
+                 "an unrelated PR body")
 _REC, _FLD = "\x1e", "\x1f"
 
 # MCP payload ceiling. Finding #41: a single PR body can be tens of KB and
@@ -169,10 +192,20 @@ def _creation_boundary(repo: Path, path: str, short_name: str, shas: list):
     if not ok:
         return None
     known = set(shas)
-    for line in out.splitlines():
-        sha = line.strip()
-        if sha and sha in known:
+    order = [s.strip() for s in out.splitlines() if s.strip()]
+    for sha in order:
+        if sha in known:
             return sha
+    # The entity's creation is OLDER than anything the range recorded -
+    # measured on matplotlib's get_width_height, introduced 2005-06-18
+    # while the range's own history starts 2005-07-22. That is provable,
+    # not unknowable: if the creation commit is an ancestor of the oldest
+    # candidate, every candidate is entity history and none is region
+    # history. Saying "unverified" here would overclaim uncertainty.
+    if order and shas:
+        _, ok = _git(repo, "merge-base", "--is-ancestor", order[0], shas[-1])
+        if ok:
+            return PREDATES_RANGE
     return None
 
 
@@ -244,13 +277,19 @@ def _forge_refs(cands: list, repo: Path, forge: bool) -> None:
     slug, reason = (_gh_ready(repo) if forge else (None, "forge-leg-disabled"))
     cache: dict = {}
     for c in cands:
+        blob = f"{c['subject']}\n{c['body']}"
+        gh_shaped = {n for grp in _GH_REF.findall(blob) for n in grp if n}
         nums, seen = [], set()
-        for n in _ISSUE_REF.findall(f"{c['subject']}\n{c['body']}"):
+        for n in _ISSUE_REF.findall(blob):
             if n not in seen:
                 seen.add(n)
                 nums.append(n)
         refs = []
         for n in nums:
+            if n not in gh_shaped:
+                refs.append({"number": int(n), "body": None,
+                             "unavailable_reason": AMBIGUOUS_REF})
+                continue
             if slug is None:
                 refs.append({"number": int(n), "body": None,
                              "unavailable_reason": reason})
@@ -333,8 +372,12 @@ def dig(repo: str, ref: str, *, cap_bytes: int | None = None,
     short_name = e.qualname.rsplit(".", 1)[-1]
     boundary = _creation_boundary(repo_p, e.path, short_name,
                                   [c["sha"] for c in cands])
-    _label_provenance(cands, boundary)
-    if boundary is None and cands:
+    _label_provenance(cands, None if boundary == PREDATES_RANGE else boundary)
+    if boundary == PREDATES_RANGE and cands:
+        notes.append("the entity predates the oldest commit this range "
+                     "records, so every candidate is entity-history (proven "
+                     "by ancestry, not assumed)")
+    elif boundary is None and cands:
         notes.append("creation boundary not found; all candidates labelled "
                      "entity-history (provenance is unverified, not proven)")
     for c in cands:
