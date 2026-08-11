@@ -14,6 +14,14 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
   memway lineage <repo> [ref]         identity history through renames
+  memway console <repo> [--port N]    serve the map live: tools as buttons,
+                                        notes written back from the card
+                                        (127.0.0.1 + session token only)
+  memway viz <repo> [--out F]         render the real map as a single
+                                        interactive HTML file (read-only;
+                                        --filter <qualname-prefix> for a
+                                        subtree, --force above 1500
+                                        entities; never samples silently)
   memway evidence <repo> <ref>        read cached evidence bodies
                                         (--clear removes ALL of it; the
                                          authored map is untouched)
@@ -23,11 +31,6 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         CANDIDATES - judging rationale vs
                                         restatement is the caller's job.
                                         Never gates, scores, or writes.
-  memway viz <repo> [--out F]         render the real map as a single
-                                        interactive HTML file (read-only;
-                                        --filter <qualname-prefix> for a
-                                        subtree, --force above 1500
-                                        entities; never samples silently)
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
@@ -456,11 +459,41 @@ def cmd_viz(repo, *args):
               f"(outside the filter, kept so edges are not silently cut)")
 
 
+def cmd_console(repo, *args):
+    """Serve the map live, with the read tools as buttons. 127.0.0.1 only,
+    token-gated; the only write is a note at a coordinate."""
+    from .console import serve
+    port = 0
+    rest = list(args)
+    while rest:
+        a = rest.pop(0)
+        if a == "--port" and rest:
+            port = int(rest.pop(0))
+        elif a.startswith("--port="):
+            port = int(a.split("=", 1)[1])
+        else:
+            raise SystemExit(f"unknown flag {a!r} - use --port N")
+    httpd, url, _ = serve(repo, port=port)
+    print(f"memway console on {url}")
+    print("  127.0.0.1 only; the URL carries a single-session token")
+    print("  read tools: summary show before_edit lineage dig")
+    print("  the only write: a note at a coordinate")
+    print("  ctrl-c to stop")
+    try:
+        import time
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        httpd.shutdown()
+        print("\nstopped")
+
+
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
-    "dig": cmd_dig, "evidence": cmd_evidence, "viz": cmd_viz,
+    "dig": cmd_dig, "evidence": cmd_evidence,
+    "viz": cmd_viz, "console": cmd_console,
 }
 
 

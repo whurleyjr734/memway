@@ -317,6 +317,23 @@ function render(data){
     node.attr("transform",d=>`translate(${d.x},${d.y})`);
   });
   window._refs={link,node};
+  // Live refresh: the console POSTs a note, re-fetches /api/map, and
+  // calls this. Structure is NOT re-laid-out - only knowledge changes,
+  // so the graph must not jump under the reader's cursor.
+  window._applyLive=function(raw){
+    const fresh=normalize(raw), by=new Map(fresh.entities.map(e=>[e.id,e]));
+    nodes.forEach(n=>{ const f=by.get(n.id); if(f) n.knowledge=f.knowledge; });
+    node.each(function(d){
+      const sel=d3.select(this), has=d.knowledge.length,
+            ring=sel.select("circle.stamp-ring");
+      if(has && ring.empty()){
+        sel.insert("circle",":first-child").attr("class","stamp-ring").attr("r",13);
+      }else if(has){
+        ring.attr("class","stamp-ring"+(d.knowledge.some(k=>k.stale)?" stale":""));
+      }else if(!ring.empty()){ ring.remove(); }
+    });
+    if(selected){ const d=nodes.find(n=>n.id===selected); if(d) select(d,link,node); }
+  };
   applyFilters();
 }
 
@@ -349,6 +366,9 @@ function select(d, link, node){
         ${escapeHtml(k.text)}
       </div>`).join("") : `<div class="empty-k">Nothing recorded here yet. The next session that learns something durable about this entity writes it — and it lands on this card.</div>`}
   `;
+  if(window._consoleRail){
+    c.insertAdjacentHTML("beforeend", window._consoleRail(d));
+  }
   document.getElementById("panel").classList.add("open");
 }
 function clearSel(link,node){

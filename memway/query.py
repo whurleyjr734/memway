@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import contextmanager
 from pathlib import Path
 
 from .indexer import Indexer
@@ -25,6 +26,27 @@ from .metrics import MetricsStore
 from .lineage import VersionStore
 
 
+# When true, _ctx loads without warming any pickle cache. The console
+# serves these same query functions over HTTP and promises every GET
+# leaves .coord byte-identical; there are exactly TWO cache-warming
+# loaders on this path (coordinates.pkl and edges.pkl) and missing either
+# breaks the fence. Toggled by `read_only()`, never left on globally -
+# the CLI and MCP still want a warm cache.
+_READ_ONLY = False
+
+
+@contextmanager
+def read_only():
+    """Serve queries without writing anything under .coord."""
+    global _READ_ONLY
+    prev = _READ_ONLY
+    _READ_ONLY = True
+    try:
+        yield
+    finally:
+        _READ_ONLY = prev
+
+
 def _ctx(repo: str):
     """Load the map once; shared by every query."""
     repo_p = Path(repo).resolve()
@@ -32,9 +54,9 @@ def _ctx(repo: str):
     if not (coord / "index" / "coordinates.json").exists():
         return None
     ix = Indexer(repo_p, coord)
-    ix.load_existing()
+    ix.load_existing(write_cache=not _READ_ONLY)
     ix.load_raw_edges()
-    edges = EdgeBuilder.load(coord)
+    edges = EdgeBuilder.load(coord, write_cache=not _READ_ONLY)
     meta = MetaStore(coord)
     return repo_p, coord, ix, edges, meta
 
@@ -505,7 +527,8 @@ def before_edit(repo: str, ref: str) -> dict:
 
     # ---- design docs governing this coordinate ----
     from .harvest import harvest_docs
-    _bindings = harvest_docs(repo_p, ix, coord)
+    _bindings = harvest_docs(repo_p, ix, coord,
+                             write=not _READ_ONLY)
     design_docs = []
     for _doc, _b in _bindings.items():
         _ref = _b.get("refs", {}).get(e.coord_id)
@@ -769,7 +792,8 @@ def attention(repo_root, limit=20):
 
     from .harvest import harvest_docs
     stale_docs = []
-    for doc, b in harvest_docs(repo_p, ix, coord).items():
+    for doc, b in harvest_docs(repo_p, ix, coord,
+                               write=not _READ_ONLY).items():
         drifted = []
         for cid, ref in b.get("refs", {}).items():
             e = ix.entities.get(cid)

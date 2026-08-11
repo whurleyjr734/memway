@@ -319,14 +319,19 @@ def harvest_docs(repo_root, ix, coord_dir, write: bool = True):
                                       or e.body_hash}
             if refs:
                 out[rel] = {"file_hash": fh, "refs": refs}
-    # write=False exists for read-only surfaces, but note what this file
-    # IS: not a cache. It snapshots the entity hash a doc was written
-    # against, and drift ("entity-changed-since-doc") is measured against
-    # that snapshot. Suppressing the write unconditionally makes every
-    # binding look permanently fresh - two tests caught exactly that.
-    # "Derived" is two categories: regenerable-from-source (cache,
-    # evidence) and snapshot-baseline (this, versions/). Only the first
-    # is safe to skip on a read.
+    # write=False exists for read-only surfaces. This rewrote
+    # docbindings.json on EVERY before_edit - from the CLI and MCP too -
+    # so a pure query dirtied the map; nobody noticed until the console
+    # fingerprinted .coord around a GET.
+    #
+    # But note what this file IS: not a cache. It snapshots the entity
+    # hash a doc was written against, and drift
+    # ("entity-changed-since-doc") is measured from that snapshot.
+    # Suppressing the write UNCONDITIONALLY makes every binding look
+    # permanently fresh - two tests caught exactly that. "Derived" is
+    # two categories: regenerable-from-source (cache, evidence) and
+    # snapshot-baseline (this, versions/). Only the first is safe to
+    # skip on a read.
     if write:
         try:
             path.write_text(json.dumps(out, indent=1))
