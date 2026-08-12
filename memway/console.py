@@ -231,13 +231,16 @@ def serve(repo: str, port: int = 0, open_browser: bool = True):
 
 _CONSOLE_JS = r"""
 <style>
-  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
-  .rail button{font:inherit;font-size:11px;letter-spacing:.04em;
+  /* mw- prefix is load-bearing: the template already owns .rail (the
+     fixed filters panel) and .card/.note/.seal. An injected class that
+     collides inherits position:fixed and leaves the card entirely. */
+  .mw-rail{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+  .mw-rail button{font:inherit;font-size:11px;letter-spacing:.04em;
     text-transform:uppercase;padding:5px 9px;cursor:pointer;
     background:#1b1a17;color:#e9e2d0;border:1px solid #3a352c;border-radius:3px}
-  .rail button:hover{border-color:var(--amber);color:var(--amber)}
-  .rail button[disabled]{opacity:.5;cursor:progress}
-  .rail button.active{border-color:var(--amber);color:var(--amber);
+  .mw-rail button:hover{border-color:var(--amber);color:var(--amber)}
+  .mw-rail button[disabled]{opacity:.5;cursor:progress}
+  .mw-rail button.active{border-color:var(--amber);color:var(--amber);
     background:#241f16}
   /* NO max-height/overflow here: the panel already scrolls, and a
      scroller inside a scroller traps the wheel and shows two bars -
@@ -259,11 +262,13 @@ _CONSOLE_JS = r"""
   .noteform textarea{width:100%;min-height:52px;background:#141310;
     color:#e9e2d0;border:1px solid #3a352c;border-radius:3px;padding:6px;
     font:inherit;font-size:12px}
-  .noteform .row{display:flex;gap:6px;margin-top:6px;align-items:center}
+  .noteform .mw-row{display:flex;gap:6px;margin-top:6px;align-items:center}
   .noteform select{background:#141310;color:#e9e2d0;border:1px solid #3a352c;
     border-radius:3px;padding:4px;font:inherit;font-size:11px}
-  .ok{color:#8fbf7a;font-size:11px}
-  .err{color:#d9705f;font-size:11px}
+  /* NOT .ok/.err: the template's .err is display:none, so a failed
+     stamp would have reported nothing at all. */
+  .mw-ok{color:var(--fresh);font-size:11px}
+  .mw-err{color:var(--beacon);font-size:11px}
   @keyframes stamppulse{0%{r:0;opacity:.9}100%{r:26;opacity:0}}
   .pulse{fill:none;stroke:var(--amber);stroke-width:2;
     animation:stamppulse .7s ease-out forwards}
@@ -280,14 +285,14 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>(
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function railFor(d){
-  return `<div class="rail">
+  return `<div class="mw-rail">
     ${["before_edit","show","lineage","dig"].map(t=>
       `<button data-tool="${t}" data-ref="${esc(d.id)}">${t.replace("_"," ")}</button>`).join("")}
   </div>
   <div class="toolout" id="toolout"></div>
   <div class="noteform">
     <textarea id="noteText" placeholder="add a note at this coordinate…"></textarea>
-    <div class="row">
+    <div class="mw-row">
       <select id="noteChan">
         <option>notes</option><option>docs</option><option>design</option>
         <option>history</option><option>confirm</option><option>traces</option>
@@ -303,7 +308,7 @@ function railFor(d){
 function clearTool(){
   const out=document.getElementById("toolout");
   if(out) out.innerHTML="";
-  document.querySelectorAll(".rail button[data-tool]")
+  document.querySelectorAll(".mw-rail button[data-tool]")
     .forEach(b=>b.classList.remove("active"));
 }
 
@@ -311,7 +316,7 @@ function renderTool(tool,body){
   const out=document.getElementById("toolout");
   if(!out) return;
   const head=`<div class="toolhead"><span class="who">${esc(tool)}</span><button class="dismiss" data-dismiss="1" aria-label="Close result">&times;</button></div>`;
-  if(body.error){out.innerHTML=head+`<div class="err">${esc(body.error)}</div>`;return;}
+  if(body.error){out.innerHTML=head+`<div class="mw-err">${esc(body.error)}</div>`;return;}
   if(tool==="dig"){
     const cs=body.candidates||[];
     out.innerHTML=head+`<div class="kn-head">${cs.length} commits touched this range</div>`+
@@ -350,14 +355,19 @@ function pulseRing(id){
       sel.insert("circle",":first-child").attr("class","stamp-ring")
          .attr("r",13);
     }
-    sel.append("circle").attr("class","pulse").attr("r",0);
+    // remove on animationend: without this every stamp leaves an
+    // invisible circle behind for the life of the page.
+    const p=sel.append("circle").attr("class","pulse").attr("r",0);
+    const el=p.node();
+    el.addEventListener("animationend",()=>el.remove(),{once:true});
+    setTimeout(()=>{ if(el.isConnected) el.remove(); },1200);
   });
 }
 
 window._consoleRail=railFor;
 
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape" && document.querySelector(".rail button.active")){
+  if(e.key==="Escape" && document.querySelector(".mw-rail button.active")){
     e.stopPropagation(); clearTool();   // first Escape closes the result,
   }                                     // a second closes the panel
 },true);
@@ -389,7 +399,7 @@ document.addEventListener("click",async ev=>{
   if(t.id==="noteSave"){
     const msg=document.getElementById("noteMsg");
     const text=document.getElementById("noteText").value.trim();
-    if(!text){msg.className="err";msg.textContent="empty";return;}
+    if(!text){msg.className="mw-err";msg.textContent="empty";return;}
     t.disabled=true;
     const r=await api("/api/meta",{method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -397,14 +407,14 @@ document.addEventListener("click",async ev=>{
         channel:document.getElementById("noteChan").value,text})});
     t.disabled=false;
     if(r.status===200&&r.body.ok){
-      msg.className="ok";
+      msg.className="mw-ok";
       msg.textContent=`stamped (${r.body.entries_written} entry)`;
       document.getElementById("noteText").value="";
       const m=await api("/api/map");
       if(m.status===200) window._applyLive&&window._applyLive(m.body);
       pulseRing(t.dataset.ref);
     }else{
-      msg.className="err"; msg.textContent=esc(r.body.error||"failed");
+      msg.className="mw-err"; msg.textContent=esc(r.body.error||"failed");
     }
   }
 });

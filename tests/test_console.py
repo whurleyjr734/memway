@@ -433,7 +433,49 @@ def test_tool_output_does_not_nest_a_second_scroller(served):
 def test_active_tool_is_visually_marked(served):
     _, base, token = served
     _, page = get(base, "/", token, raw=True)
-    assert ".rail button.active{" in page
+    assert ".mw-rail button.active{" in page
     assert 't.classList.add("active")' in page
     assert '.forEach(b=>b.classList.remove("active"))' in page, \
         "clearing must also drop the active mark, or the rail lies"
+
+
+def test_injected_classes_do_not_collide_with_the_template(served):
+    """THE BUG THIS GUARDS: the template already owns `.rail` - its fixed
+    left-hand FILTERS panel, position:fixed top:64px left:20px, and
+    display:none under 760px. The injected tool rail used the same class,
+    so it inherited that positioning, left the card entirely, sat on top
+    of the filters, and disappeared on narrow screens."""
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    from memway.console import _CONSOLE_JS
+    import re as _re
+    # What matters is the classes the injected markup APPLIES - those are
+    # what pick up template styling. Both statically and dynamically set.
+    applied = set()
+    for blob in _re.findall(r'class="([a-zA-Z0-9\- ]+)"', _CONSOLE_JS):
+        applied |= set(blob.split())
+    applied |= set(_re.findall(r'className="([a-zA-Z0-9\-]+)"', _CONSOLE_JS))
+    template = (HERE / "memway" / "viz_template.html").read_text()
+    # only the STYLE block: matching the whole file also catches JS
+    # property access (.addEventListener, .alphaTarget) and reports
+    # collisions that cannot exist.
+    style = template.split("<style>", 1)[1].split("</style>", 1)[0]
+    tpl_classes = set(_re.findall(r'\.([a-zA-Z][\w-]*)', style))
+    # reusing the card's own look on purpose, so these SHOULD inherit
+    DELIBERATE = {"stale", "note", "seal", "dot", "kn-head", "empty-k"}
+    for cls in applied - DELIBERATE:
+        assert cls not in tpl_classes, (
+            f"injected class {cls!r} collides with the template's own - "
+            f"it will silently inherit that rule")
+    assert "mw-rail" in _CONSOLE_JS
+    assert 'class="rail"' not in _CONSOLE_JS, \
+        ".rail is the template's filters panel, not ours"
+
+
+def test_pulse_circles_are_cleaned_up(served):
+    """Every stamp appended a circle that never went away."""
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    assert 'addEventListener("animationend",()=>el.remove()' in page
+    assert "if(el.isConnected) el.remove()" in page, \
+        "a fallback is needed - animationend never fires under reduced motion"
