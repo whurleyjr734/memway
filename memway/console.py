@@ -237,8 +237,21 @@ _CONSOLE_JS = r"""
     background:#1b1a17;color:#e9e2d0;border:1px solid #3a352c;border-radius:3px}
   .rail button:hover{border-color:var(--amber);color:var(--amber)}
   .rail button[disabled]{opacity:.5;cursor:progress}
-  .toolout{margin-top:8px;font-size:12px;max-height:40vh;overflow:auto}
-  .toolout pre{white-space:pre-wrap;word-break:break-word;margin:0}
+  .rail button.active{border-color:var(--amber);color:var(--amber);
+    background:#241f16}
+  /* NO max-height/overflow here: the panel already scrolls, and a
+     scroller inside a scroller traps the wheel and shows two bars -
+     that is the 'janky' feel. One scroll context, the panel's. */
+  .toolout{margin-top:8px;font-size:12px}
+  .toolout pre{white-space:pre-wrap;word-break:break-word;margin:0;
+    max-height:240px;overflow:auto}
+  .toolhead{display:flex;align-items:center;justify-content:space-between;
+    gap:8px;margin:6px 0 4px}
+  .toolhead .who{font-family:'IBM Plex Mono',monospace;font-size:10px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+  .toolhead .dismiss{background:none;border:0;color:#8a8272;font-size:16px;
+    line-height:1;cursor:pointer;padding:0 2px}
+  .toolhead .dismiss:hover{color:var(--bone)}
   .cand{border-left:2px solid #3a352c;padding:6px 8px;margin:6px 0}
   .cand .sha{color:var(--amber);font-weight:600}
   .cand .warn{color:#d98b5f;font-size:11px}
@@ -287,13 +300,21 @@ function railFor(d){
     CLI to refresh stamps</div>`;
 }
 
+function clearTool(){
+  const out=document.getElementById("toolout");
+  if(out) out.innerHTML="";
+  document.querySelectorAll(".rail button[data-tool]")
+    .forEach(b=>b.classList.remove("active"));
+}
+
 function renderTool(tool,body){
   const out=document.getElementById("toolout");
   if(!out) return;
-  if(body.error){out.innerHTML=`<div class="err">${esc(body.error)}</div>`;return;}
+  const head=`<div class="toolhead"><span class="who">${esc(tool)}</span><button class="dismiss" data-dismiss="1" aria-label="Close result">&times;</button></div>`;
+  if(body.error){out.innerHTML=head+`<div class="err">${esc(body.error)}</div>`;return;}
   if(tool==="dig"){
     const cs=body.candidates||[];
-    out.innerHTML=`<div class="kn-head">${cs.length} commits touched this range</div>`+
+    out.innerHTML=head+`<div class="kn-head">${cs.length} commits touched this range</div>`+
       cs.map(c=>`<div class="cand">
         <div><span class="sha">${esc(c.short_sha)}</span> ${esc(c.date)} —
              ${esc(c.subject)}</div>
@@ -314,10 +335,10 @@ function renderTool(tool,body){
       `<div class="note ${x.stale?"stale":""}">
          <div class="seal"><span class="dot"></span>${esc(x.channel||"")}${
            x.stale?" · stale":""}</div>${esc(x.text)}</div>`).join("");
-    out.innerHTML=w+k||"<pre>"+esc(JSON.stringify(body,null,1))+"</pre>";
+    out.innerHTML=head+(w+k||"<pre>"+esc(JSON.stringify(body,null,1))+"</pre>");
     return;
   }
-  out.innerHTML="<pre>"+esc(JSON.stringify(body,null,1))+"</pre>";
+  out.innerHTML=head+"<pre>"+esc(JSON.stringify(body,null,1))+"</pre>";
 }
 
 function pulseRing(id){
@@ -335,12 +356,29 @@ function pulseRing(id){
 
 window._consoleRail=railFor;
 
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && document.querySelector(".rail button.active")){
+    e.stopPropagation(); clearTool();   // first Escape closes the result,
+  }                                     // a second closes the panel
+},true);
+
 document.addEventListener("click",async ev=>{
   const t=ev.target.closest("button"); if(!t) return;
+  if(t.dataset.dismiss){ clearTool(); return; }
   if(t.dataset.tool){
+    // clicking the ACTIVE tool closes it. Without this the only way to
+    // clear a result was to select a different node, so the card grew
+    // and never shrank.
+    if(t.classList.contains("active")){ clearTool(); return; }
+    clearTool();
+    t.classList.add("active");
     t.disabled=true;
     const r=await api(`/api/tool/${t.dataset.tool}?ref=${encodeURIComponent(t.dataset.ref)}`);
-    t.disabled=false; renderTool(t.dataset.tool,r.body); return;
+    t.disabled=false;
+    renderTool(t.dataset.tool,r.body);
+    const out=document.getElementById("toolout");
+    if(out) out.scrollIntoView({block:"nearest",behavior:"smooth"});
+    return;
   }
   if(t.dataset.stamp){
     const ta=document.getElementById("noteText");

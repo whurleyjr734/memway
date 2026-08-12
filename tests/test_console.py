@@ -400,3 +400,40 @@ def test_stdlib_only():
                 "import tornado", "import uvicorn", "import requests"):
         assert bad not in src
     assert "http.server" in src
+
+
+# ------------------------------------------------------- tool-rail behaviour
+
+def test_tool_result_can_be_dismissed_and_toggled(served):
+    """The rail was one-way: a result rendered and there was no way to
+    close it, so the card only ever grew. Three affordances now - the
+    active tool toggles itself off, a dismiss control, and Escape."""
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    assert "function clearTool()" in page
+    assert 'data-dismiss="1"' in page, "every result needs a dismiss control"
+    assert 'if(t.dataset.dismiss){ clearTool(); return; }' in page
+    assert 'if(t.classList.contains("active")){ clearTool(); return; }' in page, \
+        "clicking the active tool must close it, not refetch"
+    assert 'e.key==="Escape"' in page, "Escape must close an open result"
+
+
+def test_tool_output_does_not_nest_a_second_scroller(served):
+    """A scroller inside the panel's scroller traps the wheel and shows
+    two bars - that is what read as janky."""
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    assert "max-height:40vh;overflow:auto" not in page, \
+        ".toolout must not be its own scroll context"
+    assert ".toolout{margin-top:8px;font-size:12px}" in page
+    assert "aside{" in page and "overflow-y:auto" in page, \
+        "the panel remains the single scroll context"
+
+
+def test_active_tool_is_visually_marked(served):
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    assert ".rail button.active{" in page
+    assert 't.classList.add("active")' in page
+    assert '.forEach(b=>b.classList.remove("active"))' in page, \
+        "clearing must also drop the active mark, or the rail lies"
