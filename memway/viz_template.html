@@ -6,28 +6,44 @@
 <title>memway — itsdangerous, the real map</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0E1626;        /* chart ground */
-    --chartline:#1B2A44;  /* graticule */
-    --bone:#E9E4D6;       /* primary text */
-    --dim:#8B96A8;        /* secondary text */
-    --module:#7C9CBF;     /* surveyed kinds */
-    --class:#5FB3A1;
-    --func:#C9CBD6;
-    --method:#A08FCB;
-    --attribute:#6E7B91;
-    --amber:#E8A33D;      /* knowledge stamp */
-    --coral:#E06552;      /* stale / warning */
-    --panel:#111C30;
-    --edge:#33445F;
+    /* memway.io tokens are canonical (docs/index.html). The explorer's
+       original names are kept as ALIASES so nothing downstream breaks -
+       console.py alone reads var(--amber) seven times. Retheme by value,
+       never by rename. */
+    --void:#060913;       /* deep space - page ground */
+    --panel:#0C1222;      /* card base */
+    --glass:#111A30cc;
+    --line:#233052;
+    --star:#EAF0FF;       /* primary text */
+    --dim:#8B96B8;        /* secondary text */
+    --nebula1:#7C6CFF;    /* violet - selection */
+    --nebula2:#3EC8FF;    /* cyan - interactive */
+    --beacon:#FF7A66;     /* ember - the inherited note */
+    --fresh:#4AE3B5;      /* verification */
+
+    --ink:var(--void);
+    --chartline:#16203A;
+    --bone:var(--star);
+    --edge:var(--line);
+    --amber:var(--fresh);    /* a ring means: knowledge, current at this
+                                logic hash - the site calls that fresh */
+    --coral:var(--beacon);   /* stale: the note is inherited from an older
+                                body and wants a human */
+
+    --module:#7C6CFF;
+    --class:#3EC8FF;
+    --func:#EAF0FF;
+    --method:#A78BFA;
+    --attribute:#8B96B8;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
     background:var(--ink); color:var(--bone);
-    font-family:'Archivo',sans-serif; overflow:hidden;
+    font-family:'Sora',sans-serif; overflow:hidden;
   }
   /* faint chart graticule over the whole ground */
   body::before{
@@ -45,22 +61,22 @@
     background:linear-gradient(180deg, rgba(14,22,38,.96), rgba(14,22,38,.72) 80%, transparent);
   }
   .wordmark{display:flex; align-items:baseline; gap:10px; white-space:nowrap}
-  .wordmark h1{font-family:'Fraunces',serif; font-weight:650; font-size:21px; letter-spacing:.2px}
-  .wordmark .sub{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim)}
+  .wordmark h1{font-family:'Sora',sans-serif; font-weight:650; font-size:21px; letter-spacing:.2px}
+  .wordmark .sub{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim)}
   .repo-chip{
-    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--amber);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--amber);
     border:1px solid rgba(232,163,61,.35); border-radius:3px; padding:3px 8px;
   }
   .spacer{flex:1}
   .search{
     background:var(--panel); border:1px solid var(--edge); border-radius:4px;
-    color:var(--bone); font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    color:var(--bone); font-family:'JetBrains Mono',monospace; font-size:12.5px;
     padding:7px 10px; width:min(300px,30vw); outline:none;
   }
   .search:focus{border-color:var(--amber)}
   .btn{
     background:transparent; border:1px solid var(--edge); color:var(--dim);
-    border-radius:4px; padding:7px 11px; font-family:'Archivo'; font-size:12.5px;
+    border-radius:4px; padding:7px 11px; font-family:'Sora'; font-size:12.5px;
     cursor:pointer; transition:color .15s,border-color .15s;
   }
   .btn:hover,.btn:focus-visible{color:var(--bone); border-color:var(--dim); outline:none}
@@ -74,7 +90,7 @@
     padding:12px 14px; backdrop-filter:blur(6px); width:196px;
   }
   .rail .rail-title{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em;
     color:var(--dim); text-transform:uppercase; margin-bottom:2px;
   }
   .kind-row{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; user-select:none}
@@ -97,7 +113,7 @@
   .node circle.core{stroke:var(--ink); stroke-width:1.5px}
   .node.dimmed{opacity:.14}
   .node text{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; fill:var(--dim);
+    font-family:'JetBrains Mono',monospace; font-size:10px; fill:var(--dim);
     pointer-events:none; opacity:0; transition:opacity .15s;
   }
   .node:hover text,.node.selected text,.node.hit text{opacity:1; fill:var(--bone)}
@@ -114,25 +130,29 @@
     transform:translateX(calc(100% + 24px)); transition:transform .25s ease;
   }
   aside.open{transform:none}
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.01ms !important; animation-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
   .card{padding:20px 22px}
   .card .coord{
-    font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:500;
+    font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:500;
     color:var(--amber); letter-spacing:.5px;
   }
   .card .kind-eyebrow{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em;
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em;
     text-transform:uppercase; color:var(--dim); margin-bottom:6px;
   }
-  .card h2{font-family:'Fraunces',serif; font-weight:500; font-size:17px; line-height:1.35; margin:10px 0 2px; word-break:break-word}
-  .card .loc{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--dim); margin-bottom:14px}
+  .card h2{font-family:'Sora',sans-serif; font-weight:500; font-size:17px; line-height:1.35; margin:10px 0 2px; word-break:break-word}
+  .card .loc{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--dim); margin-bottom:14px}
   .statgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px}
   .stat{border:1px solid var(--edge); border-radius:5px; padding:8px 10px}
-  .stat .v{font-family:'IBM Plex Mono',monospace; font-size:16px}
+  .stat .v{font-family:'JetBrains Mono',monospace; font-size:16px}
   .stat .k{font-size:10px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase; margin-top:2px}
   .stat.hot .v{color:var(--coral)}
   .kn-head{
     display:flex; align-items:center; gap:8px; margin:4px 0 10px;
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em;
     text-transform:uppercase; color:var(--dim);
   }
   .kn-head::after{content:""; flex:1; height:1px; background:var(--edge)}
@@ -144,7 +164,7 @@
   .note.stale{border-left-color:var(--coral); background:rgba(224,101,82,.06)}
   .note .seal{
     display:inline-flex; align-items:center; gap:5px;
-    font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em;
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.1em;
     color:var(--amber); text-transform:uppercase; margin-bottom:6px;
   }
   .note.stale .seal{color:var(--coral)}
@@ -164,16 +184,16 @@
     width:min(640px,94vw); max-height:86vh; overflow-y:auto;
     background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:24px;
   }
-  .modal h3{font-family:'Fraunces',serif; font-weight:500; font-size:18px; margin-bottom:8px}
+  .modal h3{font-family:'Sora',sans-serif; font-weight:500; font-size:18px; margin-bottom:8px}
   .modal p{font-size:12.5px; color:var(--dim); line-height:1.55; margin-bottom:12px}
   .modal textarea{
     width:100%; height:170px; background:var(--ink); color:var(--bone);
     border:1px solid var(--edge); border-radius:5px; padding:10px;
-    font-family:'IBM Plex Mono',monospace; font-size:11.5px; resize:vertical;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; resize:vertical;
   }
   .modal pre{
     background:var(--ink); border:1px solid var(--edge); border-radius:5px;
-    padding:12px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    padding:12px; font-family:'JetBrains Mono',monospace; font-size:10.5px;
     color:var(--dim); overflow-x:auto; margin:10px 0 14px; line-height:1.5;
   }
   .modal .row{display:flex; gap:10px; justify-content:flex-end}
@@ -181,7 +201,7 @@
 
   footer{
     position:fixed; left:20px; bottom:16px; z-index:15;
-    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--dim);
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--dim);
   }
   footer .amber{color:var(--amber)}
 
@@ -250,7 +270,7 @@ idx = json.loads(pathlib.Path(".coord/index/coordinates.json").read_text())
   </div>
 </div>
 
-<footer>drag to pan · scroll to zoom · click a point to read its <span class="amber">stamped knowledge</span> · amber ring = knowledge attached</footer>
+<footer>drag to pan · scroll to zoom · click a point to read its <span class="amber">stamped knowledge</span> · ring = knowledge attached · ember ring = stale</footer>
 
 <script>
 /* ---------- sample data: the real httpx neighborhood from the validation run ----------
@@ -405,8 +425,20 @@ searchIn.addEventListener("input",applyFilters);
 
 /* load-your-own */
 const wrap=document.getElementById("modalWrap");
-document.getElementById("loadBtn").onclick=()=>wrap.classList.add("open");
-document.getElementById("cancelLoad").onclick=()=>wrap.classList.remove("open");
+document.getElementById("loadBtn").onclick=()=>{
+  wrap.classList.add("open");
+  const ta=wrap.querySelector("textarea"); if(ta) ta.focus();
+};
+function closeLoad(){ wrap.classList.remove("open"); }
+document.getElementById("cancelLoad").onclick=closeLoad;
+// A modal openable three ways and closable only by one small button is
+// the same trap the tool rail had. Backdrop click and Escape both close.
+wrap.addEventListener("click",e=>{ if(e.target===wrap) closeLoad(); });
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  if(wrap.classList.contains("open")){ closeLoad(); return; }
+  if(selected && window._refs) clearSel(window._refs.link,window._refs.node);
+});
 document.getElementById("doLoad").onclick=()=>{
   const err=document.getElementById("jsonErr");
   try{

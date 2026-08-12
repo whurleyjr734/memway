@@ -396,3 +396,60 @@ def test_no_new_runtime_dependencies():
 def test_missing_map_is_actionable(tmp_path):
     p = export(str(tmp_path))
     assert "error" in p and "memway init" in p["error"]
+
+
+# --------------------------------------------------- theme + dismissability
+
+def test_template_uses_the_website_palette_and_fonts():
+    """The explorer should look like it belongs to memway.io. Site tokens
+    are canonical; the explorer's original names are ALIASES so nothing
+    downstream breaks (console.py reads var(--amber) seven times)."""
+    tpl = vizmod.TEMPLATE.read_text()
+    site = (HERE / "docs" / "index.html").read_text()
+    for token, value in (("--void", "#060913"), ("--panel", "#0C1222"),
+                         ("--line", "#233052"), ("--star", "#EAF0FF"),
+                         ("--nebula1", "#7C6CFF"), ("--nebula2", "#3EC8FF"),
+                         ("--beacon", "#FF7A66"), ("--fresh", "#4AE3B5")):
+        assert f"{token}:{value}" in tpl.replace(" ", ""), token
+        assert f"{token}:{value}" in site.replace(" ", ""), \
+            f"{token} must match the site, not merely exist"
+    assert "'Sora'" in tpl and "'JetBrains Mono'" in tpl
+    for gone in ("Fraunces", "Archivo", "IBM Plex"):
+        assert gone not in tpl, f"{gone} is not a site font"
+
+
+def test_legacy_colour_names_still_resolve():
+    """Retheme by VALUE, never by rename - console.py depends on these."""
+    tpl = vizmod.TEMPLATE.read_text()
+    assert "--amber:var(--fresh)" in tpl.replace(" ", "")
+    assert "--coral:var(--beacon)" in tpl.replace(" ", "")
+    assert "--ink:var(--void)" in tpl.replace(" ", "")
+    con = (HERE / "memway" / "console.py").read_text()
+    assert "var(--amber)" in con, "the alias is load-bearing, not decorative"
+
+
+def test_load_modal_can_be_closed_three_ways():
+    """Same trap the tool rail had: openable easily, closable only by one
+    small button."""
+    tpl = vizmod.TEMPLATE.read_text()
+    assert "function closeLoad()" in tpl
+    assert 'document.getElementById("cancelLoad").onclick=closeLoad' in tpl
+    assert "e.target===wrap" in tpl, "backdrop click must close it"
+    assert 'e.key!=="Escape"' in tpl, "Escape must close it"
+    assert "if(ta) ta.focus()" in tpl, "focus should land in the textarea"
+
+
+def test_escape_closes_modal_before_panel():
+    """Ordering matters: Escape should retreat one step, not throw the
+    reader all the way out."""
+    tpl = vizmod.TEMPLATE.read_text()
+    i = tpl.index('if(e.key!=="Escape") return;')
+    body = tpl[i:i + 400]
+    assert body.index("closeLoad()") < body.index("clearSel("), \
+        "the modal must be closed before the panel"
+
+
+def test_motion_is_reduced_when_asked():
+    tpl = vizmod.TEMPLATE.read_text()
+    assert tpl.count("prefers-reduced-motion") >= 1
+    assert "transition-duration:.01ms !important" in tpl
