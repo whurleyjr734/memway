@@ -59,7 +59,8 @@ TOOLS = [
                        "edit is riskier than it looks.",
         "inputSchema": {"type": "object", "properties": {
             "ref": {"type": "string"}}, "required": ["ref"]},
-        "fn": lambda repo, a: query.before_edit(repo, a["ref"]),
+        "fn": lambda repo, a: _capped_read(query.before_edit, repo,
+                                          a["ref"]),
     },
     {
         "name": "memway_verify_change",
@@ -149,7 +150,7 @@ TOOLS = [
                        "history), with staleness flagged.",
         "inputSchema": {"type": "object", "properties": {
             "ref": {"type": "string"}}, "required": ["ref"]},
-        "fn": lambda repo, a: query.show(repo, a["ref"]),
+        "fn": lambda repo, a: _capped_read(query.show, repo, a["ref"]),
     },
     {
         "name": "memway_lineage",
@@ -179,17 +180,28 @@ TOOLS = [
                        "back to the map with memway_meta. This tool never "
                        "gates, never scores, and never writes.",
         "inputSchema": {"type": "object", "properties": {
-            "ref": {"type": "string"}}, "required": ["ref"]},
-        "fn": lambda repo, a: _dig_capped(repo, a["ref"]),
+            "ref": {"type": "string"},
+            "cache": {"type": "boolean"}}, "required": ["ref"]},
+        "fn": lambda repo, a: _dig_capped(repo, a["ref"],
+                                          bool(a.get("cache"))),
     },
 ]
 
 
-def _dig_capped(repo, ref):
+def _dig_capped(repo, ref, cache=False):
     """MCP path is byte-capped; the CLI --json path is not (finding #41:
-    PR bodies are large and a dig can carry dozens of them)."""
+    PR bodies are large and a dig can carry dozens of them).
+
+    cache=True stores what was fetched to the evidence layer. It is opt-in
+    on purpose: a read that silently populated a cache would make every
+    briefing a write."""
     from .dig import dig, MCP_CAP_BYTES
-    return dig(repo, ref, cap_bytes=MCP_CAP_BYTES)
+    return dig(repo, ref, cap_bytes=MCP_CAP_BYTES, cache=cache)
+
+
+def _capped_read(fn, repo, ref):
+    from .query import apply_read_cap
+    return apply_read_cap(fn(repo, ref))
 _BY_NAME = {t["name"]: t for t in TOOLS}
 
 

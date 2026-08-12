@@ -14,7 +14,10 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
   memway lineage <repo> [ref]         identity history through renames
-  memway dig <repo> <ref>             mine ONE entity's history: commits
+  memway evidence <repo> <ref>        read cached evidence bodies
+                                        (--clear removes ALL of it; the
+                                         authored map is untouched)
+  memway dig <repo> <ref> [--cache]   mine ONE entity's history: commits
                                         touching its exact range, forge PR
                                         bodies, release tags. Returns
                                         CANDIDATES - judging rationale vs
@@ -313,10 +316,14 @@ def cmd_mcp(repo="."):
     _mcp_mod.serve(repo)
 
 
-def cmd_dig(repo, ref):
+def cmd_dig(repo, ref, *flags):
     """Demand-paged history for one entity. Candidates only - see dig.py."""
     from .dig import dig, REGION_HISTORY
-    out = dig(repo, ref)
+    cache = "--cache" in flags
+    for f in flags:
+        if f != "--cache":
+            raise SystemExit(f"unknown flag {f!r} - use --cache")
+    out = dig(repo, ref, cache=cache)
     if "error" in out:
         print(out["error"])
         for c in out.get("closest", []):
@@ -347,15 +354,77 @@ def cmd_dig(repo, ref):
                       f"({r.get('unavailable_reason')})")
         for w in c.get("warnings", []):
             print(f"    ! {w}")
+    if out.get("evidence"):
+        ev = out["evidence"]
+        if ev.get("cache_hit"):
+            print(f"\n  served from the evidence cache "
+                  f"({ev['stored']} records) - no history walked")
+        else:
+            print(f"\n  cached {ev['stored']} evidence records "
+                  f"(+{ev['added']} new) through "
+                  f"{(ev.get('dug_through_sha') or '')[:10]}")
     print("\ncandidates only - judging rationale vs restatement, and writing "
           "anything back to the map, is YOUR job. This tool never gates, "
           "scores, or writes.")
+
+
+def cmd_evidence(repo, ref="", which=""):
+    """Read cached evidence bodies. Bodies live once, here."""
+    from . import evidence as ev
+    from .indexer import Indexer
+    from pathlib import Path as _P
+    repo_p = _P(repo).resolve()
+    coord = repo_p / ".coord"
+    if "--clear" in (ref, which):
+        r = ev.clear(coord)
+        print(f"cleared {r['cleared']} evidence records across "
+              f"{r['coordinates']} coordinate(s).")
+        print("  authored knowledge in .coord/meta is untouched - evidence "
+              "is a sibling directory, not a child.")
+        return
+    if not ref:
+        raise SystemExit("usage: memway evidence <repo> <ref> | --clear")
+    ix = Indexer(repo_p, coord)
+    ix.load_existing()
+    e = ix.resolve(ref)
+    if e is None:
+        # a bare sha/PR ref: search every coordinate's evidence for it
+        for f in sorted(ev.evidence_root(coord).glob("*.jsonl")):
+            recs = ev.read(coord, f.stem)
+            hit = ev.index_by_ref(recs).get(ref) or \
+                ev.index_by_ref(recs).get(ref.lstrip("#"))
+            if hit:
+                print(f"{hit.get('source')} "
+                      f"{hit.get('short_sha') or '#'+str(hit.get('number'))}"
+                      f"  {hit.get('date')}  {hit.get('author')}")
+                print(f"  {hit.get('subject')}\n")
+                print(hit.get("body") or "(no body)")
+                return
+        raise SystemExit(f"no entity or cached evidence matches {ref!r}")
+    recs = ev.read(coord, e.coord_id)
+    if not recs:
+        print(f"no evidence cached for {e.qualname}")
+        print(f"  dig it:  memway dig {repo} {ref} --cache")
+        return
+    print(f"{e.coord_id}  {e.qualname}")
+    print(f"  {len(recs)} records, current through "
+          f"{(recs[0].get('dug_through_sha') or '')[:10]}\n")
+    for r in recs:
+        tag = r.get("short_sha") or f"#{r.get('number')}"
+        print(f"  [{r.get('source')}] {tag}  {r.get('date')}  "
+              f"{r.get('subject','')[:60]}")
+        body = (r.get("body") or "").strip()
+        if body:
+            for line in body.splitlines()[:4]:
+                print(f"      {line[:76]}")
+        print()
 
 
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp, "dig": cmd_dig,
+    "evidence": cmd_evidence,
 }
 
 

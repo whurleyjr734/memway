@@ -13,6 +13,11 @@ build/
 # --- coordsys: DELIBERATE choices ---
 # .coord/ itself is TRACKED on purpose: clone the repo, inherit the
 # map's memory. Only derived caches are ignored (rebuilt on index).
+# EVIDENCE is derived: commit and PR bodies fetched from git/the forge.
+# One re-dig restores it byte for byte, so it does not belong in the
+# authored directory's diff. Verdicts - the judgments that point AT it -
+# live in .coord/meta and are committed.
+.coord/evidence/
 .coord/cache/
 # usage log is personal-machine data, not team knowledge:
 .coord/log/

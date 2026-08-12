@@ -348,16 +348,34 @@ def _apply_cap(payload: dict, cap: int) -> dict:
     return payload
 
 
+def _head_sha(repo: Path) -> str:
+    out, ok = _git(repo, "rev-parse", "HEAD")
+    return out.strip() if ok else ""
+
+
 def dig(repo: str, ref: str, *, cap_bytes: int | None = None,
-        forge: bool = True) -> dict:
+        forge: bool = True, cache: bool = False) -> dict:
     """Return history candidates for one entity. Judgment is the caller's.
 
-    Writes nothing. Reads .coord only to resolve `ref`.
+    Writes nothing UNLESS cache=True, which stores what it fetched to the
+    evidence layer (derived, gitignored). before_edit and show never pass
+    it - they stay pure reads. Caching is an explicit act.
     """
+    from . import evidence as ev
     repo_p = Path(repo).resolve()
     e, err = _resolve(repo_p, ref)
     if err is not None:
         return err
+    coord = repo_p / ".coord"
+
+    # CACHE HIT: history has not moved since the last dig, so serve from
+    # the evidence store. One `rev-parse HEAD` is unavoidable - a cache
+    # that never checks whether it is stale is a cache that lies - but
+    # nothing walks history, hits the forge, or reads tags.
+    cached = ev.read(coord, e.coord_id)
+    head = _head_sha(repo_p) if cached else ""
+    if cached and head and head == cached[0].get("dug_through_sha"):
+        return _from_cache(e, cached, head, cap_bytes)
 
     start = int(getattr(e, "lineno", 0) or 0)
     end = int(getattr(e, "end_lineno", 0) or 0) or start
@@ -385,6 +403,10 @@ def dig(repo: str, ref: str, *, cap_bytes: int | None = None,
     _released_in(repo_p, cands)
     _forge_refs(cands, repo_p, forge)
 
+    if cache:
+        head = head or _head_sha(repo_p)
+        receipt = ev.write(coord, e.coord_id, ev.from_dig(
+            {"candidates": cands}, head), head)
     payload = {
         "entity": {"coord_id": e.coord_id, "qualname": e.qualname,
                    "path": e.path, "lineno": start, "end_lineno": end},
@@ -403,6 +425,68 @@ def dig(repo: str, ref: str, *, cap_bytes: int | None = None,
                     "and writing anything back to the map, is the caller's "
                     "job. This tool never gates, scores, or writes.",
         "notes": notes,
+    }
+    if cache:
+        payload["evidence"] = dict(receipt, cached=True)
+    if cached and head and head != cached[0].get("dug_through_sha"):
+        payload["notes"].append(
+            f"evidence was current through "
+            f"{cached[0].get('dug_through_sha','')[:10]}; "
+            f"re-dug at {head[:10]}")
+    if cap_bytes:
+        payload = _apply_cap(payload, cap_bytes)
+    return payload
+
+
+def _rebuild_refs(commit_rec: dict, pr_recs: list) -> list:
+    """Reassemble a commit's pr_refs from the stored list plus bodies."""
+    bodies = {p.get("number"): p.get("body") for p in pr_recs}
+    return [{"number": r.get("number"),
+             "body": bodies.get(r.get("number")),
+             "unavailable_reason": r.get("unavailable_reason")}
+            for r in commit_rec.get("pr_refs", [])]
+
+
+def _from_cache(e, records: list, head: str, cap_bytes) -> dict:
+    """Rebuild a dig payload from stored evidence. No history walked."""
+    from . import evidence as ev
+    commits = [r for r in records if r.get("source") == "commit"]
+    prs = {}
+    for r in records:
+        if r.get("source") == "pr":
+            prs.setdefault(r.get("via_sha", ""), []).append(r)
+    cands = []
+    for r in commits:
+        cands.append({
+            "sha": r.get("sha", ""), "short_sha": r.get("short_sha", ""),
+            "date": r.get("date", ""), "author": r.get("author", ""),
+            "subject": r.get("subject", ""), "body": r.get("body", ""),
+            "provenance": r.get("provenance_label", ""),
+            "warnings": [], "released_in": r.get("released_in", []),
+            "pr_refs": _rebuild_refs(r, prs.get(r.get("sha", ""), [])),
+        })
+    payload = {
+        "entity": {"coord_id": e.coord_id, "qualname": e.qualname,
+                   "path": e.path, "lineno": e.lineno,
+                   "end_lineno": e.end_lineno},
+        "dig": {"command": "(served from evidence cache)",
+                "form": "cache", "creation_boundary": None},
+        "candidates": cands,
+        "counts": {
+            "total": len(cands),
+            "entity_history": sum(1 for c in cands
+                                  if c["provenance"] == ENTITY_HISTORY),
+            "region_history": sum(1 for c in cands
+                                  if c["provenance"] == REGION_HISTORY),
+        },
+        "contract": "candidates only - judging rationale vs restatement, "
+                    "and writing anything back to the map, is the caller's "
+                    "job. This tool never gates, scores, or writes.",
+        "notes": [f"served from the evidence cache, current through "
+                  f"{head[:10]} - no history walked"],
+        "evidence": {"stored": len(records), "added": 0,
+                     "dug_through_sha": head, "cached": True,
+                     "cache_hit": True},
     }
     if cap_bytes:
         payload = _apply_cap(payload, cap_bytes)

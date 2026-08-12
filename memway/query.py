@@ -62,7 +62,25 @@ def _entity_dict(e, meta=None) -> dict:
                     "author": en.get("author", ""),
                 })
         d["knowledge"] = knowledge
+        _attach_evidence(d, e, meta)
     return d
+
+
+def _attach_evidence(d: dict, e, meta) -> None:
+    """Join verdicts to their evidence and summarise what is cached.
+
+    READ ONLY. Evidence is written by `dig --cache` and by nothing else -
+    a briefing that silently populated a cache would make every read a
+    write, which is exactly the fence this project keeps rediscovering.
+    """
+    from . import evidence as ev
+    coord = Path(meta.root).parent if hasattr(meta, "root") else None
+    if coord is None:
+        return
+    records = ev.read(coord, e.coord_id)
+    ev.decorate_knowledge(d.get("knowledge", []), records)
+    if records:
+        d["evidence"] = ev.summarise(records)
 
 
 _COORD_REF = re.compile(r"^C-[0-9a-fA-F]{4,}$")
@@ -523,6 +541,11 @@ def before_edit(repo: str, ref: str) -> dict:
                     "inherited_from": base_m.qualname,
                     "hops_up": hops})
 
+    from . import evidence as _ev
+    _records = _ev.read(coord, e.coord_id)
+    _ev.decorate_knowledge(knowledge, _records)
+    _evidence = _ev.summarise(_records) if _records else None
+
     recent = VersionStore(coord).ancestry(e.coord_id)[-3:]
 
     warnings = []
@@ -576,6 +599,7 @@ def before_edit(repo: str, ref: str) -> dict:
         "direct_callers": callers,
         "downstream": radius,
         "knowledge": knowledge,
+        **({"evidence": _evidence} if _evidence else {}),
         "recent_history": [{"kind": r["kind"], "note": r.get("note", "")}
                            for r in recent],
         "warnings": warnings,
@@ -776,3 +800,46 @@ def attention(repo_root, limit=20):
                 "flag on re-index. For other items: verify, then confirm "
                 "or update",
     }
+
+
+READ_CAP_BYTES = 60_000
+
+
+def apply_read_cap(payload: dict, cap: int = READ_CAP_BYTES) -> dict:
+    """Trim a briefing to a byte ceiling, DERIVED first.
+
+    Order is the contract, not an optimisation. Evidence is regenerable
+    with one re-dig; authored knowledge is somebody's judgment and is
+    gone forever if it is dropped. So evidence trims - bodies, then
+    items, then the whole section - before a single authored entry is
+    touched, and every cut is declared.
+    """
+    import json as _j
+
+    def size(p):
+        return len(_j.dumps(p, default=str).encode())
+
+    if size(payload) <= cap:
+        return payload
+    cuts = []
+    ev = payload.get("evidence")
+    if ev and ev.get("top"):
+        while len(ev["top"]) > 1 and size(payload) > cap:
+            ev["top"].pop()
+        ev["truncated"] = True
+        cuts.append("evidence items")
+    if size(payload) > cap and "evidence" in payload:
+        payload.pop("evidence")
+        cuts.append("evidence section (regenerable: re-dig)")
+    if size(payload) > cap:
+        # only now, and loudly: authored knowledge is irreplaceable
+        kn = payload.get("knowledge", [])
+        while len(kn) > 1 and size(payload) > cap:
+            kn.pop()
+        cuts.append("AUTHORED KNOWLEDGE - irreplaceable, and still over cap")
+    payload["payload_capped"] = {
+        "cap_bytes": cap, "trimmed": cuts,
+        "note": "derived evidence is sacrificed before authored knowledge; "
+                "use the CLI for the uncapped payload",
+    }
+    return payload

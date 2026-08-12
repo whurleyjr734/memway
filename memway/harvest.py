@@ -266,7 +266,7 @@ class Harvester:
 _DOC_BINDINGS = "docbindings.json"
 
 
-def harvest_docs(repo_root, ix, coord_dir):
+def harvest_docs(repo_root, ix, coord_dir, write: bool = True):
     """Bind design documents to the coordinates they govern.
 
     Scans docs/**/*.md for backticked entity references (explicit refs
@@ -319,8 +319,17 @@ def harvest_docs(repo_root, ix, coord_dir):
                                       or e.body_hash}
             if refs:
                 out[rel] = {"file_hash": fh, "refs": refs}
-    try:
-        path.write_text(json.dumps(out, indent=1))
-    except OSError:
-        pass
+    # write=False exists for read-only surfaces, but note what this file
+    # IS: not a cache. It snapshots the entity hash a doc was written
+    # against, and drift ("entity-changed-since-doc") is measured against
+    # that snapshot. Suppressing the write unconditionally makes every
+    # binding look permanently fresh - two tests caught exactly that.
+    # "Derived" is two categories: regenerable-from-source (cache,
+    # evidence) and snapshot-baseline (this, versions/). Only the first
+    # is safe to skip on a read.
+    if write:
+        try:
+            path.write_text(json.dumps(out, indent=1))
+        except OSError:
+            pass
     return out
