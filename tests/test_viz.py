@@ -453,3 +453,60 @@ def test_motion_is_reduced_when_asked():
     tpl = vizmod.TEMPLATE.read_text()
     assert tpl.count("prefers-reduced-motion") >= 1
     assert "transition-duration:.01ms !important" in tpl
+
+
+# ------------------------------------------------------ graph connectivity
+
+def test_layout_pulls_every_node_home():
+    """forceCenter moves the CENTROID; it applies no force to individual
+    nodes. Without an x/y force a component with no links to the main mass
+    feels only charge repulsion and drifts off as debris at the edge."""
+    tpl = vizmod.TEMPLATE.read_text()
+    assert 'd3.forceX(W/2)' in tpl and 'd3.forceY(H/2)' in tpl
+    assert 'd3.forceCenter' in tpl, "centering still applies to the system"
+    import re
+    sx = float(re.search(r'forceX\(W/2\)\.strength\(([\d.]+)\)', tpl).group(1))
+    assert 0 < sx <= 0.1, f"{sx} would overpower the link layout"
+
+
+def test_detached_components_are_labelled_not_hidden():
+    """A node with no path to the main mass is a FACT about the codebase -
+    nothing imports it. memway's own map has 4 components: the example
+    hook script (17), the polyglot parser fixtures (10), and an empty
+    __init__. Label it rather than leave the reader wondering whether the
+    graph broke."""
+    tpl = vizmod.TEMPLATE.read_text()
+    assert "markComponents" in tpl
+    assert "n.detached=!main.has(n.id)" in tpl
+    assert "n.island=" in tpl, "island size makes the label specific"
+    assert 'class="detached"' in tpl
+    assert "no path to the main graph" in tpl
+
+
+def test_the_real_map_has_the_components_the_label_describes():
+    """Guards the claim itself: if memway's map ever becomes fully
+    connected this test says so rather than the feature quietly meaning
+    nothing."""
+    import collections
+    p = export(str(HERE), force=True)
+    adj = collections.defaultdict(set)
+    for ed in p["edges"]:
+        adj[ed["source"]].add(ed["target"])
+        adj[ed["target"]].add(ed["source"])
+    seen, comps = set(), []
+    for n in {e["id"] for e in p["entities"]}:
+        if n in seen:
+            continue
+        stack, comp = [n], []
+        seen.add(n)
+        while stack:
+            c = stack.pop()
+            comp.append(c)
+            for m in adj[c]:
+                if m not in seen:
+                    seen.add(m)
+                    stack.append(m)
+        comps.append(comp)
+    comps.sort(key=len, reverse=True)
+    assert len(comps) > 1, "the detached label would describe nothing"
+    assert len(comps[0]) / len(p["entities"]) > 0.8, "one dominant island"

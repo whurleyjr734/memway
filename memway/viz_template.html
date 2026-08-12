@@ -184,6 +184,8 @@
     padding:6px 8px; margin:4px 4px 0 0;
   }
   .close-x:hover{color:var(--bone)}
+  .detached{font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    letter-spacing:.05em; color:var(--nebula2); margin-top:6px}
 
   /* load-your-own modal */
   .modal-wrap{position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(8,12,22,.7)}
@@ -320,7 +322,36 @@ function render(data){
     .force("link", d3.forceLink(links).id(d=>d.id).distance(52).strength(.6))
     .force("charge", d3.forceManyBody().strength(-200))
     .force("center", d3.forceCenter(W/2, H/2))
-    .force("collide", d3.forceCollide().radius(d=>r(d)+8));
+    .force("collide", d3.forceCollide().radius(d=>r(d)+8))
+    // forceCenter moves the CENTROID; it does not attract nodes. Without
+    // these, a component with no links to the main mass is pushed away
+    // by charge and nothing pulls it back - it ends up as debris at the
+    // edge. Weak, so the connected core still lays itself out freely.
+    .force("x", d3.forceX(W/2).strength(.045))
+    .force("y", d3.forceY(H/2).strength(.045));
+
+  // Components: a node with no path to the main mass is telling you
+  // something real (nothing imports it). Label it rather than leaving
+  // the reader to wonder whether the graph broke.
+  (function markComponents(){
+    const adj=new Map(nodes.map(n=>[n.id,[]]));
+    links.forEach(l=>{
+      const a=l.source.id||l.source, b=l.target.id||l.target;
+      if(adj.has(a)&&adj.has(b)){ adj.get(a).push(b); adj.get(b).push(a); }
+    });
+    const seen=new Set(), comps=[];
+    nodes.forEach(n=>{
+      if(seen.has(n.id)) return;
+      const stack=[n.id], comp=[]; seen.add(n.id);
+      while(stack.length){ const c=stack.pop(); comp.push(c);
+        adj.get(c).forEach(m=>{ if(!seen.has(m)){ seen.add(m); stack.push(m); } }); }
+      comps.push(comp);
+    });
+    comps.sort((a,b)=>b.length-a.length);
+    const main=new Set(comps[0]||[]), size=new Map();
+    comps.forEach(c=>c.forEach(id=>size.set(id,c.length)));
+    nodes.forEach(n=>{ n.detached=!main.has(n.id); n.island=size.get(n.id)||1; });
+  })();
 
   const link = zoomLayer.append("g").selectAll("line").data(links).join("line").attr("class",d=>"link "+(d.kind||"calls"));
 
@@ -384,6 +415,7 @@ function select(d, link, node){
     <div class="coord">${d.id}</div>
     <h2>${d.qualname}</h2>
     <div class="loc">${d.file}${d.lines?":"+d.lines:""}</div>
+    ${d.detached?`<div class="detached">detached · no path to the main graph${d.island>1?` · ${d.island}-node island`:" · nothing links here"}</div>`:""}
     <div class="statgrid">
       <div class="stat ${d.complexity>=15?"hot":""}"><div class="v">${d.complexity}</div><div class="k">complexity</div></div>
       <div class="stat"><div class="v">${callers}</div><div class="k">callers</div></div>
