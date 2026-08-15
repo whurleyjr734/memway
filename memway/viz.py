@@ -67,9 +67,8 @@ def _knowledge_for(meta, e) -> list:
     it mark an entry stale. Both tiers go in: an entry stamped with
     either the logic hash or the body hash is current.
     """
-    md = meta.read_all(
-        e.coord_id,
-        current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+    from .metadata import accepted_for
+    md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
     out = []
     for channel, entries in md.items():
         for en in entries:

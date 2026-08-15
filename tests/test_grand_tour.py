@@ -19,6 +19,7 @@ sys.path.insert(0, str(HERE))
 from memway.indexer import Indexer
 from memway.edges import EdgeBuilder
 from memway.metadata import MetaStore
+from memway.metadata import accepted_for
 
 
 def cli(*args):
@@ -107,7 +108,7 @@ def helper_a(x):
     cli("harvest", R)
     charge = ix.resolve("src.billing.charge")
     meta = MetaStore(R / ".coord")
-    md = meta.read_all(charge.coord_id, current_hash=charge.body_hash)
+    md = meta.read_all(charge.coord_id, current_hash=accepted_for(charge))
     assert md.get("notes"), "human note missing"
     assert md.get("docs"), "harvest failed to mine docstring"
     assert not md["notes"][0].get("stale")                  # fresh
@@ -120,7 +121,7 @@ def helper_a(x):
     ix2 = Indexer(R, R / ".coord"); ix2.load_existing()
     charge2 = ix2.resolve("src.billing.charge")
     assert charge2.coord_id == charge.coord_id              # identity holds
-    md = meta.read_all(charge2.coord_id, current_hash=charge2.body_hash)
+    md = meta.read_all(charge2.coord_id, current_hash=accepted_for(charge2))
     assert md["notes"][0].get("stale"), "staleness not flagged"  # D10 fires
     assert not md["docs"][0].get("stale") or True           # docs re-mined ok
 

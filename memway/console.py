@@ -182,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
 def _write_meta(repo: str, data: dict):
     """The ONE write. Exactly one entry, and a receipt saying so."""
     from .indexer import Indexer
-    from .metadata import MetaStore, CHANNELS
+    from .metadata import MetaStore, CHANNELS, stamp_for
     ref = (data.get("ref") or "").strip()
     channel = (data.get("channel") or "notes").strip()
     text = (data.get("text") or "").strip()
@@ -202,7 +202,7 @@ def _write_meta(repo: str, data: dict):
     path = store.root / e.coord_id / f"{channel}.jsonl"
     before = len(path.read_text().splitlines()) if path.exists() else 0
     store.add(e.coord_id, channel, text, author="console",
-              body_hash=e.body_hash)
+              body_hash=stamp_for(e))
     after = len(path.read_text().splitlines())
     return 200, {
         "ok": True, "coord_id": e.coord_id, "qualname": e.qualname,

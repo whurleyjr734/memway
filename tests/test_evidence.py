@@ -25,6 +25,7 @@ sys.path.insert(0, str(HERE))
 from memway import evidence as ev
 from memway import query
 from memway.metadata import MetaStore, CHANNELS
+from memway.metadata import accepted_for
 from memway.indexer import Indexer
 import memway.dig as digmod
 
@@ -105,7 +106,7 @@ def test_clear_evidence_never_touches_any_authored_channel(repo, channel):
     assert meta_fingerprint(repo) == before, \
         f"clearing evidence altered authored {channel}"
     got = store.read_all(e.coord_id,
-                         current_hash={e.logic_hash, e.body_hash})
+                         current_hash=accepted_for(e))
     assert any(x["text"] == f"authored {channel} entry"
                for xs in got.values() for x in xs)
 

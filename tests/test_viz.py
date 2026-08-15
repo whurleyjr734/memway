@@ -29,6 +29,7 @@ sys.path.insert(0, str(HERE))
 from memway import viz as vizmod
 from memway.viz import export, render, viz, VIZ_WARN_ENTITIES, PLACEHOLDER
 from memway.metadata import CHANNELS, MetaStore
+from memway.metadata import accepted_for
 from memway.indexer import Indexer
 
 
@@ -238,7 +239,7 @@ def test_stale_flag_comes_from_the_read_path(mapped):
     ix.load_existing()
     e = ix.resolve("a.beta")
     md = MetaStore(mapped / ".coord").read_all(
-        e.coord_id, current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+        e.coord_id, current_hash=accepted_for(e))
     assert any(x.get("stale") for xs in md.values() for x in xs)
 
 

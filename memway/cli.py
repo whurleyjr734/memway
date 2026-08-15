@@ -88,8 +88,10 @@ def cmd_index(repo):
               "(files in these languages were skipped):")
         for lang, err in report["parser_errors"].items():
             print(f"    {lang}: {err}")
-        print("    fix: pip install -e . (pins compatible grammar "
-              "versions), or see IDE_AGENTS.md")
+        # QUOTED on purpose: unquoted, zsh globs the brackets and the
+        # command a user copies fails with "no matches found".
+        print("    fix: pip install 'memway[languages]'  "
+              "(installs the tree-sitter grammars)")
     if report.get("parse_errors"):
         errs = report["parse_errors"]
         print(f"  WARNING: {len(errs)} file(s) unparseable, skipped:")
@@ -159,7 +161,8 @@ def cmd_show(repo, ref):
         if not str(other).startswith("EVT:") and other in ix.entities:
             label = f"{other} ({ix.entities[other].qualname})"
         print(f"  {edge['kind']:9s} {direction} {label}")
-    md = meta.read_all(e.coord_id, current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+    from .metadata import accepted_for
+    md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
     for channel, entries in md.items():
         print(f"  [{channel}]")
         for entry in entries:
@@ -183,7 +186,7 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
     # and omitted 'confirm', which is the ONLY way to clear a comment-rot
     # flag (see query.before_edit). Rot was therefore permanent for anyone
     # working through the CLI, while agents on MCP could clear it fine.
-    from .metadata import CHANNELS
+    from .metadata import CHANNELS, stamp_for
     if channel not in CHANNELS:
         raise SystemExit(f'unknown channel {channel!r} - '
                          f'one of: {", ".join(CHANNELS)}')
@@ -193,7 +196,7 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
         print(f"no entity matches {ref!r}")
         return
     meta.add(e.coord_id, channel, text, author=author,
-             body_hash=e.body_hash)
+             body_hash=stamp_for(e))
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
 
@@ -497,6 +500,16 @@ COMMANDS = {
 }
 
 
+def _usage_line(cmd: str) -> str:
+    """The command's own line from the module docstring - one source of
+    truth for usage, so help and errors cannot drift."""
+    for line in (__doc__ or "").splitlines():
+        if line.strip().startswith(f"memway {cmd} ") or \
+                line.strip() == f"memway {cmd}":
+            return "usage: " + line.strip()
+    return f"usage: memway {cmd} <repo> ... (see: memway --help)"
+
+
 def main():
     import signal
     if hasattr(signal, "SIGPIPE"):          # D6
@@ -533,13 +546,22 @@ def main():
     if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
-    if author is not None:
-        if args[0] != "meta":
-            sys.stderr.write("--author applies to 'meta' only\n")
-            sys.exit(1)
-        COMMANDS[args[0]](*args[1:], author=author)
-    else:
-        COMMANDS[args[0]](*args[1:])
+    if author is not None and args[0] != "meta":
+        sys.stderr.write("--author applies to 'meta' only\n")
+        sys.exit(1)
+    fn = COMMANDS[args[0]]
+    kw = {"author": author} if author is not None else {}
+    # Arity is checked BEFORE the call, with bind(), rather than by
+    # catching TypeError around it - catching would also swallow a
+    # TypeError raised deep inside a working command and report it as a
+    # usage error, which is a worse lie than the traceback was.
+    import inspect
+    try:
+        inspect.signature(fn).bind(*args[1:], **kw)
+    except TypeError as e:
+        sys.stderr.write(f"memway {args[0]}: {e}\n\n{_usage_line(args[0])}\n")
+        sys.exit(2)
+    fn(*args[1:], **kw)
 
 
 if __name__ == "__main__":

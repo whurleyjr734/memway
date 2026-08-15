@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .indexer import Indexer
 from .edges import EdgeBuilder, neighbors
-from .metadata import MetaStore
+from .metadata import MetaStore, stamp_for, accepted_for
 from .metrics import MetricsStore
 from .lineage import VersionStore
 
@@ -77,7 +77,7 @@ def _entity_dict(e, meta=None) -> dict:
     }
     if meta is not None:
         md = meta.read_all(e.coord_id,
-                       current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+                       current_hash=accepted_for(e))
         knowledge = []
         for channel, entries in md.items():
             for en in entries:
@@ -518,7 +518,7 @@ def before_edit(repo: str, ref: str) -> dict:
     if has_rot:
         # Read meta to check for non-stale confirm entry (stamp matches current logic_hash)
         _confirm_meta = meta.read_all(e.coord_id,
-                                       current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+                                       current_hash=accepted_for(e))
         _confirm_entries = _confirm_meta.get("confirm", [])
         if any(not en.get("stale") for en in _confirm_entries):
             has_rot = False  # Confirmed at current logic_hash, suppress rot
@@ -544,7 +544,7 @@ def before_edit(repo: str, ref: str) -> dict:
                           else "entity-changed-since-doc"})
 
     md = meta.read_all(e.coord_id,
-                       current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+                       current_hash=accepted_for(e))
     knowledge, has_stale = [], False
     for channel, entries in md.items():
         for en in entries:
@@ -559,7 +559,7 @@ def before_edit(repo: str, ref: str) -> dict:
     for base_m, hops in inherited_sources:
         md_i = meta.read_all(
             base_m.coord_id,
-            current_hash={getattr(base_m, "logic_hash", ""), base_m.body_hash})
+            current_hash=accepted_for(base_m))
         for channel, entries in md_i.items():
             for en in entries:
                 knowledge.append({
@@ -745,7 +745,7 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     # stamp with logic_hash: the note survives comment/docstring edits and
     # flags stale only when BEHAVIOR changes (falls back to body hash)
     meta.add(e.coord_id, channel, text, author=author,
-             body_hash=getattr(e, "logic_hash", "") or e.body_hash)
+             body_hash=stamp_for(e))
     return {
         "attached": {"coord": e.coord_id, "qualname": e.qualname,
                      "channel": channel, "author": author},
@@ -775,7 +775,7 @@ def attention(repo_root, limit=20):
         if getattr(e, "comment_rot", False):
             # Check for non-stale confirm entry
             _confirm_meta = meta.read_all(e.coord_id,
-                                           current_hash={getattr(e, "logic_hash", ""), e.body_hash})
+                                           current_hash=accepted_for(e))
             _confirm_entries = _confirm_meta.get("confirm", [])
             if not any(not en.get("stale") for en in _confirm_entries):
                 # No current confirmation, include in rot list

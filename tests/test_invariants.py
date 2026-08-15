@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 from memway.indexer import Indexer, _hash_body
 from memway.edges import EdgeBuilder
 from memway.metadata import MetaStore
+from memway.metadata import accepted_for
 from memway.lineage import VersionStore, detect_lineage
 from memway.metrics import MetricsStore, complexity_of
 
@@ -83,7 +84,7 @@ def test_rename_detected_and_metadata_follows(repo):
     assert "renamed" in kinds
     new = ix2.resolve("pkg.a.alpha_v2")
     entries = meta.read(new.coord_id, "notes",
-                        current_hash={new.logic_hash, new.body_hash})
+                        current_hash=accepted_for(new))
     assert any("increments positives" in e["text"] for e in entries)
     # rename preserves semantics: migrated entry must NOT be stale
     assert not any(e.get("stale") for e in entries
@@ -105,7 +106,7 @@ def test_staleness_flag_on_behavior_change(repo):
     ix2, _, _ = index(repo)
     ent2 = ix2.resolve("pkg.a.alpha")
     entries = meta.read(ent2.coord_id, "notes",
-                        current_hash=ent2.body_hash)
+                        current_hash=accepted_for(ent2))
     assert entries[0].get("stale") is True
 
 
@@ -472,7 +473,7 @@ def test_retired_coordinate_resolves_through_lineage(repo):
     assert m["superseded_by"] == new.coord_id
     assert "retired" in m["error"]
     assert not meta.read(new.coord_id, "notes",
-                         current_hash={new.logic_hash, new.body_hash}), \
+                         current_hash=accepted_for(new)), \
         "agent_meta must not write to a coordinate the caller did not name"
 
     # a genuinely unknown id still gets the ordinary fuzzy error

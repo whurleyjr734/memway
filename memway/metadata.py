@@ -21,6 +21,35 @@ from pathlib import Path
 CHANNELS = ("history", "design", "notes", "docs", "traces", "confirm")
 
 
+def stamp_for(entity) -> str:
+    """The hash a new entry is stamped with. THE one write-side rule.
+
+    LOGIC HASH FIRST. A note describes behaviour, so it should survive a
+    reformat, a comment fix or a docstring tweak, and expire when the
+    behaviour actually moves. Falls back to body_hash for entities whose
+    language has no logic tier (see indexer._logic_hash's honest
+    degradation).
+
+    This exists because it DRIFTED. `memway meta` stamped body_hash while
+    the MCP `agent_meta` stamped logic_hash, so the same note written
+    from two surfaces decayed at different rates - a docstring edit
+    staled the CLI's copy and left the agent's fresh. query.py is the
+    single core for reads for exactly this reason; this is that principle
+    extended to writes. Every write path calls this. Do not inline it.
+    """
+    return getattr(entity, "logic_hash", "") or entity.body_hash
+
+
+def accepted_for(entity) -> set:
+    """Hashes that count as CURRENT when reading. The read-side twin.
+
+    Both tiers are accepted so that entries stamped before `stamp_for`
+    existed - body-stamped - stay valid until their text actually
+    changes, rather than being retroactively invalidated.
+    """
+    return {getattr(entity, "logic_hash", ""), entity.body_hash} - {""}
+
+
 class MetaStore:
     def __init__(self, coord_dir: str):
         self.root = Path(coord_dir) / "meta"
