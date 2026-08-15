@@ -52,6 +52,19 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   repo root, since that carries no `direct_url.json` at all. The answer no
   longer depends on the current directory.
 
+### Documentation
+
+- **README truth-synced.** It had drifted 18 commits: it advertised nine MCP
+  tools (there are ten), 133 tests (369), claimed `viz` output was
+  self-contained while the template linked a CDN, quoted a stale `CLAUDE.md`,
+  and promised a dogfooding ledger in `docs/` that is not there. It also
+  predated `dig`, `evidence`, `viz`, `console`, and the registry entirely.
+  Now carries the pull-a-map funnel, the fourteen commands, a registry
+  section, and honest limits refreshed against 0.51.1 — including two that
+  were missing: the polyglot parsers are thinner than Python's, and knowledge
+  is coordinate-scoped, so lessons about *how you work* have no home in the
+  map today.
+
 ## [0.51.0] - 2026-08-15
 
 ### Added

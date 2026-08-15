@@ -14,13 +14,25 @@ cd your-repo
 memway setup .
 ```
 
-`setup` does three things, all idempotent: builds the map (`.coord/`), writes `.mcp.json` so agents like Claude Code pick up the nine memway tools, and installs a three-rule `CLAUDE.md` workflow file. Then restart your agent in the repo and ask it:
+`setup` does three things, all idempotent: builds the map (`.coord/`), writes `.mcp.json` so agents like Claude Code pick up the ten memway tools, and installs a three-rule `CLAUDE.md` workflow file. Then restart your agent in the repo and ask it:
 
 ```
 What does this repo know?
 ```
 
 The answer will be empty. Here's why that changes.
+
+## Or inherit a map you didn't build
+
+```bash
+pip install memway
+memway pull flask --into ~/maps/flask
+memway console ~/maps/flask
+```
+
+That directory contains no Flask source — a `.coord/` and nothing else — and the console opens on 1,816 entities with the knowledge already attached, including a note on `AppContext.push` explaining the context-leak fix behind issue #6123 and why the cross-thread exception it leaves in your logs is harmless. Someone indexed Flask once; you inherited the reasoning.
+
+Published maps live at [memway-maps](https://github.com/whurleyjr734/memway-maps) — today `itsdangerous`, `flask`, and `httpx`, each pinned to the upstream commit it was indexed from. See [The registry](#the-registry) below.
 
 ## The three rules
 
@@ -44,7 +56,13 @@ memory layer.
 - When a task, design doc, or conversation supplies a REASON a piece
   of code is the way it is (constraints, incidents, tuning
   rationale), record that reason with `memway_meta` on the relevant
-  entity - reasons must outlive this session.
+  entity - reasons must outlive this session. This is due whenever a
+  reason or finding SURFACES, not only when a change lands: tasks you
+  decline, block on, investigate, or leave unfinished count too. The
+  reason a change was refused is often the most valuable thing to
+  record - a constraint strong enough to stop work is exactly what the
+  next session needs and exactly what the code cannot say on its own.
+  Capture it before you reply.
 ```
 
 Three properties matter. Tool names are **exact** — agents that have to
@@ -70,17 +88,64 @@ Unconfigured agents execute perfectly and remember nothing. Three lines of confi
 
 ## How it works
 
-- **Coordinates.** The indexer assigns each entity a durable ID. Lineage detection (multi-signal: name, body similarity, structure, signature, location) carries identity through renames and moves — measured at 100% on a 172-link ground-truth set at 0.998 confidence, 0.995+ precision across four foreign repos (requests, django, flask, click) with zero tuning.
-- **Three-tier hashing.** Body, logic (docstrings stripped), and shape hashes distinguish cosmetic edits from behavioral ones. This drives everything: staleness detection, metric memoization, certain-tier lineage.
-- **Self-auditing knowledge.** Notes, docs, design references, and confirmations attach to coordinates, each stamped with the code's logic hash at write time. When the logic changes, the entry is *flagged stale* instead of silently lying. Comment-rot detection does the same for source comments; a confirm channel lets a reviewer attest "correct as of this logic" and silences warnings until behavior actually changes.
-- **Agent tools (MCP).** Nine tools: `summary` (repo shape + a census of everything the map remembers), `show`, `at`, `lineage`, `before_edit`, `verify_change` (test selection from the edge graph), `probe` (runtime evidence with confidence provenance), `meta` (write-back), `attention` (repo-wide problems queue). Small primitives that compose, not a menu.
+- **Coordinates.** Each entity gets a content-derived id: `C-` plus the first six hex of `sha256(qualname)`. The same function has the same address in every clone, on every machine, forever — which is what makes a map transplantable at all. Lineage detection (multi-signal: name, body similarity, structure, signature, location) carries identity through renames and moves — measured at 100% on a 172-link ground-truth set at 0.998 confidence, 0.995+ precision across four foreign repos (requests, django, flask, click) with zero tuning.
+- **Three-tier hashing.** Body, logic (docstrings and comments stripped), and shape hashes distinguish cosmetic edits from behavioral ones. Reword a docstring and your notes stay fresh; add a `raise` and they flag. This drives everything: staleness detection, metric memoization, certain-tier lineage.
+- **Self-auditing knowledge.** Notes, docs, design references, and confirmations attach to coordinates across six channels, each stamped with the code's logic hash at write time. When the logic changes, the entry is *flagged stale* instead of silently lying — never deleted, because "this used to be true" is itself information. Comment-rot detection does the same for source comments; a confirm channel lets a reviewer attest "correct as of this logic" and silences warnings until behavior actually changes.
+- **Agent tools (MCP).** Ten tools: `summary` (repo shape + a census of everything the map remembers), `show`, `at`, `lineage`, `before_edit`, `verify_change` (test selection from the edge graph), `dig` (on-demand history for one entity), `probe` (runtime evidence with confidence provenance), `meta` (write-back), `attention` (repo-wide problems queue). Small primitives that compose, not a menu.
 - **Token economy.** The map returns coordinates *into* files, never copies *of* them — measured 56–472× token savings versus reading source. Agents use the map to aim surgical reads.
-- **Transparent by construction.** Everything persisted is plain, greppable JSONL under `.coord/`. The included usage log is local-only and reference-only: no telemetry, no phone-home, ever. Commit `.coord/` and your teammates — and their agents — clone the repo *with its memory*. Always commit `.coord/meta`: it is authored, unrecoverable, and tiny. `.coord/index` is derived and regenerates on clone — commit it on small-to-mid repos so a clone arrives instantly useful, gitignore it at large scale (see limits). Authored is precious; derived regenerates.
+- **Transparent by construction.** Everything persisted is plain, greppable JSONL under `.coord/`. The included usage log is local-only and reference-only: no telemetry, no phone-home, ever — and as of 0.51.1 that extends to rendered output: `viz` and `console` emit HTML that makes **zero network requests** (d3 is vendored and inlined, fonts are system stacks), so a map of your private source tree never announces itself to a CDN and works on a plane. Commit `.coord/` and your teammates — and their agents — clone the repo *with its memory*. Always commit `.coord/meta`: it is authored, unrecoverable, and tiny. `.coord/index` is derived and regenerates on clone — commit it on small-to-mid repos so a clone arrives instantly useful, gitignore it at large scale (see limits). Authored is precious; derived regenerates.
+
+## The commands
+
+Fourteen, all `memway <command> <repo> [args]`:
+
+| | |
+|---|---|
+| `setup` | one-command onboarding: map + `.mcp.json` + `CLAUDE.md` |
+| `init` / `index` | build the map / refresh it incrementally |
+| `harvest` | mine docstrings, git history, and design docs into the channels |
+| `at` | `file:line` → entity — the handoff from a grep hit |
+| `show` | entity dossier: signature, edges both ways, knowledge with staleness |
+| `meta` | attach knowledge at a coordinate (`--author`) |
+| `lineage` | identity history through renames and moves |
+| `dig` | mine one entity's history: commits, PR bodies, release tags |
+| `evidence` | read cached commit/PR bodies (`--clear` removes only derived) |
+| `viz` | the real map as one self-contained interactive HTML file |
+| `console` | the map served live, read tools as buttons (127.0.0.1 + token) |
+| `pull` | fetch a published map into `.coord/` |
+| `mcp` | run the MCP server |
+| `--json <query>` | structured output: `summary`, `at`, `show`, `before-edit`, `lineage`, `dig` |
+
+`dig` deserves a note: it returns **candidates** and refuses to judge them. Deciding whether a commit message carries a real reason or merely restates the diff is judgment, and a tool that automates it produces confident garbage. It never writes to `.coord`, never scores, never gates.
+
+## The registry
+
+```bash
+memway pull httpx --into ./vendor-maps/httpx
+```
+
+A bundle is a tarball fetched over the network, so it is treated as hostile until proven otherwise: the SHA-256 checksum must match before anything is unpacked, every member is validated *before* extraction, members must resolve inside the target and live under `.coord/`, and links and devices are refused outright. File modes are normalized rather than trusted, because the stdlib's safe-extraction filter only exists on Python 3.12+ and this package supports 3.10.
+
+`--force` replaces the derived index and **merges** the bundle's knowledge into yours — locally authored entries are never deleted, and dedup is on the exact line, so re-pulling is idempotent. `--replace-meta` is the destructive path and deliberately does *not* imply `--force`: you type both, and typing both is the moment you notice which you asked for.
+
+Every bundle carries a manifest recording `upstream_repo`, `upstream_sha`, the memway version that built it, and the upstream license. Drift is measured against `upstream_sha`, so if your working tree sits at a different commit than the map describes, `pull` says so rather than letting you trust a map for code it never saw.
+
+Maps hold coordinates and commentary, never upstream source, and each carries its upstream project's own license. **Pull requests are welcome** — new maps, and especially better knowledge on existing ones.
 
 ## Honest limits
 
-This is a young tool that has been tested hard in a narrow way. Known limits, from our own findings ledger: scale is measured to ~59K entities (Django, via the published package): cold index ~3 minutes, incremental reindex ~33 seconds with full memoization; at that scale the derived index grows large (~275MB), so large repos should commit `.coord/meta` (the knowledge) and gitignore `.coord/index` (structure regenerates on clone) — the commit-the-map default is tuned for small-to-mid repos; Python is first-class while JS/TS/Go/Java parsing is optional (`pip install memway[languages]`); cyclomatic complexity is a triage input, not a risk verdict; knowledge quality over months of accumulation is unproven (staleness flags, the attention queue, and note scoping are the designed defenses); and the usage log's session id tracks server processes, not conversations. The full dogfooding ledger — including the time an agent's recovery instinct was to delete the memory, and what we changed because of it — ships in `docs/`.
+This is a young tool that has been tested hard in a narrow way. Known limits, from our own findings ledger:
+
+- **Scale** is measured to ~59K entities (Django, via the published package): cold index ~3 minutes, incremental reindex ~33 seconds with full memoization. At that scale the derived index grows large (~275MB), so large repos should commit `.coord/meta` (the knowledge) and gitignore `.coord/index` (structure regenerates on clone) — the commit-the-map default is tuned for small-to-mid repos.
+- **Python is first-class.** JS/TS/Go/Java parsing is optional (`pip install 'memway[languages]'`, quoted for zsh) and thinner: no doc comments, no method signatures, no field declarations yet. Missing grammars produce an explicit warning naming each skipped language, never a silent skip.
+- **Cyclomatic complexity is a triage input, not a risk verdict.**
+- **Knowledge quality over months of accumulation is unproven.** Staleness flags, the attention queue, and note scoping are the designed defenses.
+- **Knowledge is coordinate-scoped, and some knowledge isn't about a coordinate.** A lesson that governs *how you work* — rather than what one function does — has no home in the map today and lives in `CLAUDE.md` instead. A repo-scope channel is the open design question.
+- **The registry is small and new.** Three maps, published by us. Nothing about the format is frozen.
+- **The usage log's session id tracks server processes, not conversations.**
 
 ## Status
 
-Built and dogfooded on itself: the map indexes memway, agents maintain memway through the map, and the lessons in the ledger were written into the map by the agents that learned them. 133 tests. AGPL-3.0. No features are planned until real usage asks for them — the usage log exists so that answer comes from evidence.
+Built and dogfooded on itself: the map indexes memway, agents maintain memway through the map, and the lessons in the ledger were written into the map by the agents that learned them. 369 tests. Python ≥3.10, zero runtime dependencies. AGPL-3.0-or-later.
+
+No features are planned until real usage asks for them — the usage log exists so that answer comes from evidence.
