@@ -334,7 +334,12 @@ def harvest_docs(repo_root, ix, coord_dir, write: bool = True):
     # skip on a read.
     if write:
         try:
-            path.write_text(json.dumps(out, indent=1))
+            new = json.dumps(out, indent=1)
+            # write-if-CHANGED: rewriting identical bytes still mutates
+            # mtime and breaks any "did this read touch the map?" check.
+            # The baseline is still established on first call.
+            if not path.exists() or path.read_text() != new:
+                path.write_text(new)
         except OSError:
             pass
     return out

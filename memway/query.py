@@ -26,6 +26,10 @@ from .metrics import MetricsStore
 from .lineage import VersionStore
 
 
+# _ctx NEVER warms a pickle cache - `memway index` writes them, reads
+# consume them. read_only() remains for the SNAPSHOT baselines
+# (docbindings), which are a different category: skipping those on a
+# read is only safe when the caller is explicitly read-only.
 # When true, _ctx loads without warming any pickle cache. The console
 # serves these same query functions over HTTP and promises every GET
 # leaves .coord byte-identical; there are exactly TWO cache-warming
@@ -54,9 +58,9 @@ def _ctx(repo: str):
     if not (coord / "index" / "coordinates.json").exists():
         return None
     ix = Indexer(repo_p, coord)
-    ix.load_existing(write_cache=not _READ_ONLY)
+    ix.load_existing(write_cache=False)
     ix.load_raw_edges()
-    edges = EdgeBuilder.load(coord, write_cache=not _READ_ONLY)
+    edges = EdgeBuilder.load(coord, write_cache=False)
     meta = MetaStore(coord)
     return repo_p, coord, ix, edges, meta
 

@@ -50,7 +50,12 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and makes "did anything change?" unanswerable. **Partial: the
   `query.*` reads still warm both caches unless wrapped in
   `query.read_only()`, which today only the console's GET endpoints do.**
-  See the release notes below.
+  **The fence is 7/7**: `before_edit`, `show`, `summary`, `at`, `lineage`,
+  `viz` and `dig` all leave `.coord` byte-identical. `query._ctx` no
+  longer warms either cache at all - `memway index` writes them, reads
+  consume them - and `docbindings.json` is written only when its content
+  actually changes, so the snapshot baseline survives while a repeat
+  briefing is a genuine no-op.
 
 ### Changed
 
@@ -65,10 +70,6 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Known limitations
 
-- The read fence covers `viz`, `dig` and the console's HTTP surface.
-  Direct `query.before_edit` / `show` / `summary` / `at` / `lineage` calls
-  — the CLI and MCP paths — still warm `.coord/cache/*.pkl`. Not a
-  regression (they always did), but not yet the whole fix.
 - `feature/excavate` is **not** in this release. It carries
   `PARSE_SCHEMA_VERSION 4` and a documented one-time comment-rot
   re-baseline for Go/TS/JS/Java maps; it is sequenced separately with its
