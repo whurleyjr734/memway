@@ -7,6 +7,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-08-15
+
 ### Changed
 
 - **The workflow rules are emitted to `AGENTS.md`, `CLAUDE.md`, and
