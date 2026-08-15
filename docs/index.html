@@ -201,6 +201,8 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .fine{margin-top:16px;font-size:13.5px;color:var(--dim);font-weight:300;max-width:72ch}
 .fine strong{color:var(--star);font-weight:400}
 .mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
+/* the agent prompt is prose, so it wraps instead of scrolling */
+.cmd.prompt{white-space:pre-wrap;line-height:1.75;font-size:13.5px}
 @media(max-width:560px){.cmd{font-size:12.5px;padding:14px}}
 .term{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
 .term-head{display:flex;gap:7px;padding:13px 16px;border-bottom:1px solid var(--line)}
@@ -308,22 +310,12 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     <div class="kicker">Quickstart</div>
     <h2>Five minutes to a repo that remembers</h2>
     <p class="sub">One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
-    <div class="cmds">
-      <pre class="cmd">pip install memway
-memway setup .          <span class="c"># your repo: map + agent wiring in one command</span></pre>
-    </div>
-
-    <p class="beat">Or pull a prebuilt map. Three are published (flask, httpx, itsdangerous), so you can browse a codebase's accumulated knowledge without the codebase.</p>
-
-    <div class="cmds">
-      <pre class="cmd">memway pull flask --into ~/maps/flask
-memway console ~/maps/flask</pre>
-    </div>
-
     <div class="qs">
       <div class="term">
         <div class="term-head"><i></i><i></i><i></i></div>
         <div class="term-body">
+<span class="p">pip install memway</span><br>
+<span class="p">cd your-repo && memway setup .</span><br>
 <span class="o">initialized .coord, 421 entities, 1,222 edges</span><br>
 <span class="o">wrote .mcp.json <span class="hl">(agent wiring)</span></span><br>
 <span class="o">wrote CLAUDE.md <span class="hl">(the measured workflow rules)</span></span>
@@ -339,6 +331,32 @@ it won't be.
         </div>
       </div>
     </div>
+    <p class="beat">Or hand the setup to your agent. Paste this into Claude Code or any MCP-capable client, in the repo you want mapped.</p>
+
+    <div class="cmds">
+      <pre class="cmd prompt">Set up memway in this repo so what you learn here outlives this session.
+
+1. Run: pip install memway
+2. Run: memway setup .
+   It builds the map in .coord/, writes .mcp.json and CLAUDE.md, and leaves
+   any of those alone if they already exist. Tell me if it skipped CLAUDE.md,
+   because then the rules are not installed.
+3. Stop and tell me to restart you. You cannot load the MCP server yourself,
+   so the memway_* tools will not exist until I do.
+
+After the restart: call memway_summary to confirm the tools are live, then
+follow CLAUDE.md. memway_before_edit before you change any function or class,
+memway_verify_change after, and memway_meta whenever a reason surfaces that
+the code cannot state on its own.</pre>
+    </div>
+
+    <p class="beat">Or pull a prebuilt map. Three are published (flask, httpx, itsdangerous), so you can browse a codebase's accumulated knowledge without the codebase.</p>
+
+    <div class="cmds">
+      <pre class="cmd">memway pull flask --into ~/maps/flask
+memway console ~/maps/flask</pre>
+    </div>
+
     <p class="fine"><strong>Python 3.10+. Zero runtime dependencies. Everything stays on your machine.</strong></p>
     <p class="fine">Agent features need an MCP-capable client such as Claude Code. Parsing beyond Python is an optional extra, <span class="mono">pip install 'memway[languages]'</span> (quote it, or your shell will eat the brackets). Full details in the <a href="https://github.com/whurleyjr734/memway">README on GitHub</a>.</p>
   </section>
