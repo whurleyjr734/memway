@@ -308,6 +308,18 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     <div class="kicker">Quickstart</div>
     <h2>Five minutes to a repo that remembers</h2>
     <p class="sub">Zero runtime dependencies, stdlib only. One command builds the map, wires your agent over MCP, and installs the three workflow rules that make the memory fill itself.</p>
+    <div class="cmds">
+      <pre class="cmd">pip install memway
+memway setup .          <span class="c"># your repo: map + agent wiring in one command</span></pre>
+    </div>
+
+    <p class="beat">Or pull a prebuilt map. Three are published (flask, httpx, itsdangerous), so you can browse a codebase's accumulated knowledge without the codebase.</p>
+
+    <div class="cmds">
+      <pre class="cmd">memway pull flask --into ~/maps/flask
+memway console ~/maps/flask</pre>
+    </div>
+
     <div class="qs">
       <div class="term">
         <div class="term-head"><i></i><i></i><i></i></div>
@@ -329,19 +341,6 @@ it won't be.
         </div>
       </div>
     </div>
-
-    <div class="cmds">
-      <pre class="cmd">pip install memway
-memway setup .          <span class="c"># your repo: map + agent wiring in one command</span></pre>
-    </div>
-
-    <p class="beat">Or pull a prebuilt map. Three are published (flask, httpx, itsdangerous), so you can browse a codebase's accumulated knowledge without the codebase.</p>
-
-    <div class="cmds">
-      <pre class="cmd">memway pull flask --into ~/maps/flask
-memway console ~/maps/flask</pre>
-    </div>
-
     <p class="fine"><strong>Python 3.10+. Zero runtime dependencies. Everything stays on your machine.</strong></p>
     <p class="fine">Agent features need an MCP-capable client such as Claude Code. Parsing beyond Python is an optional extra, <span class="mono">pip install 'memway[languages]'</span> (quote it, or your shell will eat the brackets). Full details in the <a href="https://github.com/whurleyjr734/memway">README on GitHub</a>.</p>
   </section>
