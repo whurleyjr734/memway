@@ -53,11 +53,47 @@ class PullError(Exception):
     """Anything that should stop an install, phrased for a human."""
 
 
+REGISTRY_INDEX = "https://github.com/whurleyjr734/memway-maps/releases"
+
+
 def _http_get(url: str) -> bytes:
     from urllib.request import Request, urlopen
     req = Request(url, headers={"User-Agent": "memway-pull"})
     with urlopen(req, timeout=60) as resp:      # noqa: S310 - scheme checked
         return resp.read()
+
+
+def _fetch(fetch, url: str, name: str, what: str) -> bytes:
+    """Fetch, or fail with something a person can act on.
+
+    A bare `HTTP Error 404: Not Found` was the whole message for a typo'd
+    map name: no name, no URL, no hint that a registry index exists. The
+    caller then cannot tell a misspelling from an outage from a map that
+    was never published. Every failure here names WHAT was being fetched
+    and from WHERE; 404 additionally says where to look for the real list,
+    because 404 is overwhelmingly "you guessed a name".
+    """
+    try:
+        return fetch(url)
+    except PullError:
+        raise                       # already contextual; do not re-wrap
+    except Exception as e:
+        code = getattr(e, "code", None)
+        if code == 404 and what == "bundle":
+            raise PullError(
+                f"map {name!r} not found in the registry\n"
+                f"  tried: {url}\n"
+                f"  see {REGISTRY_INDEX} for available maps") from e
+        if code == 404 and what == "checksum":
+            raise PullError(
+                f"map {name!r} exists but ships no checksum - refusing\n"
+                f"  tried: {url}\n"
+                f"  a bundle without its .sha256 cannot be verified, and an\n"
+                f"  unverified bundle is not installed") from e
+        raise PullError(
+            f"could not fetch the {what} for {name!r}\n"
+            f"  tried: {url}\n"
+            f"  {type(e).__name__}: {e}") from e
 
 
 def resolve_url(name: str, source: str = DEFAULT_SOURCE) -> tuple:
@@ -259,8 +295,9 @@ def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
             "  --replace-meta additionally deletes locally authored knowledge.")
 
     url, sum_url, base, version = resolve_url(name, source)
-    blob = fetch(url)
-    digest = verify_checksum(blob, fetch(sum_url).decode("utf-8", "replace"))
+    blob = _fetch(fetch, url, base, "bundle")
+    digest = verify_checksum(
+        blob, _fetch(fetch, sum_url, base, "checksum").decode("utf-8", "replace"))
 
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)

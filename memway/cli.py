@@ -574,23 +574,61 @@ COMMANDS = {
 }
 
 
-def _version() -> str:
-    """The installed distribution's version, or the package fallback.
+def _running_from_source() -> bool:
+    """True when the imported package is a working tree, not an install.
 
-    importlib.metadata is authoritative because it reflects what was
-    actually installed; __version__ covers the source-tree and editable
-    cases where no distribution metadata exists.
+    The third source of truth: when cwd is the repo root, a leftover
+    `memway.egg-info` is discoverable by importlib.metadata and can win the
+    lookup, so the SAME command reported different versions depending on
+    where it was run from. Location does not lie - a package under
+    site-packages was installed; anywhere else is a checkout.
     """
+    here = Path(__file__).resolve().parent
+    return not any(p in ("site-packages", "dist-packages") for p in here.parts)
+
+
+def _is_editable(dist) -> bool:
+    """Whether this distribution was installed with `pip install -e`."""
     try:
-        from importlib.metadata import version, PackageNotFoundError
-        try:
-            return version("memway")
-        except PackageNotFoundError:
-            pass
+        raw = dist.read_text("direct_url.json")
+    except Exception:
+        return False
+    if not raw:
+        return False
+    try:
+        return bool(json.loads(raw).get("dir_info", {}).get("editable"))
+    except ValueError:
+        return False
+
+
+def _version() -> str:
+    """The version to print. Metadata first - EXCEPT when editable.
+
+    An editable install freezes its dist-info at `pip install -e` time and
+    never updates again. This repo's own dev venv was wired at 0.49.2 and
+    reported `memway 0.49.2` for weeks while running 0.50.1 source: the
+    metadata was describing the install event, not the code. So for a
+    WHEEL, metadata is authoritative (it is what was installed); for an
+    EDITABLE install the source tree IS the install, and __version__ wins.
+
+    Both checks matter. direct_url.json answers "was this pip install -e",
+    and _running_from_source() covers the egg-info case where the editable
+    dist-info is not even the distribution that got found.
+    """
+    from . import __version__ as source_version
+    try:
+        from importlib.metadata import distribution, PackageNotFoundError
     except ImportError:
-        pass
-    from . import __version__
-    return __version__
+        return source_version
+    try:
+        dist = distribution("memway")
+    except PackageNotFoundError:
+        return source_version
+    except Exception:
+        return source_version
+    if _is_editable(dist) or _running_from_source():
+        return source_version
+    return dist.version or source_version
 
 
 def _usage_line(cmd: str) -> str:

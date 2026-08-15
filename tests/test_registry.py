@@ -354,3 +354,100 @@ def test_no_mcp_tool_exposes_pull():
     assert not any("pull" in n for n in names), \
         f"pull must not be reachable over MCP: {sorted(names)}"
     assert "memway_show" in names, "guard is vacuous if TOOLS is empty"
+
+
+# ---------------------------------------------------- failures with context
+
+class _HTTPError(Exception):
+    """Duck-typed stand-in: urllib's HTTPError carries .code."""
+    def __init__(self, code, msg="Not Found"):
+        super().__init__(f"HTTP Error {code}: {msg}")
+        self.code = code
+
+
+def _raising(exc, only=None):
+    """A fetcher that raises for the bundle, or only for `only` suffix."""
+    def fetch(url):
+        if only is None or url.endswith(only):
+            raise exc
+        return b"x"
+    return fetch
+
+
+def test_404_names_the_map_the_url_and_the_registry_index():
+    """The bare `HTTP Error 404: Not Found` told a typo'd name nothing:
+    not which map, not which URL, not that an index of real maps exists."""
+    with pytest.raises(PullError) as ei:
+        pull("nosuchmap", into="/tmp/never", fetch=_raising(_HTTPError(404)))
+    msg = str(ei.value)
+    assert "nosuchmap" in msg, "the map name must appear"
+    assert "not found in the registry" in msg
+    assert "nosuchmap-latest.tar.gz" in msg, "the exact URL attempted"
+    assert "github.com/whurleyjr734/memway-maps/releases" in msg, \
+        "where to find the real list"
+    assert "HTTP Error 404" not in msg, "the bare urllib text is not the message"
+
+
+def test_404_on_the_checksum_is_a_different_failure():
+    """Bundle present, checksum missing: not a typo, an unverifiable map."""
+    with pytest.raises(PullError) as ei:
+        pull("flask", into="/tmp/never",
+             fetch=_raising(_HTTPError(404), only=".sha256"))
+    msg = str(ei.value)
+    assert "ships no checksum" in msg
+    assert "flask" in msg and ".sha256" in msg
+    assert "not found in the registry" not in msg, \
+        "must not be reported as a missing map"
+
+
+def test_connection_refused_keeps_its_class_and_reason():
+    """A network fault is not a missing map, and must not be relabelled."""
+    import urllib.error
+    exc = urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
+    with pytest.raises(PullError) as ei:
+        pull("flask", into="/tmp/never", fetch=_raising(exc))
+    msg = str(ei.value)
+    assert "could not fetch the bundle for 'flask'" in msg
+    assert "URLError" in msg, "the exception class survives"
+    assert "Connection refused" in msg, "the reason survives"
+    assert "flask-latest.tar.gz" in msg
+    assert "not found in the registry" not in msg
+
+
+def test_non_404_http_error_is_not_reported_as_a_missing_map():
+    with pytest.raises(PullError) as ei:
+        pull("flask", into="/tmp/never",
+             fetch=_raising(_HTTPError(503, "Service Unavailable")))
+    msg = str(ei.value)
+    assert "could not fetch" in msg and "503" in msg
+    assert "not found in the registry" not in msg
+
+
+def test_checksum_mismatch_message_is_unchanged(tmp_path):
+    """The contextual wrapper must not swallow or reword the one failure
+    that already said exactly the right thing."""
+    blob = _good_bundle()
+    with pytest.raises(PullError) as ei:
+        pull("django", into=str(tmp_path), fetch=_fetcher(blob, checksum="0" * 64))
+    msg = str(ei.value)
+    assert "CHECKSUM MISMATCH - refusing to install." in msg
+    assert "expected " + "0" * 64 in msg
+    assert "corrupted in transit or tampered with" in msg
+    assert "could not fetch" not in msg, "not re-wrapped as a fetch failure"
+
+
+def test_a_contextual_error_is_never_re_wrapped(tmp_path):
+    """_fetch adds context to raw exceptions but must pass a PullError
+    through untouched - otherwise a precise message gets buried under a
+    generic 'could not fetch' one layer up."""
+    from memway.registry import PullError as PE
+
+    def fetch(url):
+        raise PE("CHECKSUM MISMATCH - refusing to install.\n  bespoke detail")
+
+    with pytest.raises(PullError) as ei:
+        pull("flask", into=str(tmp_path), fetch=fetch)
+    msg = str(ei.value)
+    assert "bespoke detail" in msg
+    assert "could not fetch" not in msg, "a PullError must not be re-wrapped"
+    assert "not found in the registry" not in msg

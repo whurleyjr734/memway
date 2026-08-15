@@ -45,3 +45,8 @@ packages = ["memway"]
 [tool.setuptools.package-data]
 memway = ["lens_template.html", "viz_template.html",
           "vendor/d3.min.js", "vendor/d3.LICENSE"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: builds real venvs (editable + wheel installs). Kept in the default\n    run on purpose - the editable --version bug survived for weeks precisely\n    because the only install test used a wheel.",
+]
