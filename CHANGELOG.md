@@ -7,6 +7,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.51.1] - 2026-08-15
+
 ### Fixed
 
 - **`viz`/`console` output is now airgap-safe — no external requests.** The
@@ -28,6 +30,27 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Found by an acceptance sweep, not by the suite — because two existing tests
   *enforced* the CDN link and the webfont names. The guard was not missing, it
   was inverted. Both now assert the opposite.
+
+- **Registry failures stop swallowing context.** A mistyped map name produced
+  `pull failed: HTTPError: HTTP Error 404: Not Found` — no name, no URL, and
+  no hint that an index of real maps exists, so a typo was indistinguishable
+  from an outage. Every fetch failure now names what was being fetched and
+  from where; a 404 on the bundle points at the releases page, because a 404
+  is overwhelmingly a guessed name. A 404 on the `.sha256` is reported as its
+  own failure — the map exists but cannot be verified — rather than as a
+  missing map. Network faults keep their exception class and reason, and an
+  already-contextual error is never re-wrapped in a generic one.
+
+- **`--version` is correct under editable installs.** `importlib.metadata`
+  describes the *install event*, and for `pip install -e` that froze at
+  wire-up time: this repo's own dev venv reported `memway 0.49.2` for weeks
+  while running 0.50.1 source. Metadata still wins for a wheel; for an
+  editable install the source tree *is* the install, so `__version__` wins.
+  Two checks, because either alone is insufficient — `direct_url.json`
+  answers "was this `-e`", and a location test covers the case where a
+  leftover `memway.egg-info` is what `importlib.metadata` resolves at the
+  repo root, since that carries no `direct_url.json` at all. The answer no
+  longer depends on the current directory.
 
 ## [0.51.0] - 2026-08-15
 
