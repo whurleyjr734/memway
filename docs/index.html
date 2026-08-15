@@ -201,6 +201,16 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .fine{margin-top:16px;font-size:13.5px;color:var(--dim);font-weight:300;max-width:72ch}
 .fine strong{color:var(--star);font-weight:400}
 .mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
+.cmds{position:relative}
+.copy{
+  position:absolute;top:10px;right:10px;z-index:2;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dim);background:#0C1222;
+  border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;
+  transition:color .15s,border-color .15s;
+}
+.copy:hover{color:var(--star);border-color:var(--dim)}
+.copy.done{color:var(--fresh);border-color:#4AE3B555}
 /* the agent prompt is prose, so it wraps instead of scrolling */
 .cmd.prompt{white-space:pre-wrap;line-height:1.75;font-size:13.5px}
 @media(max-width:560px){.cmd{font-size:12.5px;padding:14px}}
@@ -334,6 +344,7 @@ it won't be.
     <p class="beat">Or hand the setup to your agent. Paste this into Claude Code or any MCP-capable client, in the repo you want mapped.</p>
 
     <div class="cmds">
+      <button class="copy" type="button" aria-label="Copy to clipboard">copy</button>
       <pre class="cmd prompt">Set up memway in this repo so what you learn here outlives this session.
 
 1. Run: pip install memway
@@ -353,6 +364,7 @@ the code cannot state on its own.</pre>
     <p class="beat">Or pull a prebuilt map. Three are published (flask, httpx, itsdangerous), so you can browse a codebase's accumulated knowledge without the codebase.</p>
 
     <div class="cmds">
+      <button class="copy" type="button" aria-label="Copy to clipboard">copy</button>
       <pre class="cmd">memway pull flask --into ~/maps/flask
 memway console ~/maps/flask</pre>
     </div>
@@ -515,6 +527,34 @@ let i=0, order=[0,1,2,3,4,0,1,2,3,4];
 function step(){ SCENES[order[i%order.length]](); i++; }
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(reduced){ SCENES[0](); } else { setTimeout(step,1600); setInterval(step,4200); }
+// copy buttons on the command/prompt blocks. Reads the code element next
+// to the button, so the button's own label can never reach the clipboard.
+document.querySelectorAll('.cmds .copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var pre = btn.parentNode.querySelector('pre');
+    if(!pre) return;
+    var text = pre.innerText;
+    function done(){
+      var was = btn.textContent;
+      btn.textContent = 'copied';
+      btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = was; btn.classList.remove('done'); }, 1600);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      // no clipboard API (older browser, or a non-secure context)
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly','');
+      ta.style.position = 'fixed'; ta.style.top = '-1000px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); }
+      catch(e){ btn.textContent = 'select and copy'; }
+      document.body.removeChild(ta);
+    }
+  });
+});
 </script>
 </body>
 </html>
