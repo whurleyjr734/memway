@@ -98,8 +98,11 @@ def _map_payload(repo: str) -> dict:
 
 def build_page(repo: str, token: str) -> str:
     """viz's template, plus the console shell, with the token baked in."""
-    from .viz import TEMPLATE, PLACEHOLDER
-    html_doc = TEMPLATE.read_text()
+    # Always via viz's loader, never by reading the template file directly:
+    # the served page must be as airgap-clean as the written file, and one
+    # reader is what keeps the two paths from drifting apart.
+    from .viz import load_template, PLACEHOLDER
+    html_doc = load_template()
     blob = json.dumps(_map_payload(repo)).replace("</", "<\\/")
     html_doc = html_doc.replace(PLACEHOLDER, blob)
     js = _CONSOLE_JS.replace("__TOKEN__", json.dumps(token))

@@ -384,14 +384,25 @@ def test_template_ships_with_the_package():
 
 
 def test_no_new_runtime_dependencies():
-    """stdlib only; D3 stays a CDN reference in the template."""
+    """stdlib only - and d3 is VENDORED, not fetched.
+
+    This assertion used to read `"cdnjs.cloudflare.com" in tpl`, i.e. it
+    enforced the CDN link. That is why an acceptance sweep found the
+    emitted page phoning out while this suite stayed green: the guard was
+    not missing, it was pointing the wrong way. Vendoring d3 adds no
+    PYTHON dependency - it is a static asset shipped in package-data - so
+    the zero-dependency claim is untouched.
+    """
     src = (HERE / "memway" / "viz.py").read_text()
     for bad in ("import jinja2", "import requests", "import numpy",
                 "import lxml", "import bs4"):
         assert bad not in src
+    py = (HERE / "pyproject.toml").read_text()
+    assert "dependencies = []" in py, "runtime dependencies must stay empty"
     tpl = vizmod.TEMPLATE.read_text()
-    assert "cdnjs.cloudflare.com" in tpl and "d3.min.js" in tpl, \
-        "D3 stays a CDN reference, not a vendored dependency"
+    assert "cdnjs.cloudflare.com" not in tpl, \
+        "d3 must be vendored and inlined, never linked from a CDN"
+    assert vizmod.D3.exists(), "the vendored d3 is what replaced the link"
 
 
 def test_missing_map_is_actionable(tmp_path):
@@ -414,7 +425,14 @@ def test_template_uses_the_website_palette_and_fonts():
         assert f"{token}:{value}" in tpl.replace(" ", ""), token
         assert f"{token}:{value}" in site.replace(" ", ""), \
             f"{token} must match the site, not merely exist"
-    assert "'Sora'" in tpl and "'JetBrains Mono'" in tpl
+    # Fonts are SYSTEM STACKS now, not the site's webfonts. Sora and
+    # JetBrains Mono arrived over two Google Fonts links, which made every
+    # rendered map announce itself to Google and fail with no egress. The
+    # palette above is what carries the identity; the typeface follows the
+    # reader's OS. See tests/test_airgap.py.
+    assert "--font-sans:" in tpl and "--font-mono:" in tpl
+    assert "-apple-system" in tpl and "ui-monospace" in tpl
+    assert "fonts.googleapis.com" not in tpl
     for gone in ("Fraunces", "Archivo", "IBM Plex"):
         assert gone not in tpl, f"{gone} is not a site font"
 

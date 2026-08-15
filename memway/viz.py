@@ -39,6 +39,38 @@ TEMPLATE = Path(__file__).with_name("viz_template.html")
 PLACEHOLDER = "__MEMWAY_DATA__"
 DEFAULT_OUT = "memway-map.html"
 
+VENDOR = Path(__file__).with_name("vendor")
+D3 = VENDOR / "d3.min.js"
+D3_SLOT = "/* AIRGAP_D3 */"
+
+
+def load_template() -> str:
+    """The template with every external asset inlined. THE one reader.
+
+    There are two render paths - viz writes a file, the console serves a
+    page - and both must emit HTML that makes ZERO network requests. That
+    guarantee is asserted on the emitted bytes of both in
+    tests/test_airgap.py, and the way it would rot is a second
+    `TEMPLATE.read_text()` growing somewhere that forgets to inline. So
+    there is one reader and both paths call it.
+
+    d3 is inlined rather than linked because a rendered map is a picture of
+    somebody's private source tree; a page that fetches a script is a page
+    that announces the repo exists to a CDN, and fails outright on a plane
+    or behind a proxy. ~273KB is the honest price.
+    """
+    html = TEMPLATE.read_text()
+    if D3_SLOT not in html:
+        raise RuntimeError(f"template lost its {D3_SLOT} slot")
+    d3 = D3.read_text(encoding="utf-8")
+    # A literal </script> in the payload would close the block early. d3's
+    # minified build contains no `</` at all, but that is d3's property, not
+    # ours, and a future bump could change it.
+    if "</" in d3:
+        raise RuntimeError("vendored d3 contains '</' and would break out "
+                           "of its script block - escape it before inlining")
+    return html.replace(D3_SLOT, d3)
+
 
 def _entity_row(e) -> dict:
     """One entity in the template's shape.
@@ -185,7 +217,7 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
 
 def render(payload: dict) -> str:
     """Inject the payload into the approved template."""
-    html = TEMPLATE.read_text()
+    html = load_template()
     if PLACEHOLDER not in html:
         raise RuntimeError(f"template lost its {PLACEHOLDER} placeholder")
     data = {k: v for k, v in payload.items() if not k.startswith("_")}

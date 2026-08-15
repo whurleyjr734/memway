@@ -7,6 +7,28 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`viz`/`console` output is now airgap-safe — no external requests.** The
+  emitted page linked d3 from cdnjs and two stylesheets from Google Fonts, so
+  a rendered map required network access and announced itself to two third
+  parties on open. d3 7.8.5 is now vendored (`memway/vendor/`, ISC, notice
+  shipped) and inlined at render time; the webfonts are replaced by system
+  stacks. The emitted file grows from ~442KB to ~606KB — the correct price.
+
+  Both surfaces are covered because they share one template reader
+  (`viz.load_template`), and `tests/test_airgap.py` asserts the property on
+  the **emitted bytes** of each: no `src=`/`href=`/`url()`/`@import`/
+  `@font-face`/resource hints to an absolute URL, no `fetch`/`XMLHttpRequest`/
+  `WebSocket`/`iframe`, and every remaining absolute URL matched against a
+  pinned allowlist of inert constants (d3's ISC attribution banner and five
+  W3C namespace identifiers, which `createElementNS` needs and nothing ever
+  fetches).
+
+  Found by an acceptance sweep, not by the suite — because two existing tests
+  *enforced* the CDN link and the webfont names. The guard was not missing, it
+  was inverted. Both now assert the opposite.
+
 ## [0.51.0] - 2026-08-15
 
 ### Added
