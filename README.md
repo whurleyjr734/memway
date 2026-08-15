@@ -14,7 +14,7 @@ cd your-repo
 memway setup .
 ```
 
-`setup` does three things, all idempotent: builds the map (`.coord/`), writes `.mcp.json` so agents like Claude Code pick up the ten memway tools, and installs a three-rule `CLAUDE.md` workflow file. Then restart your agent in the repo and ask it:
+`setup` does three things, all idempotent: builds the map (`.coord/`), writes `.mcp.json` so agents pick up the ten memway tools, and writes the three-rule workflow file to `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md` — byte-identical copies from one template, because a client reads the filename it knows and ignores the rest. Then restart your agent in the repo and ask it:
 
 ```
 What does this repo know?
@@ -36,33 +36,34 @@ Published maps live at [memway-maps](https://github.com/whurleyjr734/memway-maps
 
 ## The three rules
 
-`setup` writes this `CLAUDE.md`. It is the entire configuration — the
+`setup` writes this to all three filenames. It is the entire configuration — the
 mechanism behind Phase B below, and the reason a map fills itself instead
 of sitting empty:
 
 ```markdown
 # Project rules
 
-This repo uses memway (MCP tools prefixed `memway_`) as its
-memory layer.
+This repo uses memway as its memory layer. Each tool below is available
+over MCP with the exact name given; where a CLI equivalent exists it is
+named in parentheses. Use whichever your client supports.
 
-- Before editing any function or class, call `memway_before_edit`
-  on it and heed any attached knowledge. If `memway_before_edit`
-  returns an error, do NOT edit - resolve the ref first (try a
-  bare function name, module.qualname, or memway_at <file:line>)
-  and retry before_edit.
-- After completing changes, call `memway_verify_change` to confirm
-  impact.
-- When a task, design doc, or conversation supplies a REASON a piece
-  of code is the way it is (constraints, incidents, tuning
-  rationale), record that reason with `memway_meta` on the relevant
-  entity - reasons must outlive this session. This is due whenever a
-  reason or finding SURFACES, not only when a change lands: tasks you
-  decline, block on, investigate, or leave unfinished count too. The
-  reason a change was refused is often the most valuable thing to
-  record - a constraint strong enough to stop work is exactly what the
-  next session needs and exactly what the code cannot say on its own.
-  Capture it before you reply.
+- Before editing any function or class, brief yourself on it with
+  `memway_before_edit` (CLI: `memway --json before-edit . <ref>`) and heed
+  any attached knowledge. If the call returns an error, do NOT edit -
+  resolve the ref first with `memway_at` (CLI: `memway at . <file:line>`),
+  or try a bare function name or module.qualname, then retry.
+- After completing changes, call `memway_verify_change` to confirm impact.
+  This one is MCP only; there is no CLI equivalent yet.
+- When a task, design doc, or conversation supplies a REASON a piece of
+  code is the way it is (constraints, incidents, tuning rationale), record
+  that reason with `memway_meta` (CLI: `memway meta . <ref> notes "<text>"`)
+  on the relevant entity - reasons must outlive this session. This is due
+  whenever a reason or finding SURFACES, not only when a change lands:
+  tasks you decline, block on, investigate, or leave unfinished count too.
+  The reason a change was refused is often the most valuable thing to
+  record - a constraint strong enough to stop work is exactly what the next
+  session needs and exactly what the code cannot say on its own. Capture it
+  before you reply.
 ```
 
 Three properties matter. Tool names are **exact** — agents that have to
@@ -71,8 +72,11 @@ lookup stops the edit rather than silently proceeding without the
 briefing. And the write-back rule names *reasons*, not summaries: what
 the code cannot express on its own.
 
-If you already have a `CLAUDE.md`, `setup` leaves it alone and prints a
-notice — paste the three bullets in yourself.
+A rules file `setup` cannot prove it wrote is **left alone and reported**,
+never rewritten. Its own block is delimited by an HTML comment marker;
+anything you add below that marker survives every later `setup`. To adopt
+an existing hand-written rules file, paste the marker above your content
+and `setup` will manage the block above it and keep the rest.
 
 ## The experiment this is built on
 

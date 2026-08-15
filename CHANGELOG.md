@@ -7,6 +7,30 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The workflow rules are emitted to `AGENTS.md`, `CLAUDE.md`, and
+  `GEMINI.md`** instead of `CLAUDE.md` alone. `AGENTS.md` is canonical; the
+  other two are byte-identical copies written from one template in the same
+  pass. A client reads the filename it knows and ignores the rest, so a repo
+  carrying only `CLAUDE.md` gave every non-Claude agent no rules at all: it
+  then worked correctly and recorded nothing, which is the exact failure the
+  rules exist to prevent and is invisible while it happens. A test asserts
+  the managed blocks are byte-identical across all three, so drift between
+  them is a failing test rather than something noticed later.
+
+- **The rules are phrased tool-name-neutrally.** Exact MCP names, with the
+  CLI equivalent named in parentheses where one exists, so a client with no
+  MCP server can still act on them. `memway_verify_change` has no CLI
+  equivalent today and the rules say so rather than inventing a command.
+
+- **Existing rules files are upgraded, or refused.** The emitted block is
+  delimited by an HTML comment marker; anything below the end marker is
+  yours and survives every later `setup`. A file carrying an older memway
+  block, unedited, is upgraded whole. A file that memway cannot prove it
+  wrote is **left alone and reported**, with the marker to add if you want
+  it managed. Refusing one filename does not refuse the others.
+
 ## [0.51.1] - 2026-08-15
 
 ### Fixed

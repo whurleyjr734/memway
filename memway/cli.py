@@ -325,7 +325,77 @@ def cmd_harvest(repo):
 # lines convert that into before-edit briefings, verified changes,
 # and reasons that outlive the session. Exact tool names matter -
 # agents should not have to guess (finding #14).
-_AGENT_RULES = """\
+# THE RULES ARE EMITTED TO THREE FILENAMES, ONE TEMPLATE
+# ======================================================
+#
+# AGENTS.md is canonical; CLAUDE.md and GEMINI.md are byte-identical
+# copies written in the same pass. Not redundancy for its own sake: a
+# client reads the filename it knows and ignores the rest, so a repo with
+# only CLAUDE.md silently gives non-Claude agents no rules at all. They
+# then work correctly and record nothing, which is the exact failure the
+# rules exist to prevent and is invisible while it happens.
+#
+# One template, three writes, and a test asserting the managed blocks are
+# identical - so drift between them is structurally impossible rather
+# than merely unlikely.
+RULE_FILES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
+
+# The managed region. Everything after the end marker belongs to the user
+# and survives an upgrade; everything between the markers is ours and does
+# not. A file with no markers is not assumed to be ours.
+_RULES_BEGIN = "<!-- memway:rules v1 -->"
+_RULES_END = ("<!-- /memway:rules - everything below this line is yours; "
+              "memway setup preserves it. -->")
+
+# Tool names are EXACT and CLI equivalents are named, because an agent that
+# has to guess a name skips the call (finding #14), and an agent with no
+# MCP client has no way to act on a rule written only in MCP terms.
+_AGENT_RULES_BODY = """\
+# Project rules
+
+This repo uses memway as its memory layer. Each tool below is available
+over MCP with the exact name given; where a CLI equivalent exists it is
+named in parentheses. Use whichever your client supports.
+
+- Before editing any function or class, brief yourself on it with
+  `memway_before_edit` (CLI: `memway --json before-edit . <ref>`) and heed
+  any attached knowledge. If the call returns an error, do NOT edit -
+  resolve the ref first with `memway_at` (CLI: `memway at . <file:line>`),
+  or try a bare function name or module.qualname, then retry.
+- After completing changes, call `memway_verify_change` to confirm impact.
+  This one is MCP only; there is no CLI equivalent yet.
+- When a task, design doc, or conversation supplies a REASON a piece of
+  code is the way it is (constraints, incidents, tuning rationale), record
+  that reason with `memway_meta` (CLI: `memway meta . <ref> notes "<text>"`)
+  on the relevant entity - reasons must outlive this session. This is due
+  whenever a reason or finding SURFACES, not only when a change lands:
+  tasks you decline, block on, investigate, or leave unfinished count too.
+  The reason a change was refused is often the most valuable thing to
+  record - a constraint strong enough to stop work is exactly what the next
+  session needs and exactly what the code cannot say on its own. Capture it
+  before you reply.
+"""
+
+
+def rules_document(tail: str = "") -> str:
+    """The full managed document, optionally with a user tail appended."""
+    doc = f"{_RULES_BEGIN}\n{_AGENT_RULES_BODY}{_RULES_END}\n"
+    return doc.rstrip("\n") + tail if tail else doc
+
+
+def managed_block(text: str) -> str:
+    """The memway-managed region of a rules file, or '' if unmarked."""
+    if _RULES_BEGIN not in text or _RULES_END not in text:
+        return ""
+    start = text.index(_RULES_BEGIN)
+    end = text.index(_RULES_END) + len(_RULES_END)
+    return text[start:end]
+
+
+# Bodies emitted by earlier versions, which predate the markers. A file
+# matching one exactly is provably ours and provably unedited, so it can be
+# upgraded whole. Anything else unmarked is ambiguous and is refused.
+_LEGACY_RULES = ("""\
 # Project rules
 
 This repo uses memway (MCP tools prefixed `memway_`) as its
@@ -348,7 +418,28 @@ memory layer.
   record - a constraint strong enough to stop work is exactly what the
   next session needs and exactly what the code cannot say on its own.
   Capture it before you reply.
-"""
+""",)
+
+
+def plan_rules_write(path: Path, doc: str) -> tuple:
+    """(content_or_None, message) for one rules file. Never clobbers.
+
+    Four cases, and the fourth is the one that matters: a file we cannot
+    prove is ours is left alone and reported, because silently rewriting
+    somebody's project rules is worse than doing nothing.
+    """
+    if not path.exists():
+        return doc, f"wrote {path.name}"
+    cur = path.read_text()
+    if _RULES_BEGIN in cur and _RULES_END in cur:
+        tail = cur[cur.index(_RULES_END) + len(_RULES_END):]
+        kept = " (kept your additions below the marker)" if tail.strip() else ""
+        return rules_document(tail), f"updated {path.name}{kept}"
+    if cur in _LEGACY_RULES or cur.strip() in [l.strip() for l in _LEGACY_RULES]:
+        return doc, f"upgraded {path.name} (older memway rules, unedited)"
+    return None, (f"{path.name} exists and carries no memway marker - "
+                  f"REFUSING to touch it (add {_RULES_BEGIN} above your "
+                  f"content to opt in)")
 
 # Portable wiring: relies on the `memway` console script being on
 # PATH and on agents launching MCP servers with cwd = repo root, so
@@ -375,13 +466,14 @@ def cmd_setup(repo="."):
     else:
         mcp_file.write_text(json.dumps(_MCP_JSON, indent=2) + "\n")
         print("wrote .mcp.json (agent server wiring)")
-    rules = repo_p / "CLAUDE.md"
-    if rules.exists():
-        print("CLAUDE.md exists - leaving it "
-              "(memway rules: see `memway` usage text)")
-    else:
-        rules.write_text(_AGENT_RULES)
-        print("wrote CLAUDE.md (the three measured workflow rules)")
+    # One template, three filenames, one pass. A client reads the name it
+    # knows, so emitting only CLAUDE.md leaves every other agent ruleless.
+    doc = rules_document()
+    for name in RULE_FILES:
+        content, msg = plan_rules_write(repo_p / name, doc)
+        if content is not None:
+            (repo_p / name).write_text(content)
+        print(msg)
     print("\nnext steps:")
     print("  1. restart your agent in this directory "
           "(it will pick up .mcp.json)")
