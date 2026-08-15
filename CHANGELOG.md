@@ -7,6 +7,32 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.50.1] - 2026-08-15
+
+### Fixed
+
+- **`memway --version` (and `-V`) now works.** It was not a command, so
+  it fell through to the usage path and exited 1 — the first thing
+  anyone types after installing, and it looked broken. Handled before
+  dispatch: prints `memway <version>`, exit 0. The version comes from
+  `importlib.metadata.version("memway")`, which reflects what was
+  actually installed, falling back to the package `__version__` for
+  source-tree and editable runs. A test pins `__version__` to
+  `pyproject.toml` so the two cannot drift.
+
+- **`dig` now says when a clone is shallow.** Every count it prints is a
+  lower bound on a `--depth N` clone, and "1 commit touched this range"
+  reads as a fact about the code when it is a fact about the clone. A
+  shallow repo now adds one line after the count, and a `warnings[]`
+  entry in the MCP payload:
+
+      note: shallow clone - history truncated; counts are a lower bound
+      (git fetch --unshallow for full history)
+
+  Detected via `git rev-parse --is-shallow-repository`, falling back to
+  the `.git/shallow` marker for git versions that lack the flag. Output
+  on full clones is byte-identical to 0.50.0, with a regression test.
+
 ## [0.50.0] - 2026-08-15
 
 ### Added

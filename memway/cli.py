@@ -32,6 +32,7 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         restatement is the caller's job.
                                         Never gates, scores, or writes.
   memway mcp [repo]                   run the MCP server (agent wiring)
+  memway --version                    print the installed version (-V)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage
 
@@ -347,6 +348,8 @@ def cmd_dig(repo, ref, *flags):
     print(f"  {n['total']} commits touched this range "
           f"({n['entity_history']} entity-history, "
           f"{n['region_history']} region-history)")
+    for w in out.get("warnings", []):
+        print(f"  note: {w}")
     if d["creation_boundary"]:
         print(f"  creation boundary: {d['creation_boundary'][:10]}")
     for note in out.get("notes", []):
@@ -500,6 +503,25 @@ COMMANDS = {
 }
 
 
+def _version() -> str:
+    """The installed distribution's version, or the package fallback.
+
+    importlib.metadata is authoritative because it reflects what was
+    actually installed; __version__ covers the source-tree and editable
+    cases where no distribution metadata exists.
+    """
+    try:
+        from importlib.metadata import version, PackageNotFoundError
+        try:
+            return version("memway")
+        except PackageNotFoundError:
+            pass
+    except ImportError:
+        pass
+    from . import __version__
+    return __version__
+
+
 def _usage_line(cmd: str) -> str:
     """The command's own line from the module docstring - one source of
     truth for usage, so help and errors cannot drift."""
@@ -515,6 +537,12 @@ def main():
     if hasattr(signal, "SIGPIPE"):          # D6
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     args = sys.argv[1:]
+    # Before anything else: --version is the first thing a person types
+    # after installing, and it must not fall through to the usage path
+    # and exit non-zero.
+    if args and args[0] in ("--version", "-V"):
+        print(f"memway {_version()}")
+        sys.exit(0)
     if "--json" in args:
         import json as _json
         from . import query

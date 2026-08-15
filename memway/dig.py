@@ -348,6 +348,25 @@ def _apply_cap(payload: dict, cap: int) -> dict:
     return payload
 
 
+SHALLOW_NOTE = ("shallow clone - history truncated; counts are a lower "
+                "bound (git fetch --unshallow for full history)")
+
+
+def _is_shallow(repo: Path) -> bool:
+    """Is this repo a truncated clone?
+
+    A `--depth N` clone makes every count here a LOWER BOUND, and dig's
+    whole output is counts - "1 commit touched this range" reads as a
+    fact about the code when it is a fact about the clone. Ask git first;
+    fall back to the marker file when git cannot answer (old versions
+    have no --is-shallow-repository).
+    """
+    out, ok = _git(repo, "rev-parse", "--is-shallow-repository")
+    if ok and out.strip() in ("true", "false"):
+        return out.strip() == "true"
+    return (repo / ".git" / "shallow").exists()
+
+
 def _head_sha(repo: Path) -> str:
     out, ok = _git(repo, "rev-parse", "HEAD")
     return out.strip() if ok else ""
@@ -426,6 +445,8 @@ def dig(repo: str, ref: str, *, cap_bytes: int | None = None,
                     "job. This tool never gates, scores, or writes.",
         "notes": notes,
     }
+    if _is_shallow(repo_p):
+        payload.setdefault("warnings", []).append(SHALLOW_NOTE)
     if cache:
         payload["evidence"] = dict(receipt, cached=True)
     if cached and head and head != cached[0].get("dug_through_sha"):
