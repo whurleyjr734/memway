@@ -7,6 +7,50 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-08-15
+
+### Added
+
+- **`memway pull <name>[@version]`** — fetch a published map and install it
+  into `.coord/`. A map is worth more when you do not have to build it:
+  someone indexes a large dependency once and everyone else inherits the
+  coordinates and the knowledge attached to them.
+
+  A bundle is a tarball from the network and is treated as hostile until
+  proven otherwise: the SHA-256 checksum must match before anything is
+  unpacked, every member is validated *before* extraction, members must
+  resolve inside the target and live under `.coord/`, and links and devices
+  are refused outright. Modes are normalized rather than trusted, because
+  the stdlib's safe-extraction filter only exists on Python 3.12+ and this
+  package supports 3.10.
+
+  `--force` replaces the derived index and *merges* the bundle's knowledge
+  into yours; locally authored entries are never deleted. `--replace-meta`
+  is the destructive path and deliberately does not imply `--force` — you
+  have to type both, and typing both is the moment you notice which you
+  asked for.
+
+- **The registry is live.** `itsdangerous`, `flask`, and `httpx` are
+  published at
+  [whurleyjr734/memway-maps](https://github.com/whurleyjr734/memway-maps),
+  each pinned to the upstream commit it was indexed from.
+
+### Changed
+
+- **Manifest v1.** A bundle's `.coord/manifest.json` carries `name`,
+  `upstream_repo`, `upstream_sha`, `memway_version`, `license`, and
+  `built_at`. `registry._describe()` is the single reader — it normalizes
+  the older `repo`/`sha` aliases into the v1 names, so the already-published
+  bundles keep installing and nothing downstream of that function knows two
+  schemas ever existed. Drift is measured against `upstream_sha`.
+
+### Notes
+
+- **No MCP tool for `pull`, deliberately.** It fetches over the network and
+  writes a directory tree to disk; that pair stays behind a human typing a
+  command rather than behind a model deciding to call it. A test asserts no
+  registered tool name contains `pull`.
+
 ## [0.50.1] - 2026-08-15
 
 ### Fixed

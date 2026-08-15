@@ -13,6 +13,12 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway show <repo> <ref>            entity dossier: edges + knowledge
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
                                         [--author WHO] (default: cli)
+  memway pull <name>[@version]        fetch a published map into .coord
+                                        [--into DIR] [--source URL]
+                                        [--force] replace the derived index;
+                                          local knowledge is merged, not lost
+                                        [--replace-meta] DELETES locally
+                                          authored knowledge
   memway lineage <repo> [ref]         identity history through renames
   memway console <repo> [--port N]    serve the map live: tools as buttons,
                                         notes written back from the card
@@ -200,6 +206,70 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
              body_hash=stamp_for(e))
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
+
+
+def cmd_pull(name, into=".", source=None, force=False,
+             replace_meta=False):
+    """Fetch a published map and install it into <into>/.coord.
+
+    A map is worth more when you do not have to build it: someone
+    indexes a large dependency once and everyone else inherits the
+    coordinates and the knowledge attached to them.
+
+    MANIFEST v1 - every bundle carries .coord/manifest.json:
+
+        name            the map's own name, e.g. "httpx"
+        upstream_repo   URL of the repository that was indexed
+        upstream_sha    the exact commit indexed; drift is measured
+                        against it, not against the release tag
+        memway_version  the memway that built the map
+        license         upstream's license, carried with the map
+        built_at        UTC ISO-8601 build time
+
+    Bundles published before v1 carry `repo`/`sha` aliases instead;
+    registry._describe reads those into the v1 names, so both shapes
+    install and nothing downstream knows two schemas exist.
+
+    There is deliberately no MCP tool for this. `pull` fetches over the
+    network and writes a directory tree to disk; that pair stays behind
+    a human typing a command, not behind a model deciding to call it.
+    """
+    from .registry import pull, PullError, DEFAULT_SOURCE
+    try:
+        # --replace-meta deliberately does NOT imply --force. The
+        # destructive path should be harder to type than the safe one,
+        # and typing both is the moment you notice which you asked for.
+        if replace_meta and not force:
+            raise SystemExit(
+                "destructive: deletes locally authored knowledge; "
+                "requires explicit --force")
+        r = pull(name, into=into, source=source or DEFAULT_SOURCE,
+                 force=bool(force), replace_meta=bool(replace_meta))
+    except PullError as e:
+        raise SystemExit(f"pull failed: {e}")
+    except Exception as e:
+        raise SystemExit(f"pull failed: {type(e).__name__}: {e}")
+
+    ents = r["entities"]
+    print(f"installed {r['name']}@{r['version']} -> {r['installed_to']}")
+    print(f"  {ents if ents is not None else 'unknown'} entities"
+          f"  |  {r['members']} files  |  sha256 {r['sha256'][:16]}...")
+    if r.get("upstream_repo"):
+        print(f"  source repo: {r['upstream_repo']}"
+              + (f" @ {r['upstream_sha'][:12]}" if r.get("upstream_sha") else ""))
+    m = r.get("merged")
+    if m is not None:
+        print(f"  knowledge merged: +{m['entries_added']} entries, "
+              f"{m['coords_from_bundle']} new coordinates; "
+              f"{m['coords_local_kept']} local coordinate(s) preserved")
+    elif r.get("replaced_meta"):
+        print("  knowledge REPLACED: locally authored entries were deleted")
+    if r.get("drifted"):
+        # Honesty at the seam: the map describes a commit, the working
+        # tree is at another. Staleness machinery handles the rest, but
+        # silence here would let someone trust a map for code it never saw.
+        print(f"  note: this map describes {str(r['upstream_sha'])[:12]}; your "
+              f"tree is at {r['local_head'][:12]} - local code may have drifted")
 
 
 def cmd_at(repo, location):
@@ -500,6 +570,7 @@ COMMANDS = {
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence,
     "viz": cmd_viz, "console": cmd_console,
+    "pull": cmd_pull,
 }
 
 
@@ -560,36 +631,61 @@ def main():
             print(_json.dumps({"error": f"{type(e).__name__}: {e}"}))
             sys.exit(1)
         return
-    # --author is pulled out before dispatch because COMMANDS entries are
-    # called with positional argv passthrough; only meta accepts it, and
-    # anything else is a typo worth failing on rather than ignoring.
-    author = None
-    for i, a in enumerate(args):
-        if a == "--author" and i + 1 < len(args):
-            author, args = args[i + 1], args[:i] + args[i + 2:]
-            break
-        if a.startswith("--author="):
-            author, args = a.split("=", 1)[1], args[:i] + args[i + 1:]
-            break
+    # Flags are pulled out before dispatch because COMMANDS entries are
+    # called with positional argv passthrough. Each flag declares which
+    # command owns it; anywhere else it is a typo worth failing on rather
+    # than silently ignoring.
+    VALUE_FLAGS = {"--author": "meta", "--source": "pull", "--into": "pull"}
+    BOOL_FLAGS = {"--force": "pull", "--replace-meta": "pull"}
+    opts, owners = {}, {}
+    changed = True
+    while changed:
+        changed = False
+        for i, a in enumerate(args):
+            name = a.split("=", 1)[0]
+            if name in VALUE_FLAGS:
+                # same dash->underscore normalization the bool branch does:
+                # no value flag has a dash today, but --max-age would map to
+                # the kwarg 'max-age' and TypeError at bind() if it did not.
+                key = name[2:].replace("-", "_")
+                if "=" in a:
+                    opts[key] = a.split("=", 1)[1]
+                    args = args[:i] + args[i + 1:]
+                elif i + 1 < len(args):
+                    opts[key] = args[i + 1]
+                    args = args[:i] + args[i + 2:]
+                else:
+                    sys.stderr.write(f"{name} needs a value\n")
+                    sys.exit(1)
+                owners[name] = VALUE_FLAGS[name]
+                changed = True
+                break
+            if name in BOOL_FLAGS:
+                opts[name[2:].replace("-", "_")] = True
+                owners[name] = BOOL_FLAGS[name]
+                args = args[:i] + args[i + 1:]
+                changed = True
+                break
     if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
-    if author is not None and args[0] != "meta":
-        sys.stderr.write("--author applies to 'meta' only\n")
+    wrong = [f for f, owner in owners.items() if owner != args[0]]
+    if wrong:
+        sys.stderr.write(f"{', '.join(sorted(wrong))} "
+                         f"applies to '{owners[wrong[0]]}' only\n")
         sys.exit(1)
     fn = COMMANDS[args[0]]
-    kw = {"author": author} if author is not None else {}
     # Arity is checked BEFORE the call, with bind(), rather than by
     # catching TypeError around it - catching would also swallow a
     # TypeError raised deep inside a working command and report it as a
     # usage error, which is a worse lie than the traceback was.
     import inspect
     try:
-        inspect.signature(fn).bind(*args[1:], **kw)
+        inspect.signature(fn).bind(*args[1:], **opts)
     except TypeError as e:
         sys.stderr.write(f"memway {args[0]}: {e}\n\n{_usage_line(args[0])}\n")
         sys.exit(2)
-    fn(*args[1:], **kw)
+    fn(*args[1:], **opts)
 
 
 if __name__ == "__main__":

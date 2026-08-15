@@ -228,7 +228,7 @@ def test_no_module_reimplements_the_hash_rule():
 # ---------------------------------------------------------------- arity
 
 @pytest.mark.parametrize("cmd", ["lineage", "dig", "viz", "meta", "show",
-                                 "evidence", "at", "index"])
+                                 "evidence", "at", "index", "pull"])
 def test_bare_command_exits_2_with_usage_not_a_traceback(cmd):
     r = subprocess.run([sys.executable, "-m", "memway.cli", cmd],
                        capture_output=True, text=True, cwd=str(HERE))
