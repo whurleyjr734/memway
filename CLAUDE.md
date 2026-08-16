@@ -69,6 +69,21 @@ read-side hash rules; a test asserts no module reimplements them. Three
 surfaces had drifted apart before this existed — the same note decayed
 at different rates depending on which one wrote it.
 
+**9. The release ceremony must ask what it invalidated.** The workflow
+rules tell an agent to supersede staled knowledge before finishing, and
+0.54.1 shipped that rule and then broke it within the hour: nine modules
+changed, six coordinates went coral, and the flagship map spent a day
+advertising two defects that the same release had fixed. It happened
+twice in one evening. That is not discipline failing twice, it is a
+checklist missing a line - nothing between "edits done" and "commit"
+ever asked. So the close now runs, before the commit:
+
+    memway --json verify-change .    # staled_knowledge must be empty
+
+If it is not empty, supersede in the SAME channel first - a confirm does
+not answer a stale note. Detection without a prompt at the right moment
+closes nothing, which is the argument the release itself made.
+
 **8. Irreversible public actions get human hands.** PyPI uploads,
 public repo creation, force-pushes: prepare everything, verify
 everything, then hand over the final command.
