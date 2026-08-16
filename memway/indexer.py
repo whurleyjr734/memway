@@ -1,8 +1,12 @@
 """
 Coordinate indexer.
 
-Walks a Python codebase and assigns a stable coordinate ID to every
-code entity: package, module, class, function, method, attribute.
+Walks a codebase and assigns a stable coordinate ID to every code
+entity: package, module, class, function, method, attribute. Python is
+parsed with the standard library's ast; Go, JavaScript, TypeScript and
+Java through tree-sitter plugins (see parsers.py). Said "a Python
+codebase" until 2026-08-16, by which point four more languages had
+arrived and the map of this very repo held .go and .ts entities.
 
 IDs are stable: once an entity gets an ID it keeps it across re-indexing.
 New entities get new IDs. Renamed/moved entities are matched to their
