@@ -254,7 +254,17 @@ class EdgeBuilder:
                 if len(cands) == 1:
                     dst_ent = cands[0]
                     conf, how = 0.75, "suffix"
-                elif not cands:
+                elif not cands and self.ix.resolve(
+                        raw.dst_ref.rsplit(".", 1)[0]) is not None:
+                    # ...and only when the PREFIX names something this repo
+                    # actually has. Inheritance dispatch always does - the
+                    # ref was built from the calling class - whereas
+                    # `subprocess.run` names a module we do not define, and
+                    # guessing its last segment against our own entities is
+                    # how 77 subprocess.run() call sites became edges into
+                    # Harvester.run. Qualifying the receiver in the parser
+                    # (schema 6) was only half the fix: this tier stripped
+                    # the qualification straight back off.
                     # inheritance dispatch: self.meth resolved to the CALLING
                     # subclass, but meth is defined on an ancestor. Without
                     # base-class info, accept a UNIQUE definition of the bare

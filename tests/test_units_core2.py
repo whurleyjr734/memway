@@ -481,3 +481,81 @@ def test_every_short_name_resolution_site_is_guarded():
         "\n  ".join(unguarded))
     sites = ast.dump(fn).count("_by_short")
     assert sites >= 3, f"expected the short-name tiers, found {sites}"
+
+
+def test_a_call_into_an_imported_module_is_qualified_not_guessed(tmp_path):
+    """`subprocess.run(...)` is not this repo's `run`.
+
+    The receiver was discarded, leaving a bare `run` that matched whatever
+    unique `run` the index happened to hold - 77 call sites became edges
+    into Harvester.run, the second-densest hub in the rendered graph.
+
+    The fix QUALIFIES rather than drops, because the same shape is often
+    ours: `helper.go()` where helper is our module must keep its edge, and
+    gets a better one than before. Both directions are asserted here; a
+    fixture that only checked the dropping half would pass a change that
+    silently deleted every intra-repo module call.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "helper.py": "def go():\n    return 1\n",
+        "app.py": "import subprocess\nimport helper\n\n\n"
+                  "def work():\n    subprocess.run(['ls'])\n    return helper.go()\n",
+        "other.py": "class T:\n    def run(self):\n        return 2\n",
+    })
+    src = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("app.work"))]
+    theirs = next((cid for q, cid in ix.by_qualname.items()
+                   if q.endswith("T.run")), None)
+    ours = next((cid for q, cid in ix.by_qualname.items()
+                 if q.endswith("helper.go")), None)
+    assert theirs and ours, "fixture did not produce both targets"
+
+    assert not [e for e in edges if e["src"] == src and e["dst"] == theirs], \
+        "subprocess.run() resolved to this repo's run"
+    assert [e for e in edges if e["src"] == src and e["dst"] == ours], \
+        "helper.go() lost its edge - qualifying must not drop OUR modules"
+
+
+def test_a_dotted_ref_is_not_guessed_when_its_prefix_is_unknown(tmp_path):
+    """The other half of the same fix, one tier down.
+
+    Qualifying the receiver in the parser was only half of it: the
+    inherited-guess tier took the dotted ref, threw the prefix away, and
+    matched the last segment against every entity - putting the edge back
+    exactly where it had been removed from. That tier exists for
+    inheritance dispatch, where the prefix always names a class this repo
+    has, so gating on a known prefix keeps it and stops the rest.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "app.py": "import external_thing\n\n\n"
+                  "def work():\n    return external_thing.unique_name()\n",
+        "mine.py": "def unique_name():\n    return 1\n",
+    })
+    src = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("app.work"))]
+    tgt = next((cid for q, cid in ix.by_qualname.items()
+                if q.endswith("mine.unique_name")), None)
+    assert tgt, "fixture missing"
+    assert not [e for e in edges if e["src"] == src and e["dst"] == tgt], \
+        "a dotted ref with an unknown prefix was guessed onto a local name"
+
+
+def test_inheritance_dispatch_still_resolves(tmp_path):
+    """self.meth, defined on an ancestor, still reaches the ancestor.
+
+    HONEST SCOPE: this is served by the MRO tier (confidence 0.90), NOT by
+    the inherited-guess tier the prefix gate sits on - disabling that tier
+    entirely leaves this green. So it pins that the gate did not break
+    dispatch, which is worth pinning, and it does NOT discriminate the
+    gate being too tight. Reaching the inherited-guess tier needs a case
+    where MRO resolution fails and a unique bare method exists, and no
+    fixture here produces one; the tier is currently unfalsified in the
+    too-tight direction.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "h.py": "class Base:\n    def shared(self):\n        return 1\n\n\n"
+                "class Child(Base):\n    def go(self):\n        return self.shared()\n",
+    })
+    go = next(cid for q, cid in ix.by_qualname.items() if q.endswith("Child.go"))
+    shared = next(cid for q, cid in ix.by_qualname.items()
+                  if q.endswith("Base.shared"))
+    assert [e for e in edges if e["src"] == go and e["dst"] == shared], \
+        "inheritance dispatch was lost - the gate is too tight"

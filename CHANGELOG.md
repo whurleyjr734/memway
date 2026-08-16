@@ -55,9 +55,31 @@ Theme: **uniqueness is not certainty.**
   found them - so a structural test now walks `build()` and fails if ANY
   short-name comprehension lacks a guard.
 
+- **Calls into imported modules are qualified, not guessed.** The
+  receiver was discarded, so `subprocess.run(...)` became a bare `run`
+  and matched whatever unique `run` the index held - 77 call sites
+  landing on `Harvester.run`, the second-densest hub in the graph.
+
+  The parser now collects every name bound by an import and qualifies the
+  ref. Qualifying rather than dropping is the point: `query.summary()` has
+  the same shape and IS ours, so it resolves to `memway.query.summary`
+  and gets a BETTER edge than before, while `subprocess.run` resolves to
+  nothing and correctly disappears.
+
+  That was only half of it. The inherited-guess tier took the dotted ref,
+  threw the prefix away and matched the last segment against every
+  entity - putting the edge straight back. It exists for inheritance
+  dispatch, where the prefix always names a class this repo has, so it is
+  now gated on the prefix resolving.
+
+  `Harvester.run` **61 -> 5** incoming. Across the whole release,
+  **2,901 -> 2,554 edges**, and every entry at the top of the fan-in
+  table is real code. `Indexer.resolve` keeps its 109 because those
+  genuinely ARE `Indexer` instances - verified by reading the receivers.
+
 ### Changed
 
-- `PARSE_SCHEMA_VERSION` 4 -> 5: `RawEdge` gained `via_attr`, so cached
+- `PARSE_SCHEMA_VERSION` 4 -> 6: `RawEdge` gained `via_attr`, so cached
   edges must be re-parsed. **The first index after upgrading rewrites the
   graph** - expect edge counts to fall, and the fall is the fix.
 

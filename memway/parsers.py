@@ -132,6 +132,28 @@ class PythonParser(LanguageParser):
                     edges.append(RawEdge(mod, f"{node.module}.{a.name}",
                                          "imports"))
 
+        # NAMES BOUND BY AN IMPORT, anywhere in the file - module level and
+        # inside functions, which this codebase uses heavily. A call whose
+        # receiver is one of these is a call into ANOTHER module, so the
+        # name after the dot cannot be matched by short name against this
+        # repo's entities. `subprocess.run(...)` was landing on
+        # Harvester.run - 77 call sites, the second-densest hub in the
+        # rendered graph - because the receiver was discarded and `run`
+        # happened to be unique in the index.
+        #
+        # QUALIFYING, not dropping: `query.summary()` has the same shape
+        # and IS ours, so it resolves to memway.query.summary and gets a
+        # BETTER edge than before, while subprocess.run resolves to
+        # nothing and correctly disappears. One rule, both answers right.
+        imported_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    imported_names.add((a.asname or a.name).split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    imported_names.add(a.asname or a.name)
+
         # calls / events attributed to enclosing scope
         class V(ast.NodeVisitor):
             def __init__(v):
@@ -189,6 +211,12 @@ class PythonParser(LanguageParser):
                             # fully qualified: exact resolution, no
                             # cross-class ambiguity possible.
                             dst_override = f"{v.class_stack[-1]}.{fname}"
+                        elif base.id in imported_names:
+                            # receiver is an imported name: qualify it, so
+                            # resolution finds OUR module's function or
+                            # finds nothing. Either is right; a bare name
+                            # is what produced the wrong one.
+                            dst_override = f"{base.id}.{fname}"
                         elif base.id in v.var_types[-1]:
                             # annotated param: qualify by declared type
                             dst_override = (f"{v.var_types[-1][base.id]}"
@@ -660,7 +688,7 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 5      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 6      # 2: scope-aware call resolution
                               # 4: stable shingle hash (blake2b) - the
                               #    cache holds sketches, so a warm cache
                               #    would replay randomized ones forever
