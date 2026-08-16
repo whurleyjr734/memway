@@ -7,6 +7,69 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-08-16
+
+### Fixed
+
+- **Indexing is deterministic. It was not, and everything downstream of
+  that assumption was quietly untrue.** `_sketch` hashed token shingles
+  with builtin `hash()`, which Python randomizes per process - and
+  sketches are PERSISTED, in both `coordinates.json` and the parse cache.
+  Two fresh clones of one commit produced byte-identical maps except
+  `sketch`, which differed on **888 of 888 entities**.
+
+  Two consequences, both measured rather than argued:
+
+  1. `git diff --exit-code .coord` could never mean "the map is stale",
+     because every index rewrote the whole file. No CI gate was possible.
+  2. `sketch_jaccard` is the largest single term in lineage's rename score
+     (weight 0.30) and `sketch_containment` is the ONLY signal behind
+     split/merge detection. Across processes - which is every real rename,
+     since the old sketch comes off disk and the new one is computed now -
+     both were noise. Isolated experiment, same repo, same commits, only
+     the seed varied: the default run recorded `deleted m.compute_totals`
+     with `author="auto"`, orphaning its knowledge behind a confident
+     verdict; with the seed pinned on both runs, the same edit was
+     recorded as a reviewable link. **Randomization turned "flagged for a
+     human" into "silently deleted."**
+
+  Now blake2b at `digest_size=6`, which is exactly the 48 bits the
+  permutation already masks to. Benchmarked first: crc32 was faster but
+  32-bit, and adler32 mixed so poorly it lost distinct values (4,809 vs
+  4,821 on a real 6,880-shingle corpus). End-to-end indexing cost on the
+  888-entity repo is unchanged - 2.74-2.79s against 2.78-2.86s before,
+  inside the noise.
+
+### Changed
+
+- **`PARSE_SCHEMA_VERSION` 3 -> 4**, so no warm cache can replay
+  randomized sketches, and **`sketch_version` is now stamped in
+  `manifest.json`** (additive; an absent stamp reads as generation 1,
+  never as "current" - a pre-0.54 map must not be able to claim
+  comparability it does not have).
+
+- **A signal that could not be measured is excluded, not scored zero.**
+  The first index after upgrading is the dangerous state: old sketches on
+  disk, new hash in the code. Passing 0.0 for the unmeasured Jaccard
+  would multiply every rename score by 0.70 and move all the thresholds -
+  reproducing this very bug, one layer quieter. Instead that index drops
+  the term and renormalizes, skips split/merge (which has no fallback
+  signal at all), downgrades terminal deletions to `pending-review` so
+  they land in `memway attention`, and says all of this on stdout.
+
+### Upgrading an existing map
+
+Plainly: **the first `memway index` after upgrading rewrites every
+sketch**, and that one run is the migration. Expect a full-file diff of
+`coordinates.json` once - after that, two people indexing the same commit
+get identical bytes.
+
+**Lineage verdicts from before the bump are not comparable with ones
+after it.** The migrating index says so while it runs, and files anything
+it cannot rule out as `pending-review` rather than asserting a deletion.
+Maps obtained with `memway pull` are in the same position; the published
+registry bundles need regenerating under 0.54.0.
+
 ## [0.53.3] - 2026-08-16
 
 ### Fixed

@@ -650,7 +650,10 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 3      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 4      # 2: scope-aware call resolution
+                              # 4: stable shingle hash (blake2b) - the
+                              #    cache holds sketches, so a warm cache
+                              #    would replay randomized ones forever
                               # 3: signatures + leading doc comments
                               #    for go/js/ts entities
 

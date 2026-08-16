@@ -68,12 +68,79 @@ def _hash_body(text: str) -> str:
 
 _SKETCH_K = 48
 
+# Bumped when the SHINGLE HASH changes, which makes every stored sketch
+# incomparable with every new one. Distinct from PARSE_SCHEMA_VERSION:
+# that invalidates the parse CACHE (recomputing the new side), while this
+# describes sketches already written into coordinates.json, which cannot
+# be recomputed because the old source text is gone.
+#
+#   1  builtin hash() - randomized per process, never comparable across runs
+#   2  blake2b, stable forever
+SKETCH_VERSION = 2
+
+
+def stored_sketch_version(coord_dir) -> int:
+    """Which shingle hash produced the sketches currently on disk.
+
+    Absent means 1: maps written before the stamp existed used builtin
+    hash(). Defaulting to "current" instead would make every pre-0.54 map
+    claim comparability it does not have - the one lie this whole
+    mechanism exists to prevent.
+    """
+    try:
+        man = json.loads((Path(coord_dir) / "manifest.json").read_text())
+        return int(man.get("sketch_version", 1))
+    except (OSError, ValueError, TypeError):
+        return 1
+
+
+def record_sketch_version(coord_dir) -> None:
+    """Stamp the manifest. Additive, like freshness's indexed_at_sha."""
+    p = Path(coord_dir) / "manifest.json"
+    try:
+        man = json.loads(p.read_text())
+        if not isinstance(man, dict):
+            man = {}
+    except (OSError, ValueError):
+        man = {}
+    man["sketch_version"] = SKETCH_VERSION
+    try:
+        p.write_text(json.dumps(man, indent=1) + "\n")
+    except OSError:
+        pass                    # a map that cannot stamp is still a map
+
+
 def _sketch(body_text: str):
     """Minhash sketch over token 3-gram shingles. ~100 bytes per entity,
-    supports Jaccard AND containment estimation from the index alone."""
+    supports Jaccard AND containment estimation from the index alone.
+
+    THE SHINGLE HASH MUST BE STABLE ACROSS PROCESSES. This used builtin
+    hash(), which Python randomizes per process, and sketches are
+    PERSISTED - so every stored sketch was compared against values from a
+    different seed. Measured 2026-08-16: two fresh clones of one sha
+    produced byte-identical .coord except `sketch`, which differed on
+    888/888 entities; and lineage, whose largest single signal is
+    sketch_jaccard (weight 0.30), reported `deleted` for a rename it
+    reported as `merged - needs confirmation` when the seed was pinned.
+    Randomization turned "flagged for a human" into "silently deleted".
+
+    blake2b at digest_size=6 gives exactly the 48 bits the permutation
+    below already masks to. Benchmarked against the alternatives on
+    6,880 real shingles: crc32 was faster but 32-bit, and adler32 mixed
+    so poorly it lost distinct values (4,809 vs 4,821). The cost is ~3ms
+    per 7k shingles, which is noise beside parsing.
+
+    Tokens cannot contain NUL (the regex admits neither whitespace nor
+    control characters), so joining on it is injective - ("ab","c") and
+    ("a","bc") cannot collide into one string.
+    """
     import re as _re
+    from hashlib import blake2b
     toks = _re.findall(r"[A-Za-z_]\w*|[^\sA-Za-z_]", body_text)
-    sh = {hash(tuple(toks[i:i+3])) for i in range(max(1, len(toks) - 2))}
+    sh = {int.from_bytes(
+              blake2b("\x00".join(toks[i:i + 3]).encode(),
+                      digest_size=6).digest(), "big")
+          for i in range(max(1, len(toks) - 2))}
     if not sh:
         return [0] * _SKETCH_K, 0
     mins = []
@@ -301,6 +368,11 @@ class Indexer:
         self.coord_dir = Path(coord_dir)
         self.entities: dict[str, Entity] = {}          # coord_id -> Entity
         self.by_qualname: dict[str, str] = {}          # qualname -> coord_id
+        # True when the sketches already on disk were produced by a
+        # different shingle hash than this build's. Set by load_existing,
+        # read by cmd_index, and it makes lineage stop trusting a signal
+        # it can no longer compute. See stored_sketch_version().
+        self.stale_sketches = False
 
     # ------------------------------------------------------------------ load
 
@@ -309,6 +381,12 @@ class Indexer:
         Required by read-only tools - see the fences in memway/dig.py,
         memway/viz.py and memway/console.py."""
         db = self.coord_dir / "index" / "coordinates.json"
+        # Read the generation BEFORE anything overwrites it. A map written
+        # by an older memway has no stamp at all, and that is the case
+        # that matters: it means SKETCH_VERSION 1, the randomized one.
+        if db.exists():
+            self.stale_sketches = stored_sketch_version(
+                self.coord_dir) != SKETCH_VERSION
         if db.exists():
             from .access_cache import load_json_cached
             try:

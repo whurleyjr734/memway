@@ -85,9 +85,64 @@ class VersionStore:
         return chain
 
 
+# The rename-scoring weights, named once, at module level so a test can
+# reach them. They were a closure inside detect_lineage, which meant the
+# renormalization below could not be falsified: every test that exercised
+# it also exercised three other guard effects, so zeroing the weight
+# instead of dropping it passed unnoticed.
+_SIGNAL_WEIGHTS = {"name": 0.22, "jac": 0.30, "shape": 0.22,
+                   "sig": 0.13, "loc": 0.13}
+
+
+def _ratio(a, b) -> float:
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, a or "", b or "").ratio()
+
+
+def score_pair(o, n, use_sketch: bool = True):
+    """(score, name_similarity, jaccard, shape_match) for one old/new pair.
+
+    A SIGNAL THAT COULD NOT BE MEASURED IS EXCLUDED, NOT SCORED ZERO. The
+    weights are renormalized over whatever was available, so the 0.33 and
+    0.55 thresholds keep meaning the same thing. Passing 0.0 for an
+    unmeasured signal silently multiplies every score by 0.70 instead -
+    the same algorithm wearing numbers that no longer fit it, and a
+    quieter version of the bug this release is about.
+    """
+    from .indexer import sketch_jaccard
+    name_s = _ratio(o.qualname.rsplit(".", 1)[-1],
+                    n.qualname.rsplit(".", 1)[-1])
+    jac = sketch_jaccard(o.sketch, n.sketch) if use_sketch else 0.0
+    shape = 1.0 if (o.shape_hash and o.shape_hash == n.shape_hash) else 0.0
+    sig = _ratio(o.signature, n.signature)
+    loc = min(o.loc, n.loc) / max(o.loc, n.loc, 1)
+    have = {"name": name_s, "shape": shape, "sig": sig, "loc": loc}
+    if use_sketch:
+        have["jac"] = jac
+    total = sum(_SIGNAL_WEIGHTS[k] for k in have)
+    sc = sum(_SIGNAL_WEIGHTS[k] * v for k, v in have.items()) / total
+    return sc, name_s, jac, shape
+
+
 def detect_lineage(report: dict, indexer: Indexer,
-                   store: VersionStore, meta: MetaStore) -> list[dict]:
+                   store: VersionStore, meta: MetaStore,
+                   use_sketch: bool = True) -> list[dict]:
     """Best-effort automatic lineage from an index report.
+
+    use_sketch=False when the sketches on disk came from a different
+    shingle hash than this build's (see Indexer.stale_sketches). The old
+    values are not wrong, they are INCOMPARABLE, and the difference
+    matters: scoring an incomparable signal as 0.0 is what produced the
+    bug this guard exists for - a rename scored low on a signal that was
+    never measured, fell past every threshold, and was recorded as
+    `deleted` with author="auto", orphaning its knowledge behind a
+    verdict nobody would think to question.
+
+    So a missing signal is EXCLUDED and the remaining weights are
+    renormalized, split/merge detection (which has no non-sketch signal
+    at all) is skipped, and terminal deletions are downgraded to
+    pending-review, which puts them in the attention queue instead of
+    asserting something this index cannot know.
 
     Matches removed entities to added entities:
       1. identical body hash            -> renamed/moved (high confidence)
@@ -145,20 +200,12 @@ def detect_lineage(report: dict, indexer: Indexer,
     # Confident matches -> author="auto" + metadata migration.
     # Uncertain matches -> author="pending-review", NO migration until a
     # human or edit-time agent confirms (a wrong migration is the poison).
-    from difflib import SequenceMatcher
-    from .indexer import sketch_jaccard, sketch_containment
+    from .indexer import sketch_containment
 
-    def _r(a, b):
-        return SequenceMatcher(None, a or "", b or "").ratio()
+    _r = _ratio
 
     def _score(o, n):
-        name_s = _r(o.qualname.rsplit(".", 1)[-1], n.qualname.rsplit(".", 1)[-1])
-        jac = sketch_jaccard(o.sketch, n.sketch)
-        shape = 1.0 if (o.shape_hash and o.shape_hash == n.shape_hash) else 0.0
-        sig = _r(o.signature, n.signature)
-        loc = min(o.loc, n.loc) / max(o.loc, n.loc, 1)
-        return (0.22 * name_s + 0.30 * jac + 0.22 * shape
-                + 0.13 * sig + 0.13 * loc), name_s, jac, shape
+        return score_pair(o, n, use_sketch)
 
     olds = list(unmatched_removed.items())
     news = [(nid, indexer.entities[nid]) for nid in added_ids
@@ -197,7 +244,7 @@ def detect_lineage(report: dict, indexer: Indexer,
                     if k[1] == nid and k[0] != oid and k[0] not in used_o),
                    default=0.0)
         margin = sc - max(row2, col2)
-        corroborated = shape or name_s >= 0.60 or jac >= 0.45
+        corroborated = shape or name_s >= 0.60 or (use_sketch and jac >= 0.45)
         oe = unmatched_removed[oid]; ne = indexer.entities[nid]
         sig_s = _r(oe.signature, ne.signature)
         note = f"{oe.qualname} -> {ne.qualname} (score={sc:.2f})"
@@ -229,7 +276,10 @@ def detect_lineage(report: dict, indexer: Indexer,
             deferred.append((oid, nid, note))   # weak: let split/merge claim first
 
     # ---- split / merge recovery via containment estimates ----
-    for oid, oe in olds:
+    # Skipped wholesale when sketches are incomparable: containment has no
+    # fallback signal, so running it would not be a weaker answer, it would
+    # be a fabricated one.
+    for oid, oe in (olds if use_sketch else []):
         if oid in used_o or not oe.sketch:
             continue
         children = []
@@ -247,7 +297,7 @@ def detect_lineage(report: dict, indexer: Indexer,
                      f" - needs confirmation",
                 author="pending-review"))
             used_o.add(oid); used_n.update(children)
-    for nid, ne in news:
+    for nid, ne in (news if use_sketch else []):
         if nid in used_n or not ne.sketch:
             continue
         parents = [oid for oid, oe in olds
@@ -276,10 +326,20 @@ def detect_lineage(report: dict, indexer: Indexer,
         if oid in used_o:
             del unmatched_removed[oid]
 
-    # whatever is left is a true deletion
+    # whatever is left is a true deletion - UNLESS a signal was missing,
+    # in which case "true" is exactly the word this index has not earned.
+    # pending-review routes it to `memway attention` instead.
     for old_id, old_ent in unmatched_removed.items():
-        detected.append(store.record(
-            "deleted", [old_id], [],
-            note=old_ent.qualname, author="auto"))
+        if use_sketch:
+            detected.append(store.record(
+                "deleted", [old_id], [],
+                note=old_ent.qualname, author="auto"))
+        else:
+            detected.append(store.record(
+                "deleted", [old_id], [],
+                note=f"{old_ent.qualname} - unconfirmed: this index ran "
+                     f"without the minhash signal (sketch generation "
+                     f"changed), so a rename could not be ruled out",
+                author="pending-review"))
 
     return detected

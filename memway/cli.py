@@ -178,7 +178,23 @@ def cmd_index(repo, *flags):
     eb.save(coord)
 
     store = VersionStore(coord)
-    lineage = detect_lineage(report, ix, store, meta)
+    # A map written before 0.54.0 holds sketches from the randomized
+    # builtin hash. They cannot be recomputed - the old source text is
+    # gone - so this one index runs without the minhash signal and SAYS
+    # so, rather than scoring it 0.0 and reporting confident deletions
+    # built on a measurement that never happened.
+    migrating = getattr(ix, "stale_sketches", False)
+    if migrating:
+        print("  sketch generation changed (v1 -> v2): stored sketches came "
+              "from a different hash")
+        print("    this index runs WITHOUT the minhash signal; renames it "
+              "cannot rule out are filed as pending-review")
+        print("    lineage verdicts before and after this point are not "
+              "comparable - see memway attention")
+    lineage = detect_lineage(report, ix, store, meta,
+                             use_sketch=not migrating)
+    from .indexer import record_sketch_version
+    record_sketch_version(coord)
     v = store.snapshot()
 
     from .metrics import MetricsStore
