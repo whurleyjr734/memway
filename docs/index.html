@@ -11,11 +11,17 @@
 <meta property="og:url" content="https://memway.io">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
+  /* System stacks, no webfonts. The page used to fetch Sora and JetBrains
+     Mono from Google on every visit, which meant a site whose product ships
+     airgap-safe output was itself announcing each reader to a third party.
+     Ordered so every OS hits its own UI face and nothing lands on Times. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", "Roboto Mono", monospace;
+
   --void:#060913;          /* deep space */
   --panel:#0C1222;         /* card base */
   --glass:#111A30cc;
@@ -31,14 +37,14 @@
 html{scroll-behavior:smooth}
 body{
   background:var(--void);color:var(--star);
-  font-family:'Sora',sans-serif;font-size:16.5px;line-height:1.7;
+  font-family:var(--font-sans);font-size:16.5px;line-height:1.7;
   -webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
 ::selection{background:var(--nebula1);color:#fff}
 a{color:var(--nebula2);text-decoration:none}
 a:hover{color:var(--star)}
 :focus-visible{outline:2px solid var(--nebula2);outline-offset:3px;border-radius:4px}
-code,pre,.mono{font-family:'JetBrains Mono',monospace}
+code,pre,.mono{font-family:var(--font-mono)}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 
 /* ambient nebula */
@@ -72,14 +78,14 @@ header{position:sticky;top:0;z-index:10;background:#06091388;backdrop-filter:blu
 nav{display:flex;gap:26px;align-items:center}
 nav a{font-size:14px;color:var(--dim)}
 nav a:hover{color:var(--star)}
-nav .ghub{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--line);padding:7px 14px;border-radius:999px;color:var(--star)}
+nav .ghub{font-family:var(--font-mono);font-size:13px;border:1px solid var(--line);padding:7px 14px;border-radius:999px;color:var(--star)}
 nav .ghub:hover{border-color:var(--nebula2)}
 
 /* hero */
 .hero{padding:96px 0 40px;position:relative}
 .eyebrow{
   display:inline-flex;gap:10px;align-items:center;
-  font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:7px 16px;margin-bottom:28px;
   background:#0C122266;
 }
@@ -92,7 +98,7 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 .thesis strong{color:var(--star);font-weight:600}
 .cta{margin-top:36px;display:flex;gap:14px;flex-wrap:wrap}
 .btn{
-  font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;
+  font-family:var(--font-mono);font-size:15px;font-weight:500;
   padding:13px 24px;border-radius:12px;border:1px solid var(--line);color:var(--star);
   background:var(--panel);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
 }
@@ -106,7 +112,7 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 /* session handoff, the signature */
 .handoff{
   margin:64px 0 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--dim);
+  font-family:var(--font-mono);font-size:12.5px;color:var(--dim);
 }
 .sess{
   display:inline-flex;align-items:center;gap:8px;
@@ -141,9 +147,9 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 .rec-head{
   display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding:14px 22px;border-bottom:1px solid var(--line);
-  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);letter-spacing:.08em;
+  font-family:var(--font-mono);font-size:12px;color:var(--dim);letter-spacing:.08em;
 }
-.rec-body{padding:24px 26px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.95;overflow-x:auto}
+.rec-body{padding:24px 26px;font-family:var(--font-mono);font-size:14px;line-height:1.95;overflow-x:auto}
 .rec-body .u{color:var(--dim)}
 .rec-body .a{color:var(--star)}
 .rec-body .tool{color:var(--nebula2)}
@@ -182,7 +188,7 @@ h1 .grad{background:linear-gradient(90deg,var(--nebula1) 0%,var(--nebula2) 70%);
 
 /* sections */
 section{padding:88px 0 0}
-.kicker{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--nebula2);margin-bottom:12px}
+.kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--nebula2);margin-bottom:12px}
 h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .sub{color:var(--dim);font-weight:300;max-width:64ch;margin-top:12px}
 
@@ -193,7 +199,7 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
    the .term blocks above are an illustration, these are the real thing. */
 .cmds{margin-top:32px}
 .cmd{margin:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);
-     padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:14px;
+     padding:16px 18px;font-family:var(--font-mono);font-size:14px;
      line-height:1.9;color:var(--star);overflow-x:auto;white-space:pre;
      -webkit-user-select:all;user-select:all}
 .cmd .c{color:var(--dim);-webkit-user-select:none;user-select:none}
@@ -201,11 +207,11 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .fine{margin-top:16px;font-size:13.5px;color:var(--dim);font-weight:300;max-width:72ch}
 .fine strong{color:var(--star);font-weight:400}
 .beat strong{color:var(--star);font-weight:500}
-.mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
+.mono{font-family:var(--font-mono);font-size:12.5px;color:var(--star)}
 .cmds{position:relative}
 .copy{
   position:absolute;top:10px;right:10px;z-index:2;
-  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--dim);background:#0C1222;
   border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;
   transition:color .15s,border-color .15s;
@@ -218,7 +224,7 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .term{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
 .term-head{display:flex;gap:7px;padding:13px 16px;border-bottom:1px solid var(--line)}
 .term-head i{width:10px;height:10px;border-radius:50%;background:var(--line)}
-.term-body{padding:20px 22px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.9;overflow-x:auto}
+.term-body{padding:20px 22px;font-family:var(--font-mono);font-size:14px;line-height:1.9;overflow-x:auto}
 .p::before{content:"$ ";color:var(--nebula2)}
 .o{color:var(--dim)}
 .hl{color:var(--fresh)}
@@ -231,13 +237,13 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
   transition:transform .18s ease,border-color .18s ease;position:relative;
 }
 .phase:hover{transform:translateY(-4px)}
-.phase .tag{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.phase .tag{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .phase.a .tag{color:var(--dim)} .phase.a:hover{border-color:var(--dim)}
 .phase.b .tag{color:var(--fresh)} .phase.b:hover{border-color:var(--fresh)}
 .phase.c .tag{color:var(--beacon)} .phase.c:hover{border-color:var(--beacon)}
 .phase p{margin-top:14px;font-size:15px;color:var(--dim);font-weight:300}
 .phase p strong{color:var(--star)}
-.phase .verdict{margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
+.phase .verdict{margin-top:18px;font-family:var(--font-mono);font-size:12.5px;color:var(--star)}
 .phase .verdict::before{content:"── ";color:var(--line)}
 
 /* mechanism */
@@ -245,7 +251,7 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 @media(max-width:960px){.mech{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.mech{grid-template-columns:1fr}}
 .m{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--panel)}
-.m .t{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--nebula2);display:block;margin-bottom:10px}
+.m .t{font-family:var(--font-mono);font-size:13px;color:var(--nebula2);display:block;margin-bottom:10px}
 .m p{font-size:14.5px;color:var(--dim);font-weight:300}
 .m p em{font-style:normal;color:var(--star)}
 
@@ -254,7 +260,7 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .row{display:grid;grid-template-columns:180px 1fr 1fr;gap:0;border-top:1px solid var(--line)}
 .row:first-child{border-top:none}
 .row>div{padding:20px 22px;font-size:14.5px}
-.row .who{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--star);background:#0C122288}
+.row .who{font-family:var(--font-mono);font-size:13px;color:var(--star);background:#0C122288}
 .row .them{color:var(--dim);font-weight:300;border-left:1px solid var(--line)}
 .row .us{color:var(--star);font-weight:300;border-left:1px solid var(--line);background:#7C6CFF0d}
 .row .us b{color:var(--nebula2);font-weight:600}
@@ -316,6 +322,14 @@ footer .fine{margin-top:18px;max-width:76ch;font-weight:300}
     </div>
     <p class="cap">A real record. The agent that wrote the note no longer exists. The agent that received it had never seen the repo, and it opened this conversation intending to comply. The note crossed the session boundary and stopped the exact incident it records.</p>
   </div>
+
+  <section id="map">
+    <div class="kicker">The map</div>
+    <h2>memway's own map, with everything it remembers</h2>
+    <p class="sub">868 entities, 2,619 edges, and the knowledge this project accumulated while building itself. Amber rings mark coordinates carrying entries; coral marks the twelve confirmations the code has since outgrown. Click anything.</p>
+    <p class="beat"><a class="btn primary" href="map.html">Open the map</a></p>
+    <p class="fine">One self-contained HTML file, 696KB, no network requests. Best on a desktop: 868 nodes is a lot of force simulation for a phone.</p>
+  </section>
 
   <section id="install">
     <div class="kicker">Quickstart</div>
