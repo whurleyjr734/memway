@@ -54,7 +54,10 @@ their writes makes staleness read permanently fresh.
 **5. Fixtures encode what you thought of; corpora contain what you
 didn't.** G4 shipped broken twice past hand-built unit tests and died in
 minutes against real repositories. Big changes get a real-repo run
-before they get believed.
+before they get believed. A wrong fixture can convict correct code, so
+verify the fixture before the verdict: a doc-comment fixture that put the
+comment above the wrong declaration nearly had the README declare a
+working parser broken.
 
 **6. Falsify against committed state, restore from a copy.**
 `git checkout --` during falsification silently reverted uncommitted

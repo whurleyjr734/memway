@@ -200,6 +200,7 @@ h2{font-weight:800;font-size:clamp(28px,3.8vw,42px);letter-spacing:-.025em}
 .beat{margin-top:28px;color:var(--dim);font-weight:300;max-width:64ch}
 .fine{margin-top:16px;font-size:13.5px;color:var(--dim);font-weight:300;max-width:72ch}
 .fine strong{color:var(--star);font-weight:400}
+.beat strong{color:var(--star);font-weight:500}
 .mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--star)}
 .cmds{position:relative}
 .copy{
@@ -371,6 +372,27 @@ memway console ~/maps/flask</pre>
 
     <p class="fine"><strong>Python 3.10+. Zero runtime dependencies. Everything stays on your machine.</strong></p>
     <p class="fine">Agent features need an MCP-capable client such as Claude Code. Parsing beyond Python is an optional extra, <span class="mono">pip install 'memway[languages]'</span> (quote it, or your shell will eat the brackets). Full details in the <a href="https://github.com/whurleyjr734/memway">README on GitHub</a>.</p>
+  </section>
+
+  <section id="languages">
+    <div class="kicker">Languages</div>
+    <h2>Python in full, four more structurally</h2>
+    <p class="sub">One language is analysed completely. Four more are mapped with less depth, and here is exactly where the difference bites.</p>
+
+    <p class="beat"><strong>Python, first-class.</strong> Parsed with the standard library's own <span class="mono">ast</span>, no external grammar and no extra install. All three hash tiers are distinct, so a docstring edit and a behaviour change are told apart: notes stay fresh through cosmetic edits and flag only when the logic moves. Every demo on this page, and all three published maps, are Python.</p>
+
+    <p class="beat"><strong>Go, JavaScript, TypeScript and Java, structurally.</strong> Mapped with tree-sitter behind an optional extra, five pinned grammars:</p>
+
+    <div class="cmds">
+      <button class="copy" type="button" aria-label="Copy to clipboard">copy</button>
+      <pre class="cmd">pip install 'memway[languages]'</pre>
+    </div>
+
+    <p class="fine">Method signatures are extracted for Go, JavaScript and TypeScript, but not Java. Leading doc comments are lifted for Go and JavaScript only; inline comments and comment-rot detection work for all four. No field declarations are indexed as entities.</p>
+
+    <p class="fine">Staleness is coarser: the logic hash currently equals the body hash for the tree-sitter languages, so a comment-only edit can flag a note that Python's logic hash would shrug off.</p>
+
+    <p class="fine">Parsers are a plugin interface and languages are additive. The parser contract lives in the <a href="https://github.com/whurleyjr734/memway">README on GitHub</a>.</p>
   </section>
 
   <section id="proof">
