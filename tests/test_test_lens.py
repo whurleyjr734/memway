@@ -185,8 +185,20 @@ def test_viz_payload_carries_is_test(mapped, tmp_path):
     assert '"is_test"' in html, "the map cannot filter what it was not told"
 
 
-def test_viz_origin_toggle_is_wired_not_merely_present(mapped, tmp_path):
-    """Sabotaging the filter must FAIL this, not blank the page."""
+def test_viz_origin_toggle_markup_is_present(mapped, tmp_path):
+    """PRESENCE ONLY. Read the name literally: this proves the toggle, the
+    predicate text and the styling rule EXIST in the emitted page. It does
+    not prove any of them run.
+
+    It was called `..._is_wired_not_merely_present` and it was green while
+    the toggle was completely inert, because normalize() dropped the field
+    before the predicate ever saw it. A name that claims more than the body
+    delivers is worse than no test: it retires the suspicion that would
+    have found the bug. Renamed rather than deleted - as a fast smoke layer
+    it is still worth having, just not as the only witness.
+
+    The witness lives in test_the_shipped_javascript_actually_filters.
+    """
     out = tmp_path / "map.html"
     viz(str(mapped), str(out))
     html = out.read_text()
@@ -223,3 +235,133 @@ def test_console_serves_the_same_flag(mapped):
     html = build_page(str(mapped), token="t")
     assert '"is_test"' in html
     assert 'data-origin="tests"' in html
+
+
+# ============================================================ EXECUTION
+#
+# Everything above this line reads the emitted bytes. That was not enough:
+# 0.53.0 shipped an origin toggle that was correct in the payload, correct
+# in the markup, correct in the predicate SOURCE, and completely inert -
+# because normalize() rebuilds every node field by field and is_test was
+# not on the list. Every presence assertion passed. Unchecking "tests" hid
+# nothing; unchecking "source" hid the whole graph.
+#
+# So the filter is now EXECUTED. Two witnesses:
+#
+#   1. a Python replica of normalize()'s field list, parsed OUT of the
+#      template, so a dropped field fails here with no runtime needed;
+#   2. the actual shipped JavaScript, run in node when node is present.
+#
+# The second is the real witness. The first exists because the suite must
+# stay green on a machine with no JS runtime, and a skipped test guards
+# nothing.
+
+import json
+import re
+import shutil
+import subprocess
+
+TEMPLATE = HERE / "memway" / "viz_template.html"
+
+
+def _emitted_payload(repo) -> dict:
+    """The JSON the template is actually handed, from a real emitted page."""
+    from memway.console import build_page
+    html = build_page(str(repo), token="t")
+    m = re.search(r'const (?:SAMPLE|DATA)\s*=\s*(\{.*?\});\s*\n', html, re.S)
+    assert m, "the emitted page carries no payload"
+    return json.loads(m.group(1))
+
+
+def _normalize_fields() -> set:
+    """The field names normalize() actually keeps, parsed from the template."""
+    src = TEMPLATE.read_text()
+    m = re.search(r"function normalize\(raw\)\{.*?raw\.entities\|\|\[\]\)\.map\(e=>\(\{(.*?)\}\)\)",
+                  src, re.S)
+    assert m, "normalize()'s field list could not be located"
+    return set(re.findall(r"(\w+)\s*:", m.group(1)))
+
+
+def test_normalize_keeps_is_test(mapped):
+    """The exact drop that shipped. A payload key absent from normalize()'s
+    field list never reaches the renderer, however correct the payload is.
+
+    MEASURED UNDER SABOTAGE: with `is_test:e.is_test===true` removed from
+    normalize(), this test fails, the Python-replica partition test fails,
+    and the node execution test fails - while EVERY presence assertion in
+    this file stays green, including the one that used to be called
+    `..._is_wired_not_merely_present`. That is the record of why presence
+    was insufficient, and why it may no longer be the only witness for an
+    interactive behaviour.
+    """
+    assert "is_test" in _normalize_fields(), \
+        "normalize() drops is_test; the origin toggle is inert"
+
+
+def test_the_filter_partitions_the_map_python_replica(mapped):
+    """Applies normalize()'s real field list, then the origin predicate."""
+    payload = _emitted_payload(mapped)
+    fields = _normalize_fields()
+    nodes = [{k: e.get(k) for k in fields} for e in payload["entities"]]
+    total = len(nodes)
+    def vis(checked):
+        return sum(1 for n in nodes
+                   if ("tests" if n.get("is_test") is True else "source") in checked)
+    both, src_only, test_only = vis({"source", "tests"}), vis({"source"}), vis({"tests"})
+    assert both == total, "both checked must show everything"
+    assert 0 < src_only < total, f"source-only showed {src_only}/{total}"
+    assert 0 < test_only < total, f"tests-only showed {test_only}/{total}"
+    assert src_only + test_only == total, "the split must be a partition"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no JS runtime")
+def test_the_shipped_javascript_actually_filters(mapped, tmp_path):
+    """THE witness: runs the template's own normalize() and predicate.
+
+    Lifts both verbatim out of the shipped template and executes them over
+    a real emitted payload. This is the only test in the file that would
+    have failed on 0.53.0 without being told what to look for.
+    """
+    payload = _emitted_payload(mapped)
+    (tmp_path / "p.json").write_text(json.dumps(payload))
+    probe = tmp_path / "probe.js"
+    probe.write_text(r"""
+const fs = require("fs");
+const tpl = fs.readFileSync(process.argv[2], "utf8");
+const payload = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+const nm = tpl.match(/function normalize\(raw\)\{[\s\S]*?\n\}/);
+if (!nm) { console.error("normalize() not found"); process.exit(2); }
+eval(nm[0]);
+const pm = tpl.match(/const visible=(d=>[^\n;]+);/);
+if (!pm) { console.error("visible predicate not found"); process.exit(2); }
+const data = normalize(payload);
+function count(checkedOrigins) {
+  const kinds = new Set(data.entities.map(e => e.kind));
+  const origins = new Set(checkedOrigins);
+  const minCx = 0, kOnly = false;
+  const visible = eval("(" + pm[1] + ")");
+  return data.entities.filter(visible).length;
+}
+console.log(JSON.stringify({total: data.entities.length,
+  both: count(["source","tests"]), source_only: count(["source"]),
+  tests_only: count(["tests"])}));
+""")
+    r = subprocess.run(["node", str(probe), str(TEMPLATE), str(tmp_path / "p.json")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-400:]
+    got = json.loads(r.stdout)
+    assert got["both"] == got["total"], got
+    assert 0 < got["source_only"] < got["total"], \
+        f"unchecking tests hid nothing: {got}"
+    assert 0 < got["tests_only"] < got["total"], \
+        f"unchecking source hid everything: {got}"
+    assert got["source_only"] + got["tests_only"] == got["total"], got
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no JS runtime")
+def test_the_console_page_filters_too(mapped, tmp_path):
+    """The console serves the same template; the bug was reported there."""
+    from memway.console import build_page
+    html = build_page(str(mapped), token="t")
+    assert "is_test:e.is_test===true" in html, \
+        "the served console page carries a normalize() that drops is_test"

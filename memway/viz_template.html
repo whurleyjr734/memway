@@ -321,6 +321,15 @@ function normalize(raw){
     id:e.id||e.coord_id||e.coord, qualname:e.qualname||e.name||"",
     kind:(e.kind||"function").toLowerCase(), file:e.file||"", lines:e.lines||"",
     complexity:+e.complexity||0,
+    /* THE FIELD THAT WAS DROPPED. normalize() rebuilds every node field by
+       field, so a payload key absent from this list never reaches the
+       renderer. is_test shipped in 0.53.0 correctly on the payload and
+       vanished here: every node arrived undefined, the origin predicate
+       called all of them source, unchecking "tests" hid nothing and
+       unchecking "source" hid the entire graph. The styling was inert for
+       the same reason. Adding a payload key without adding it here is a
+       silent no-op. */
+    is_test:e.is_test===true,
     knowledge:(e.knowledge||e.notes||[]).map(n=> typeof n==="string" ? {text:n,stale:false} : {text:n.text||"",stale:!!(n.stale||n.any_stale),channel:n.channel||"",author:n.author||""})
   })).filter(e=>e.id);
   const ids=new Set(ents.map(e=>e.id));

@@ -7,6 +7,37 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-08-16
+
+### Fixed
+
+- **The origin toggle and test styling were inert in emitted maps.** The
+  test/source lens shipped in 0.52.1 with a correct payload, correct markup
+  and a correct predicate, and did nothing: the template's `normalize()`
+  rebuilds every node field by field, and `is_test` was not on the list. So
+  every node reached the renderer as `undefined`, the predicate classified
+  all of them as source, unchecking "tests" hid nothing, unchecking "source"
+  hid the entire graph, and the hollow-core styling never applied. Reported
+  from a live console session on itsdangerous. One field added; measured on
+  that repo, the filter now partitions 169 entities into 96 source and 73
+  tests.
+
+### Changed
+
+- **The test class for interactive behaviour is upgraded from presence to
+  execution.** Every assertion guarding the lens was of the form
+  `"..." in html`, and all of them stayed green while the feature was dead.
+  The suite now runs the template's own `normalize()` and filter predicate,
+  lifted verbatim, in node when node is available, plus a Python replica
+  that parses `normalize()`'s real field list so the guarantee survives on a
+  machine with no JS runtime.
+
+  Tests named for a runtime behaviour they cannot observe have been renamed
+  to say what they actually check, including one previously called
+  `test_viz_origin_toggle_is_wired_not_merely_present`, whose name described
+  the exact thing it failed to do. Presence remains as a fast smoke layer;
+  it is no longer the only witness for anything interactive.
+
 ## [0.53.0] - 2026-08-16
 
 ### Added

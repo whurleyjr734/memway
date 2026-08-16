@@ -16,6 +16,16 @@ The fence from viz and dig applies unchanged: every GET leaves .coord
 byte-identical apart from log/. There were TWO cache-warming loaders on
 that path last time, which is why this file checks the fence through the
 endpoints rather than trusting the loaders.
+
+PRESENCE VS BEHAVIOUR. Many assertions here are of the form `"..." in html`.
+For CSS rules and escaping, the bytes ARE the mechanism and presence is a
+real test. For JavaScript behaviour it is not: 0.53.0 shipped an origin
+toggle whose markup, predicate source and styling rule were all present and
+which did nothing, because normalize() dropped the field before the
+predicate saw it. Tests named for a runtime behaviour they cannot observe
+have been renamed to say what they actually check. Where a behaviour can be
+executed, it is - see test_test_lens.py, which runs the shipped JavaScript
+in node.
 """
 
 import hashlib
@@ -404,7 +414,7 @@ def test_stdlib_only():
 
 # ------------------------------------------------------- tool-rail behaviour
 
-def test_tool_result_can_be_dismissed_and_toggled(served):
+def test_tool_result_declares_dismiss_and_toggle_handlers(served):
     """The rail was one-way: a result rendered and there was no way to
     close it, so the card only ever grew. Three affordances now - the
     active tool toggles itself off, a dismiss control, and Escape."""
@@ -430,7 +440,7 @@ def test_tool_output_does_not_nest_a_second_scroller(served):
         "the panel remains the single scroll context"
 
 
-def test_active_tool_is_visually_marked(served):
+def test_active_tool_class_is_declared(served):
     _, base, token = served
     _, page = get(base, "/", token, raw=True)
     assert ".mw-rail button.active{" in page
@@ -472,7 +482,7 @@ def test_injected_classes_do_not_collide_with_the_template(served):
         ".rail is the template's filters panel, not ours"
 
 
-def test_pulse_circles_are_cleaned_up(served):
+def test_pulse_cleanup_is_declared(served):
     """Every stamp appended a circle that never went away."""
     _, base, token = served
     _, page = get(base, "/", token, raw=True)

@@ -12,6 +12,16 @@ note rendered without its flag asserts a currency the map never claimed.
 The stale fixture here therefore creates staleness the real way - stamp
 an entry, then change the code - rather than hardcoding the field, so a
 regression that bypasses the store fails this file.
+
+PRESENCE VS BEHAVIOUR. Many assertions here are of the form `"..." in html`.
+For CSS rules and escaping, the bytes ARE the mechanism and presence is a
+real test. For JavaScript behaviour it is not: 0.53.0 shipped an origin
+toggle whose markup, predicate source and styling rule were all present and
+which did nothing, because normalize() dropped the field before the
+predicate saw it. Tests named for a runtime behaviour they cannot observe
+have been renamed to say what they actually check. Where a behaviour can be
+executed, it is - see test_test_lens.py, which runs the shipped JavaScript
+in node.
 """
 
 import hashlib
@@ -447,7 +457,7 @@ def test_legacy_colour_names_still_resolve():
     assert "var(--amber)" in con, "the alias is load-bearing, not decorative"
 
 
-def test_load_modal_can_be_closed_three_ways():
+def test_load_modal_declares_three_close_paths():
     """Same trap the tool rail had: openable easily, closable only by one
     small button."""
     tpl = vizmod.TEMPLATE.read_text()
