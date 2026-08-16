@@ -7,6 +7,60 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.54.3] - 2026-08-16
+
+Theme: **uniqueness is not certainty.**
+
+### Fixed
+
+- **A fifth of all call edges pointed at the wrong thing.** Edge
+  confidence was assigned before anything checked HOW a reference
+  resolved: `conf, how = 0.95, "exact"` fired the moment `resolve()`
+  returned anything, and `resolve()` falls back to matching the last
+  segment of a name. So a short name with exactly ONE definition anywhere
+  in the index became the target for every call of that name - including
+  calls to methods the repo never defines.
+
+  Measured on memway's own map: **369 of 1,627 call edges (23%)** landed
+  on an entity whose short name is a stdlib method. Two absorbed 295 of
+  them - a module-level test helper named `get` collecting every
+  `dict.get()` in the package, and a one-line stub class inside a test
+  function collecting every `Path.read_text()`. They were scored 0.95,
+  above the <0.7 line the grounding block warns about, so nothing flagged
+  them. That was the hairball in the rendered graph, and it inflated
+  `fan_in` and blast radius everywhere those nodes were reached.
+
+  Three reachability rules now reject a name-only match that cannot be
+  the callee. All three are facts about scope, not lists of names - a
+  stdlib name list would be endless, language-specific, and wrong the
+  moment a repo legitimately defines `get`:
+
+  1. **Function-local targets.** A class or def inside a function body
+     cannot be named from outside it.
+  2. **An attribute call is not a module-level function.** `d.get(x)`
+     cannot be `def get` at module scope. The parser knew the call was
+     written `receiver.name(...)` and discarded it; `RawEdge.via_attr`
+     carries it now.
+  3. **Production code does not call test helpers.** The same asymmetry
+     metrics already relies on. D11b could never help here: it only fires
+     on AMBIGUOUS names, and these had exactly one definition - no
+     competition was being read as high confidence.
+
+  Result on this repo: `read_text` **136 -> 0** incoming, `get`
+  **159 -> 19** (all remaining callers inside `tests`), 850 unreachable
+  edges dropped, and the top of the fan-in table is real code again.
+
+  Four resolution tiers match on a short name. The first pass guarded
+  two, and the rest kept feeding the same false hubs until re-measuring
+  found them - so a structural test now walks `build()` and fails if ANY
+  short-name comprehension lacks a guard.
+
+### Changed
+
+- `PARSE_SCHEMA_VERSION` 4 -> 5: `RawEdge` gained `via_attr`, so cached
+  edges must be re-parsed. **The first index after upgrading rewrites the
+  graph** - expect edge counts to fall, and the fall is the fix.
+
 ## [0.54.2] - 2026-08-16
 
 Theme: **the map never misleads silently.**

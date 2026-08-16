@@ -38,6 +38,14 @@ class RawEdge:
     src_qualname: str
     dst_ref: str       # qualname, bare name (resolved upstream), or EVT:<name>
     kind: str          # imports | calls | emits | consumes
+    # True when the call was written `receiver.name(...)` and the receiver's
+    # type could not be determined. The NAME survives, the fact that it was
+    # an attribute access does not - and that fact is decisive downstream:
+    # `d.get(x)` cannot be a module-level function called `get`, however
+    # unique that name happens to be in the index. Defaulting False keeps
+    # older cached edges constructible; the schema bump forces a re-parse
+    # so nothing keeps the stale default forever.
+    via_attr: bool = False
 
 
 class LanguageParser:
@@ -203,8 +211,10 @@ class PythonParser(LanguageParser):
                         # traversal surface it as an honest unknown.
                         edges.append(RawEdge(src, "EVT:<dynamic>", kind))
                 else:
-                    edges.append(RawEdge(src, dst_override or fname,
-                                         "calls"))
+                    edges.append(RawEdge(src, dst_override or fname, "calls",
+                                         via_attr=(dst_override is None
+                                                   and isinstance(n.func,
+                                                                  ast.Attribute))))
                 v.generic_visit(n)
 
         V().visit(tree)
@@ -650,7 +660,7 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 4      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 5      # 2: scope-aware call resolution
                               # 4: stable shingle hash (blake2b) - the
                               #    cache holds sketches, so a warm cache
                               #    would replay randomized ones forever

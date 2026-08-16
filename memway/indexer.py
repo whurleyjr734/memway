@@ -698,11 +698,27 @@ class Indexer:
         os.replace(_t, idx_dir / "raw_edges.json")
 
     def load_raw_edges(self):
+        """Load raw edges, IGNORING fields this build does not know.
+
+        A newer memway may have added a field - 0.54.3 added
+        RawEdge.via_attr - and an older process reading that file used to
+        die on `unexpected keyword argument`. Measured the hard way: a
+        long-running MCP server, started before the upgrade, crashed on
+        every call the moment the map was re-indexed by the new build.
+
+        Unknown keys are dropped rather than refused. The old build then
+        behaves exactly as it did before the field existed, which is the
+        honest degradation - it cannot use information it has no code for,
+        and refusing to start is a worse answer than working without it.
+        """
         f = self.coord_dir / "index" / "raw_edges.json"
         if f.exists():
+            from dataclasses import fields as _fields
             from .parsers import RawEdge
-            self._raw_edges = [RawEdge(**r)
-                               for r in json.loads(f.read_text())]
+            known = {fl.name for fl in _fields(RawEdge)}
+            self._raw_edges = [
+                RawEdge(**{k: v for k, v in r.items() if k in known})
+                for r in json.loads(f.read_text())]
 
     # ---------------------------------------------------------------- lookup
 

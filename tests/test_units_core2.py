@@ -367,3 +367,117 @@ def test_metrics_dirty_flag_and_triage_method(tmp_path):
     ms.flag_dirty_tree(True)
     cids = [c for c, e in ix.entities.items() if e.kind == "function"]
     assert len(ms.triage(cids, top=99)) == len(cids)
+
+
+# --------------------------- a name-only match that cannot be the callee
+
+def _edges_for(tmp_path, files: dict):
+    """Index a throwaway repo and return (indexer, edges)."""
+    import subprocess, sys as _s
+    from memway.indexer import Indexer
+    from memway.edges import EdgeBuilder
+    r = tmp_path / "r"
+    r.mkdir(parents=True, exist_ok=True)
+    for name, body in files.items():
+        f = r / name
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(body)
+    ix = Indexer(r, r / ".coord")
+    ix.index(persist=False)
+    eb = EdgeBuilder(ix)
+    return ix, eb, eb.build()
+
+
+def test_a_bare_name_never_resolves_into_a_function_local_scope(tmp_path):
+    """A class defined inside a function cannot be named from outside it.
+
+    Measured on memway's own map: a one-line stub class D inside a test
+    function had absorbed 136 call edges - every Path.read_text() in the
+    package - because `read_text` had exactly ONE definition in the index
+    and uniqueness was being read as certainty.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "app.py": "from pathlib import Path\n\n\n"
+                  "def load(p):\n    return p.read_text()\n",
+        "t_x.py": "def test_thing():\n    class D:\n        def read_text(self):\n"
+                  "            return 'x'\n    assert D().read_text()\n",
+    })
+    stub = next((cid for q, cid in ix.by_qualname.items()
+                 if q.endswith("D.read_text")), None)
+    assert stub, "fixture did not produce the function-local stub"
+    loader = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("app.load"))]
+    bad = [e for e in edges if e["src"] == loader and e["dst"] == stub]
+    assert not bad, "a bare name resolved into a function-local scope"
+
+
+def test_an_attribute_call_never_resolves_to_a_module_level_function(tmp_path):
+    """`d.get(x)` is not `def get` at module scope, however unique the name.
+
+    The parser knew the call was written `receiver.name(...)` and threw
+    that away; RawEdge carries it now. Without it, every dict.get() in the
+    repo landed on a module-level helper named get - 159 edges on memway's
+    own map, and the visible hairball in the rendered graph.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "helper.py": "def get(key):\n    return key\n",
+        "user.py": "def use(d):\n    return d.get('k')\n",
+    })
+    tgt = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("helper.get"))]
+    src = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("user.use"))]
+    assert not [e for e in edges if e["src"] == src and e["dst"] == tgt], \
+        "an attribute call resolved to a module-level function"
+
+    # ...and a PLAIN call to the same name still resolves: the rule is
+    # about how the call was written, not about the name.
+    ix2, eb2, edges2 = _edges_for(tmp_path / "b", {
+        "helper.py": "def get(key):\n    return key\n",
+        "user.py": "from helper import get\n\n\ndef use(k):\n    return get(k)\n",
+    })
+    t2 = ix2.by_qualname[next(q for q in ix2.by_qualname if q.endswith("helper.get"))]
+    s2 = ix2.by_qualname[next(q for q in ix2.by_qualname if q.endswith("user.use"))]
+    assert [e for e in edges2 if e["src"] == s2 and e["dst"] == t2], \
+        "a plain call to a module-level function was wrongly dropped"
+
+
+def test_production_code_never_bare_resolves_into_tests(tmp_path):
+    # A PLAIN call, deliberately: `x.helper()` would also be dropped by the
+    # attribute-call rule, so the fixture would pass with this rule deleted.
+    # Isolate it or it proves nothing.
+    ix, eb, edges = _edges_for(tmp_path, {
+        "app.py": "def run():\n    return helper()\n",
+        "tests/t_a.py": "def helper():\n    return 1\n",
+    })
+    tgt = next((cid for q, cid in ix.by_qualname.items()
+                if q.endswith("t_a.helper")), None)
+    src = ix.by_qualname[next(q for q in ix.by_qualname if q.endswith("app.run"))]
+    assert not [e for e in edges if e["src"] == src and e["dst"] == tgt], \
+        "production code bare-resolved into a test helper"
+
+
+def test_every_short_name_resolution_site_is_guarded():
+    """Structural: THREE sites match on a short name, and the first pass
+    guarded two. The third - the inherited-guess tier - kept feeding the
+    same false hubs until it was found by re-measuring rather than by
+    reading. Enumerate them so a fourth cannot be added unguarded."""
+    import ast
+    from pathlib import Path
+    src = Path(__file__).resolve().parent.parent / "memway" / "edges.py"
+    tree = ast.parse(src.read_text())
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "build")
+    # PER LOOKUP, not a global count. Counting both and comparing totals
+    # passed with a guard deleted, because the "exact" tier's guard made up
+    # the difference - the arithmetic was right and the claim was wrong.
+    unguarded = []
+    for node in ast.walk(fn):
+        if not isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+            continue
+        seg = ast.dump(node)
+        if "_by_short" in seg and "_unreachable_target" not in seg:
+            unguarded.append(ast.unparse(node)[:90])
+    assert not unguarded, (
+        "short-name lookups with no reachability guard - each is a tier that "
+        "can resolve a name onto something that cannot be the callee:\n  " +
+        "\n  ".join(unguarded))
+    sites = ast.dump(fn).count("_by_short")
+    assert sites >= 3, f"expected the short-name tiers, found {sites}"

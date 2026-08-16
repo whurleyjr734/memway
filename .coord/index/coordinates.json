@@ -4,7 +4,7 @@
     "kind": "function",
     "qualname": "memway.edges.neighbors",
     "path": "memway/edges.py",
-    "lineno": 243,
+    "lineno": 321,
     "body_hash": "4c4f18b023670b52",
     "parent": "C-de4bf4",
     "signature": "neighbors(edges, coord_id)",
@@ -75,7 +75,7 @@
       5461724793430
     ],
     "n_shingles": 52,
-    "end_lineno": 245,
+    "end_lineno": 323,
     "loc": 3,
     "complexity": 3
   },
@@ -869,7 +869,7 @@
     "kind": "function",
     "qualname": "memway.parsers.PythonParser.parse.walk",
     "path": "memway/parsers.py",
-    "lineno": 85,
+    "lineno": 93,
     "body_hash": "81423cf0ca7bcf78",
     "parent": "C-242957",
     "signature": "walk(node, parent_qual, in_class)",
@@ -931,7 +931,7 @@
       1480922619200
     ],
     "n_shingles": 197,
-    "end_lineno": 112,
+    "end_lineno": 120,
     "loc": 28,
     "complexity": 11
   },
@@ -1528,7 +1528,7 @@
     "kind": "function",
     "qualname": "memway.parsers.get_parsers",
     "path": "memway/parsers.py",
-    "lineno": 664,
+    "lineno": 674,
     "body_hash": "da7162fa9343960b",
     "parent": "C-4ca895",
     "signature": "get_parsers(verbose)",
@@ -1603,7 +1603,7 @@
       530893188166
     ],
     "n_shingles": 246,
-    "end_lineno": 693,
+    "end_lineno": 703,
     "loc": 30,
     "complexity": 9
   },
@@ -3809,7 +3809,7 @@
     "kind": "function",
     "qualname": "memway.parsers.GoParser.parse.walk",
     "path": "memway/parsers.py",
-    "lineno": 510,
+    "lineno": 520,
     "body_hash": "bb5ffc895d088c95",
     "parent": "C-2fb621",
     "signature": "walk(n)",
@@ -3871,7 +3871,7 @@
       128397927987
     ],
     "n_shingles": 256,
-    "end_lineno": 556,
+    "end_lineno": 566,
     "loc": 47,
     "complexity": 14
   },
@@ -4476,7 +4476,7 @@
     "kind": "method",
     "qualname": "memway.parsers.LanguageParser.module_qualname",
     "path": "memway/parsers.py",
-    "lineno": 52,
+    "lineno": 60,
     "body_hash": "de4d6e755b77c942",
     "parent": "C-b2b3d1",
     "signature": "module_qualname(path, repo_root)",
@@ -4541,7 +4541,7 @@
       18255359614378
     ],
     "n_shingles": 35,
-    "end_lineno": 53,
+    "end_lineno": 61,
     "loc": 2,
     "complexity": 1
   },
@@ -5541,6 +5541,83 @@
     "loc": 32,
     "complexity": 9
   },
+  "C-104190": {
+    "coord_id": "C-104190",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_a_bare_name_never_resolves_into_a_function_local_scope",
+    "path": "tests/test_units_core2.py",
+    "lineno": 391,
+    "body_hash": "6e90b54ce5efcec5",
+    "parent": "C-80b544",
+    "signature": "test_a_bare_name_never_resolves_into_a_function_local_scope(tmp_path)",
+    "shape_hash": "bf2556abe97aaee5",
+    "logic_hash": "08123cf11246b293",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "A class defined inside a function cannot be named from outside it. Measured on memway's own map: a one-line stub class D inside a test function had absorbed 136 call edges - every Path.read_text() in ",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "26722d688bbe738a",
+    "comment_rot": false,
+    "sketch": [
+      265542586802,
+      3251069737969,
+      504532501284,
+      1488040159437,
+      93944661377,
+      192249450576,
+      724304692765,
+      1784649151592,
+      288229011486,
+      520243937802,
+      29316848386,
+      63277277727,
+      646222673427,
+      314286560801,
+      3248014365542,
+      6422313503,
+      389783304973,
+      3329807341662,
+      339200773257,
+      260416090251,
+      271634257127,
+      388121580292,
+      61157178240,
+      231285720456,
+      4034599425899,
+      648358487299,
+      1102829879440,
+      3685266354115,
+      2632405070335,
+      1063883720724,
+      310580498752,
+      1912053986673,
+      109307731941,
+      192460184596,
+      853238637452,
+      2580113356108,
+      904648991922,
+      458245202263,
+      667903248842,
+      995554500804,
+      188378178230,
+      1394236532575,
+      2469830857011,
+      834727179621,
+      90625262986,
+      45949175995,
+      62484065295,
+      3572791473195
+    ],
+    "n_shingles": 261,
+    "end_lineno": 410,
+    "loc": 20,
+    "complexity": 7
+  },
   "C-10ebe4": {
     "coord_id": "C-10ebe4",
     "kind": "function",
@@ -6150,7 +6227,7 @@
     "kind": "method",
     "qualname": "memway.parsers.PythonParser.parse.V.visit_ClassDef",
     "path": "memway/parsers.py",
-    "lineno": 134,
+    "lineno": 142,
     "body_hash": "378c483a8242d486",
     "parent": "C-5d57dd",
     "signature": "visit_ClassDef(v, n)",
@@ -6212,7 +6289,7 @@
       128397927987
     ],
     "n_shingles": 48,
-    "end_lineno": 140,
+    "end_lineno": 148,
     "loc": 7,
     "complexity": 1
   },
@@ -6222,11 +6299,11 @@
     "qualname": "memway.indexer",
     "path": "memway/indexer.py",
     "lineno": 1,
-    "body_hash": "35bb6e85b2e06d24",
+    "body_hash": "407309748c71b5df",
     "parent": null,
     "signature": "",
-    "shape_hash": "96c3f6e0daeeb7c1",
-    "logic_hash": "08700099b89c92d7",
+    "shape_hash": "2c0a34407c7bd9a7",
+    "logic_hash": "d664418a51bc37f0",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -6701,72 +6778,72 @@
         "kind": "comment"
       },
       {
-        "line": 707,
+        "line": 723,
         "text": "---------------------------------------------------------------- lookup",
         "kind": "comment"
       },
       {
-        "line": 718,
+        "line": 734,
         "text": "Hybrid ref support: \"ratelimit.py:refill_bucket\" or \"path/ratelimit.py:refill_bucket\"",
         "kind": "comment"
       },
       {
-        "line": 719,
+        "line": 735,
         "text": "Tiered matching: exact last-component beats suffix; shortest qualname wins ties.",
         "kind": "comment"
       },
       {
-        "line": 722,
+        "line": 738,
         "text": "If path_part ends with .py, treat as hybrid ref",
         "kind": "comment"
       },
       {
-        "line": 724,
+        "line": 740,
         "text": "Strip leading path components to get just the filename",
         "kind": "comment"
       },
       {
-        "line": 726,
+        "line": 742,
         "text": "Collect all entities in the matching file",
         "kind": "comment"
       },
       {
-        "line": 731,
+        "line": 747,
         "text": "Check if this entity's path matches the filename",
         "kind": "comment"
       },
       {
-        "line": 733,
+        "line": 749,
         "text": "Tier 1: exact last-component match",
         "kind": "comment"
       },
       {
-        "line": 736,
+        "line": 752,
         "text": "Tier 2: suffix match (but not already exact)",
         "kind": "comment"
       },
       {
-        "line": 739,
+        "line": 755,
         "text": "Prefer exact matches, then suffix matches; shortest qualname wins",
         "kind": "comment"
       },
       {
-        "line": 741,
+        "line": 757,
         "text": "sort by (length, qualname, cid)",
         "kind": "comment"
       },
       {
-        "line": 746,
+        "line": 762,
         "text": "If no match found with hybrid ref, fall through to normal resolution",
         "kind": "comment"
       },
       {
-        "line": 764,
+        "line": 780,
         "text": "D11b: ambiguous bare names - if exactly one candidate is",
         "kind": "comment"
       },
       {
-        "line": 765,
+        "line": 781,
         "text": "production code, prefer it over test fixtures/helpers",
         "kind": "comment"
       }
@@ -6780,7 +6857,7 @@
       65227715963,
       13966993628,
       246200239705,
-      64008160442,
+      12838089949,
       43958470813,
       205415194227,
       2387646915,
@@ -6796,7 +6873,7 @@
       10408953198,
       877775883,
       8605256587,
-      61157178240,
+      22169160994,
       21288667394,
       7220864152,
       111973756890,
@@ -6823,10 +6900,10 @@
       179570046764,
       60758558666
     ],
-    "n_shingles": 5543,
-    "end_lineno": 772,
-    "loc": 773,
-    "complexity": 142
+    "n_shingles": 5709,
+    "end_lineno": 788,
+    "loc": 789,
+    "complexity": 144
   },
   "C-14019a": {
     "coord_id": "C-14019a",
@@ -7132,6 +7209,98 @@
     "end_lineno": 183,
     "loc": 184,
     "complexity": 21
+  },
+  "C-15edd9": {
+    "coord_id": "C-15edd9",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_every_short_name_resolution_site_is_guarded",
+    "path": "tests/test_units_core2.py",
+    "lineno": 457,
+    "body_hash": "4c72b6cf20fdd90b",
+    "parent": "C-80b544",
+    "signature": "test_every_short_name_resolution_site_is_guarded()",
+    "shape_hash": "5afe28a70d35941f",
+    "logic_hash": "92ade3ef464ee932",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Structural: THREE sites match on a short name, and the first pass guarded two. The third - the inherited-guess tier - kept feeding the same false hubs until it was found by re-measuring rather than by",
+        "kind": "docstring"
+      },
+      {
+        "line": 12,
+        "text": "PER LOOKUP, not a global count. Counting both and comparing totals",
+        "kind": "comment"
+      },
+      {
+        "line": 13,
+        "text": "passed with a guard deleted, because the \"exact\" tier's guard made up",
+        "kind": "comment"
+      },
+      {
+        "line": 14,
+        "text": "the difference - the arithmetic was right and the claim was wrong.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "8f4c657ad8977cce",
+    "comment_rot": false,
+    "sketch": [
+      4063952744777,
+      1313236891298,
+      504532501284,
+      540547395495,
+      229026398074,
+      647527547074,
+      308893444346,
+      1037236167383,
+      595271058294,
+      919104287413,
+      1507161320790,
+      168594054103,
+      420961581129,
+      1073141243266,
+      3037212931538,
+      179925589605,
+      45119625241,
+      791785122884,
+      87056483932,
+      308576707066,
+      73627941483,
+      347913075766,
+      61157178240,
+      469197989785,
+      200546081029,
+      1833244628652,
+      1537093515795,
+      631513824037,
+      2034150024381,
+      142425264030,
+      1178338614374,
+      538321282241,
+      18133354015,
+      605627249740,
+      146526244096,
+      69143885459,
+      158322071932,
+      380101357456,
+      150161360647,
+      646849694830,
+      447365429116,
+      143133761450,
+      1410572882320,
+      793307883858,
+      468756692035,
+      407785741502,
+      490805851926,
+      2396347158793
+    ],
+    "n_shingles": 326,
+    "end_lineno": 483,
+    "loc": 27,
+    "complexity": 9
   },
   "C-15f9ee": {
     "coord_id": "C-15f9ee",
@@ -8845,7 +9014,7 @@
     "kind": "function",
     "qualname": "memway.parsers.PythonParser.parse.seg",
     "path": "memway/parsers.py",
-    "lineno": 82,
+    "lineno": 90,
     "body_hash": "c72547c53d7ade36",
     "parent": "C-242957",
     "signature": "seg(node)",
@@ -8907,7 +9076,7 @@
       2452247784508
     ],
     "n_shingles": 25,
-    "end_lineno": 83,
+    "end_lineno": 91,
     "loc": 2,
     "complexity": 1
   },
@@ -10448,7 +10617,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.GoParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 456,
+    "lineno": 466,
     "body_hash": "fa66b94cc54cc424",
     "parent": "C-5a82b9",
     "signature": "",
@@ -10510,7 +10679,7 @@
       16122711391
     ],
     "n_shingles": 7,
-    "end_lineno": 456,
+    "end_lineno": 466,
     "loc": 1,
     "complexity": 1
   },
@@ -10673,7 +10842,7 @@
     "kind": "method",
     "qualname": "memway.parsers.PythonParser.parse.V.visit_FunctionDef",
     "path": "memway/parsers.py",
-    "lineno": 142,
+    "lineno": 150,
     "body_hash": "0744b3451d14affa",
     "parent": "C-5d57dd",
     "signature": "visit_FunctionDef(v, n)",
@@ -10791,7 +10960,7 @@
       128397927987
     ],
     "n_shingles": 254,
-    "end_lineno": 166,
+    "end_lineno": 174,
     "loc": 25,
     "complexity": 4
   },
@@ -11283,12 +11452,12 @@
     "kind": "method",
     "qualname": "memway.parsers.PythonParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 70,
-    "body_hash": "267ae31392999ce2",
+    "lineno": 78,
+    "body_hash": "1b0a23613e5b340b",
     "parent": "C-990ef6",
     "signature": "parse(self, path, repo_root)",
-    "shape_hash": "a4aa2bedc707f592",
-    "logic_hash": "20c1f391cc0f6a83",
+    "shape_hash": "f6060591dc5ac78d",
+    "logic_hash": "510c5009c6c13008",
     "param_types": {
       "path": "Path",
       "repo_root": "Path"
@@ -11417,7 +11586,7 @@
       }
     ],
     "comment_hash": "67fd0f9a9fa9bb3c",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       35981505093,
       253929800569,
@@ -11468,10 +11637,10 @@
       307481614996,
       128397927987
     ],
-    "n_shingles": 946,
-    "end_lineno": 211,
-    "loc": 142,
-    "complexity": 35
+    "n_shingles": 955,
+    "end_lineno": 221,
+    "loc": 144,
+    "complexity": 36
   },
   "C-2429c4": {
     "coord_id": "C-2429c4",
@@ -11792,6 +11961,93 @@
     "end_lineno": 77,
     "loc": 4,
     "complexity": 1
+  },
+  "C-2524dc": {
+    "coord_id": "C-2524dc",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_production_code_never_bare_resolves_into_tests",
+    "path": "tests/test_units_core2.py",
+    "lineno": 442,
+    "body_hash": "84dddc7be6bf215e",
+    "parent": "C-80b544",
+    "signature": "test_production_code_never_bare_resolves_into_tests(tmp_path)",
+    "shape_hash": "10ef26d225fc1ee7",
+    "logic_hash": "5d9428b535190508",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "A PLAIN call, deliberately: `x.helper()` would also be dropped by the",
+        "kind": "comment"
+      },
+      {
+        "line": 3,
+        "text": "attribute-call rule, so the fixture would pass with this rule deleted.",
+        "kind": "comment"
+      },
+      {
+        "line": 4,
+        "text": "Isolate it or it proves nothing.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "cfc1de574e4a9b2c",
+    "comment_rot": false,
+    "sketch": [
+      3314572372432,
+      8279401850726,
+      135563189035,
+      639569419936,
+      2196251201687,
+      211674922989,
+      2245232445554,
+      928833218744,
+      936659019584,
+      1130960205317,
+      582065119944,
+      537719991887,
+      646222673427,
+      319731025607,
+      35505212960,
+      6422313503,
+      389783304973,
+      7376519270887,
+      403650930881,
+      260416090251,
+      372378595536,
+      388121580292,
+      61157178240,
+      60369231284,
+      216949655924,
+      648358487299,
+      1102829879440,
+      4484725397664,
+      1968857830368,
+      507424268375,
+      4330937494642,
+      1044206699581,
+      42951338377,
+      192460184596,
+      853238637452,
+      1414632792070,
+      1863477826859,
+      458245202263,
+      2666842539932,
+      4490054612616,
+      529495389745,
+      599943398446,
+      202757073790,
+      834727179621,
+      1551746142843,
+      45949175995,
+      1616034563322,
+      822969191675
+    ],
+    "n_shingles": 184,
+    "end_lineno": 454,
+    "loc": 13,
+    "complexity": 6
   },
   "C-25bfc9": {
     "coord_id": "C-25bfc9",
@@ -14783,147 +15039,222 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.build",
     "path": "memway/edges.py",
-    "lineno": 100,
-    "body_hash": "10403a58f8666d76",
+    "lineno": 154,
+    "body_hash": "935eb167c2951f93",
     "parent": "C-cbc42e",
     "signature": "build(self)",
-    "shape_hash": "803194eb891f0383",
-    "logic_hash": "62ab3876a77ddd5d",
+    "shape_hash": "e232a4c32cf2794a",
+    "logic_hash": "af7161933451ff85",
     "param_types": {},
     "return_type": "",
     "comments": [
       {
+        "line": 3,
+        "text": "counted, not silent: dropping an edge is a claim about the",
+        "kind": "comment"
+      },
+      {
         "line": 4,
-        "text": "materialize class hierarchy as structural edges: until now the",
-        "kind": "comment"
-      },
-      {
-        "line": 5,
-        "text": "MRO data was consumed during resolution and thrown away - as",
-        "kind": "comment"
-      },
-      {
-        "line": 6,
-        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
+        "text": "graph and the number belongs where someone can see it.",
         "kind": "comment"
       },
       {
         "line": 7,
+        "text": "materialize class hierarchy as structural edges: until now the",
+        "kind": "comment"
+      },
+      {
+        "line": 8,
+        "text": "MRO data was consumed during resolution and thrown away - as",
+        "kind": "comment"
+      },
+      {
+        "line": 9,
+        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
+        "kind": "comment"
+      },
+      {
+        "line": 10,
         "text": "overrides) and knowledge can flow down the hierarchy.",
         "kind": "comment"
       },
       {
-        "line": 17,
+        "line": 20,
         "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
         "kind": "comment"
       },
       {
-        "line": 25,
+        "line": 28,
         "text": "containment from the index itself (structural: certain)",
         "kind": "comment"
       },
       {
-        "line": 36,
+        "line": 39,
         "text": "dynamic dispatch: string-named events are the least",
         "kind": "comment"
       },
       {
-        "line": 37,
+        "line": 40,
         "text": "grounded edge kind we emit",
         "kind": "comment"
       },
       {
-        "line": 44,
-        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
-        "kind": "comment"
-      },
-      {
-        "line": 45,
-        "text": "self.meth was attributed to the calling subclass, but meth",
-        "kind": "comment"
-      },
-      {
         "line": 46,
-        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
         "kind": "comment"
       },
       {
-        "line": 52,
-        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "line": 47,
+        "text": "wrong. Checked here rather than inside resolve() because the",
         "kind": "comment"
       },
       {
-        "line": 53,
-        "text": "ref's first segment is a parameter of the calling entity",
-        "kind": "comment"
-      },
-      {
-        "line": 54,
-        "text": "with an annotation, resolve the method against that class",
+        "line": 48,
+        "text": "rule needs the CALLER, which resolve() has no business knowing.",
         "kind": "comment"
       },
       {
         "line": 55,
-        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
         "kind": "comment"
       },
       {
         "line": 56,
+        "text": "self.meth was attributed to the calling subclass, but meth",
+        "kind": "comment"
+      },
+      {
+        "line": 57,
+        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "kind": "comment"
+      },
+      {
+        "line": 63,
+        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "kind": "comment"
+      },
+      {
+        "line": 64,
+        "text": "ref's first segment is a parameter of the calling entity",
+        "kind": "comment"
+      },
+      {
+        "line": 65,
+        "text": "with an annotation, resolve the method against that class",
+        "kind": "comment"
+      },
+      {
+        "line": 66,
+        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "kind": "comment"
+      },
+      {
+        "line": 67,
         "text": "every edge this wins was previously a guess or a drop.",
         "kind": "comment"
       },
       {
-        "line": 76,
-        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
-        "kind": "comment"
-      },
-      {
         "line": 77,
-        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "text": "guarded like the other short-name lookups: a",
         "kind": "comment"
       },
       {
         "line": 78,
+        "text": "declared type is strong evidence, but the CLASS",
+        "kind": "comment"
+      },
+      {
+        "line": 79,
+        "text": "is still being found by bare name and can land",
+        "kind": "comment"
+      },
+      {
+        "line": 80,
+        "text": "on a function-local class no annotation could",
+        "kind": "comment"
+      },
+      {
+        "line": 81,
+        "text": "legally name.",
+        "kind": "comment"
+      },
+      {
+        "line": 93,
+        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "kind": "comment"
+      },
+      {
+        "line": 94,
+        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "kind": "comment"
+      },
+      {
+        "line": 95,
         "text": "drops the edge (conservatism preserved).",
         "kind": "comment"
       },
       {
-        "line": 88,
+        "line": 105,
         "text": "inheritance dispatch: self.meth resolved to the CALLING",
         "kind": "comment"
       },
       {
-        "line": 89,
+        "line": 106,
         "text": "subclass, but meth is defined on an ancestor. Without",
         "kind": "comment"
       },
       {
-        "line": 90,
+        "line": 107,
         "text": "base-class info, accept a UNIQUE definition of the bare",
         "kind": "comment"
       },
       {
-        "line": 91,
+        "line": 108,
         "text": "method name anywhere in the index - flagged as a guess.",
         "kind": "comment"
       },
       {
-        "line": 98,
+        "line": 109,
+        "text": "guarded like the other two short-name tiers - this",
+        "kind": "comment"
+      },
+      {
+        "line": 110,
+        "text": "one was missed on the first pass and kept feeding the",
+        "kind": "comment"
+      },
+      {
+        "line": 111,
+        "text": "same false hubs, which is the argument for the test",
+        "kind": "comment"
+      },
+      {
+        "line": 112,
+        "text": "below that enumerates every site rather than trusting",
+        "kind": "comment"
+      },
+      {
+        "line": 113,
+        "text": "that they were all found.",
+        "kind": "comment"
+      },
+      {
+        "line": 121,
         "text": "bare-name fallback: unique short-name match anywhere in",
         "kind": "comment"
       },
       {
-        "line": 99,
+        "line": 122,
         "text": "the index. Grounded enough to keep WITH a low score -",
         "kind": "comment"
       },
       {
-        "line": 100,
+        "line": 123,
         "text": "dropping it silently (old behavior) hides real coupling.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "79347647325f0b49",
+    "comment_hash": "69eebb1e8521a5b6",
     "comment_rot": false,
     "sketch": [
       96553741035,
@@ -14932,16 +15263,16 @@
       288269535559,
       200364588709,
       27410514557,
-      2040507254291,
+      599367413033,
       115953637255,
       8424773659,
       216753661304,
-      1188264747597,
+      15066389981,
       10287284009,
       98168924594,
-      52054130119,
-      313125283355,
-      479338867923,
+      122232186344,
+      115793522781,
+      2706762140,
       108858766615,
       16842180795,
       552464752386,
@@ -14952,9 +15283,9 @@
       160613900127,
       191343606397,
       17545455202,
-      1401175110643,
+      1210971026544,
       4326221900,
-      415351658516,
+      47915329849,
       139429199661,
       71620563606,
       425364497135,
@@ -14970,15 +15301,15 @@
       120632463895,
       298727682103,
       171425265356,
-      147001137545,
+      57694400726,
       791708954821,
-      128367834526,
+      62484065295,
       128397927987
     ],
-    "n_shingles": 886,
-    "end_lineno": 209,
-    "loc": 110,
-    "complexity": 43
+    "n_shingles": 1096,
+    "end_lineno": 287,
+    "loc": 134,
+    "complexity": 49
   },
   "C-2f08e4": {
     "coord_id": "C-2f08e4",
@@ -15235,7 +15566,7 @@
     "kind": "method",
     "qualname": "memway.parsers.GoParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 464,
+    "lineno": 474,
     "body_hash": "d282dd43a2235013",
     "parent": "C-5a82b9",
     "signature": "parse(self, path, repo_root)",
@@ -15300,7 +15631,7 @@
       128397927987
     ],
     "n_shingles": 598,
-    "end_lineno": 558,
+    "end_lineno": 568,
     "loc": 95,
     "complexity": 24
   },
@@ -15401,7 +15732,7 @@
     "kind": "function",
     "qualname": "memway.parsers.TypeScriptParser.parse.walk",
     "path": "memway/parsers.py",
-    "lineno": 428,
+    "lineno": 438,
     "body_hash": "799127152cc6a910",
     "parent": "C-d7c3bc",
     "signature": "walk(n)",
@@ -15463,7 +15794,7 @@
       305029449821
     ],
     "n_shingles": 130,
-    "end_lineno": 446,
+    "end_lineno": 456,
     "loc": 19,
     "complexity": 6
   },
@@ -15782,70 +16113,76 @@
     "qualname": "memway.indexer.Indexer.load_raw_edges",
     "path": "memway/indexer.py",
     "lineno": 700,
-    "body_hash": "1a6b1057ba6f5032",
+    "body_hash": "e730dffb41c90856",
     "parent": "C-920e4b",
     "signature": "load_raw_edges(self)",
-    "shape_hash": "ed59b532aa76d48e",
-    "logic_hash": "b87e52be9260021c",
+    "shape_hash": "d97b1ee419b3cb72",
+    "logic_hash": "fb19e69410d3e810",
     "param_types": {},
     "return_type": "",
-    "comments": [],
-    "comment_hash": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Load raw edges, IGNORING fields this build does not know. A newer memway may have added a field - 0.54.3 added RawEdge.via_attr - and an older process reading that file used to die on `unexpected keyw",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "eb321d0989b0aeaf",
     "comment_rot": false,
     "sketch": [
-      2713111203081,
-      4465796352459,
-      7322618176170,
-      8590749691833,
-      1723333514209,
-      5637311524698,
-      1791063756420,
+      619925271645,
+      180016127034,
+      2303820269985,
+      579179336447,
+      321006048731,
+      647934134571,
+      12838089949,
       628301715795,
       1177752761315,
-      11713605778673,
-      1188264747597,
+      994448647947,
+      219716534065,
       2672340928376,
-      1414234077966,
+      745898575730,
       935389275054,
-      4750643610326,
+      424980750812,
       104768938065,
-      8103776419519,
-      762745815735,
-      1948684773586,
-      7639226691034,
-      2880019814672,
-      9385749121650,
-      61157178240,
-      1562725967195,
-      3984181017214,
-      4851933216184,
-      9169204324322,
-      6992671231917,
-      2849039431173,
-      7169872588657,
-      10127063745196,
+      353943570134,
+      626898894121,
+      315932931151,
+      234783789571,
+      262576430881,
+      1503221154423,
+      22169160994,
+      1170359777266,
+      2111567753529,
+      792747310903,
+      223059219370,
+      4552629119251,
+      1429844398881,
+      1112788921599,
+      1483089670473,
       1233208189420,
       996428056224,
-      5574214243655,
-      1302945836934,
-      3870631277556,
-      12855810543374,
-      7390848070669,
-      4587988866788,
-      3709767596270,
-      7199734951489,
-      3315103640195,
-      14091135122617,
-      7840671397192,
+      1557404880609,
+      3267045604305,
+      946506566258,
+      2605594273746,
+      3592889573416,
+      763365870189,
+      67850393174,
+      320230489739,
+      654607348341,
+      1319006186452,
+      1234881460743,
       437110900094,
       157128117378,
-      3930097887219,
-      12991830614930
+      2774862092134,
+      1196222960569
     ],
-    "n_shingles": 56,
-    "end_lineno": 705,
-    "loc": 6,
-    "complexity": 3
+    "n_shingles": 233,
+    "end_lineno": 721,
+    "loc": 22,
+    "complexity": 5
   },
   "C-31dae4": {
     "coord_id": "C-31dae4",
@@ -17637,7 +17974,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.PythonParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 67,
+    "lineno": 75,
     "body_hash": "3b77f6924bd55e03",
     "parent": "C-990ef6",
     "signature": "",
@@ -17699,7 +18036,7 @@
       16122711391
     ],
     "n_shingles": 7,
-    "end_lineno": 67,
+    "end_lineno": 75,
     "loc": 1,
     "complexity": 1
   },
@@ -19607,7 +19944,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.js_sig",
     "path": "memway/parsers.py",
-    "lineno": 260,
+    "lineno": 270,
     "body_hash": "77d8f6381fcf2ae7",
     "parent": "C-7f9bea",
     "signature": "js_sig(n, nm, value)",
@@ -19675,7 +20012,7 @@
       1390193323695
     ],
     "n_shingles": 158,
-    "end_lineno": 277,
+    "end_lineno": 287,
     "loc": 18,
     "complexity": 5
   },
@@ -19684,7 +20021,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.JavaScriptParser.language",
     "path": "memway/parsers.py",
-    "lineno": 224,
+    "lineno": 234,
     "body_hash": "229240f49f503dae",
     "parent": "C-ef0704",
     "signature": "",
@@ -19746,7 +20083,7 @@
       63369235518287
     ],
     "n_shingles": 3,
-    "end_lineno": 224,
+    "end_lineno": 234,
     "loc": 1,
     "complexity": 1
   },
@@ -20153,7 +20490,7 @@
     "kind": "method",
     "qualname": "memway.parsers.GoParser.__init__",
     "path": "memway/parsers.py",
-    "lineno": 459,
+    "lineno": 469,
     "body_hash": "36b1bd8859436aa2",
     "parent": "C-5a82b9",
     "signature": "__init__(self)",
@@ -20215,7 +20552,7 @@
       11395947901192
     ],
     "n_shingles": 27,
-    "end_lineno": 462,
+    "end_lineno": 472,
     "loc": 4,
     "complexity": 1
   },
@@ -23030,7 +23367,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.JavaParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 566,
+    "lineno": 576,
     "body_hash": "9fc68cab16e7a551",
     "parent": "C-f56249",
     "signature": "",
@@ -23092,7 +23429,7 @@
       16122711391
     ],
     "n_shingles": 7,
-    "end_lineno": 566,
+    "end_lineno": 576,
     "loc": 1,
     "complexity": 1
   },
@@ -23398,11 +23735,11 @@
     "qualname": "memway.parsers",
     "path": "memway/parsers.py",
     "lineno": 1,
-    "body_hash": "8c7b9fed1a611314",
+    "body_hash": "e72641cb494bc548",
     "parent": null,
     "signature": "",
-    "shape_hash": "1aebac9d4943bbfe",
-    "logic_hash": "73797c9114305400",
+    "shape_hash": "bf86b8d3763f7a56",
+    "logic_hash": "8d896e2dcc991826",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -23467,242 +23804,277 @@
         "kind": "comment"
       },
       {
-        "line": 56,
+        "line": 41,
+        "text": "True when the call was written `receiver.name(...)` and the receiver's",
+        "kind": "comment"
+      },
+      {
+        "line": 42,
+        "text": "type could not be determined. The NAME survives, the fact that it was",
+        "kind": "comment"
+      },
+      {
+        "line": 43,
+        "text": "an attribute access does not - and that fact is decisive downstream:",
+        "kind": "comment"
+      },
+      {
+        "line": 44,
+        "text": "`d.get(x)` cannot be a module-level function called `get`, however",
+        "kind": "comment"
+      },
+      {
+        "line": 45,
+        "text": "unique that name happens to be in the index. Defaulting False keeps",
+        "kind": "comment"
+      },
+      {
+        "line": 46,
+        "text": "older cached edges constructible; the schema bump forces a re-parse",
+        "kind": "comment"
+      },
+      {
+        "line": 47,
+        "text": "so nothing keeps the stale default forever.",
+        "kind": "comment"
+      },
+      {
+        "line": 64,
         "text": "--------------------------------------------------------------------------",
         "kind": "comment"
       },
       {
-        "line": 57,
+        "line": 65,
         "text": "Python plugin: stdlib ast (no dependencies, richest resolution)",
         "kind": "comment"
       },
       {
-        "line": 58,
+        "line": 66,
         "text": "--------------------------------------------------------------------------",
         "kind": "comment"
       },
       {
-        "line": 116,
+        "line": 124,
         "text": "imports",
         "kind": "comment"
       },
       {
-        "line": 127,
+        "line": 135,
         "text": "calls / events attributed to enclosing scope",
         "kind": "comment"
       },
       {
-        "line": 131,
+        "line": 139,
         "text": "quals of enclosing classes",
         "kind": "comment"
       },
       {
-        "line": 132,
+        "line": 140,
         "text": "per-function: name -> Type",
         "kind": "comment"
       },
       {
-        "line": 144,
+        "line": 152,
         "text": "annotation-assisted typing: `def f(s: Session)` means",
         "kind": "comment"
       },
       {
-        "line": 145,
+        "line": 153,
         "text": "s.request() is Session.request - the type fact is",
         "kind": "comment"
       },
       {
-        "line": 146,
+        "line": 154,
         "text": "ALREADY in the source; using it is not inference.",
         "kind": "comment"
       },
       {
-        "line": 151,
+        "line": 159,
         "text": "NOTE (2026-08): blind unwrap of Optional/union/string",
         "kind": "comment"
       },
       {
-        "line": 152,
+        "line": 160,
         "text": "annotations was tried here and REVERTED - A/B on flask",
         "kind": "comment"
       },
       {
-        "line": 153,
+        "line": 161,
         "text": "showed it manufacturing 12 guess-tier edges (common",
         "kind": "comment"
       },
       {
-        "line": 154,
+        "line": 162,
         "text": "annotation words -> dotted refs -> unique-bare cascade).",
         "kind": "comment"
       },
       {
-        "line": 155,
+        "line": 163,
         "text": "The parser cannot verify a type resolves to a real",
         "kind": "comment"
       },
       {
-        "line": 156,
+        "line": 164,
         "text": "in-repo class; only edge-building can. Forward-ref",
         "kind": "comment"
       },
       {
-        "line": 157,
+        "line": 165,
         "text": "resolution belongs in the edges 'annotated' tier,",
         "kind": "comment"
       },
       {
-        "line": 158,
+        "line": 166,
         "text": "which has that guard.",
         "kind": "comment"
       },
       {
-        "line": 180,
+        "line": 188,
         "text": "self.x() -> the ENCLOSING class's x,",
         "kind": "comment"
       },
       {
-        "line": 181,
+        "line": 189,
         "text": "fully qualified: exact resolution, no",
         "kind": "comment"
       },
       {
-        "line": 182,
+        "line": 190,
         "text": "cross-class ambiguity possible.",
         "kind": "comment"
       },
       {
-        "line": 185,
+        "line": 193,
         "text": "annotated param: qualify by declared type",
         "kind": "comment"
       },
       {
-        "line": 199,
+        "line": 207,
         "text": "dynamic event name (f-string, variable,",
         "kind": "comment"
       },
       {
-        "line": 200,
+        "line": 208,
         "text": "concatenation): the edge target is unknowable",
         "kind": "comment"
       },
       {
-        "line": 201,
+        "line": 209,
         "text": "statically. Record VISIBLE uncertainty rather",
         "kind": "comment"
       },
       {
-        "line": 202,
+        "line": 210,
         "text": "than silently dropping the edge - blast and",
         "kind": "comment"
       },
       {
-        "line": 203,
+        "line": 211,
         "text": "traversal surface it as an honest unknown.",
         "kind": "comment"
       },
       {
-        "line": 214,
+        "line": 224,
         "text": "--------------------------------------------------------------------------",
         "kind": "comment"
       },
       {
-        "line": 215,
+        "line": 225,
         "text": "JavaScript plugin: tree-sitter",
         "kind": "comment"
       },
       {
-        "line": 216,
+        "line": 226,
         "text": "--------------------------------------------------------------------------",
         "kind": "comment"
       },
       {
-        "line": 315,
+        "line": 325,
         "text": "const f = () => {} / const f = function () {}",
         "kind": "comment"
       },
       {
-        "line": 336,
+        "line": 346,
         "text": "imports + calls + events via a second pass with a scope stack",
         "kind": "comment"
       },
       {
-        "line": 350,
+        "line": 360,
         "text": "normalize ./relative paths to dotted qualnames",
         "kind": "comment"
       },
       {
-        "line": 398,
+        "line": 408,
         "text": "--------------------------------------------------------------------------",
         "kind": "comment"
       },
       {
-        "line": 629,
+        "line": 639,
         "text": "overload disambiguation: arity suffix only when",
         "kind": "comment"
       },
       {
-        "line": 630,
+        "line": 640,
         "text": "needed would require two passes; always-suffix",
         "kind": "comment"
       },
       {
-        "line": 631,
+        "line": 641,
         "text": "keeps identity stable as overloads come and go",
         "kind": "comment"
       },
       {
-        "line": 650,
+        "line": 660,
         "text": "Bump whenever ANY parser's extraction logic changes: a warm parse",
         "kind": "comment"
       },
       {
-        "line": 651,
+        "line": 661,
         "text": "cache from an older parser silently replays stale entities/edges,",
         "kind": "comment"
       },
       {
-        "line": 652,
+        "line": 662,
         "text": "so the cache is versioned by this schema and discarded on mismatch.",
         "kind": "comment"
       },
       {
-        "line": 653,
+        "line": 663,
         "text": "2: scope-aware call resolution",
         "kind": "comment"
       },
       {
-        "line": 654,
+        "line": 664,
         "text": "4: stable shingle hash (blake2b) - the",
         "kind": "comment"
       },
       {
-        "line": 655,
+        "line": 665,
         "text": "cache holds sketches, so a warm cache",
         "kind": "comment"
       },
       {
-        "line": 656,
+        "line": 666,
         "text": "would replay randomized ones forever",
         "kind": "comment"
       },
       {
-        "line": 657,
+        "line": 667,
         "text": "3: signatures + leading doc comments",
         "kind": "comment"
       },
       {
-        "line": 658,
+        "line": 668,
         "text": "for go/js/ts entities",
         "kind": "comment"
       },
       {
-        "line": 683,
+        "line": 693,
         "text": "version mismatch, etc.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "24c689f404df7847",
+    "comment_hash": "2e493df5af2ff487",
     "comment_rot": false,
     "sketch": [
       35981505093,
@@ -23740,24 +24112,24 @@
       18133354015,
       98970105033,
       92210296363,
-      87938807666,
+      25974565995,
       12631403495,
-      94397771596,
+      12501768764,
       35713838825,
       7601117489,
       4281692144,
       7274710725,
       113030725624,
-      232238151050,
+      50413093509,
       57532898531,
       67032457337,
       189530319940,
       16122711391
     ],
-    "n_shingles": 3160,
-    "end_lineno": 693,
-    "loc": 694,
-    "complexity": 134
+    "n_shingles": 3283,
+    "end_lineno": 703,
+    "loc": 704,
+    "complexity": 135
   },
   "C-4cba65": {
     "coord_id": "C-4cba65",
@@ -24375,7 +24747,7 @@
     "kind": "method",
     "qualname": "memway.parsers.TypeScriptParser.__init__",
     "path": "memway/parsers.py",
-    "lineno": 407,
+    "lineno": 417,
     "body_hash": "b4f183bc713b6ecc",
     "parent": "C-62fecb",
     "signature": "__init__(self)",
@@ -24437,7 +24809,7 @@
       2689000581993
     ],
     "n_shingles": 35,
-    "end_lineno": 413,
+    "end_lineno": 423,
     "loc": 7,
     "complexity": 1
   },
@@ -25113,7 +25485,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaParser.parse.ntext",
     "path": "memway/parsers.py",
-    "lineno": 583,
+    "lineno": 593,
     "body_hash": "279a431f4d19a732",
     "parent": "C-7f8289",
     "signature": "ntext(n)",
@@ -25175,7 +25547,7 @@
       4998954446829
     ],
     "n_shingles": 24,
-    "end_lineno": 585,
+    "end_lineno": 595,
     "loc": 3,
     "complexity": 1
   },
@@ -26582,11 +26954,11 @@
     "qualname": "tests.test_parse_cache_discipline",
     "path": "tests/test_parse_cache_discipline.py",
     "lineno": 1,
-    "body_hash": "7e54571dc82317a1",
+    "body_hash": "b82f666ed1cddbe4",
     "parent": null,
     "signature": "",
     "shape_hash": "9bca0ad18165615f",
-    "logic_hash": "bc39dac184ee298a",
+    "logic_hash": "e030004f77bc8c15",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -26617,10 +26989,10 @@
       175848934760,
       274527194563,
       358196108499,
-      976452652244,
+      596142874487,
       654174801399,
       277670735176,
-      175019353977,
+      10724897234,
       401838959493,
       71871143286,
       433078966456,
@@ -26632,7 +27004,7 @@
       1300137655023,
       497569216814,
       112045307126,
-      684289495727,
+      868044175525,
       399225266714,
       555672169293,
       682722845138,
@@ -26653,7 +27025,7 @@
       843147624311,
       746160633592
     ],
-    "n_shingles": 491,
+    "n_shingles": 498,
     "end_lineno": 68,
     "loc": 69,
     "complexity": 4
@@ -29156,7 +29528,7 @@
     "kind": "class",
     "qualname": "memway.parsers.GoParser",
     "path": "memway/parsers.py",
-    "lineno": 451,
+    "lineno": 461,
     "body_hash": "dcaf62db0ba14467",
     "parent": "C-4ca895",
     "signature": "",
@@ -29224,7 +29596,7 @@
       16122711391
     ],
     "n_shingles": 686,
-    "end_lineno": 558,
+    "end_lineno": 568,
     "loc": 108,
     "complexity": 24
   },
@@ -29892,12 +30264,12 @@
     "kind": "class",
     "qualname": "memway.parsers.PythonParser.parse.V",
     "path": "memway/parsers.py",
-    "lineno": 128,
-    "body_hash": "3476d400fea92854",
+    "lineno": 136,
+    "body_hash": "d340014148575b22",
     "parent": "C-242957",
     "signature": "",
-    "shape_hash": "8653041b7e31d3ba",
-    "logic_hash": "1b54c9c90e4a4905",
+    "shape_hash": "3bcfa4c818d29293",
+    "logic_hash": "48212c5bab6bac57",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -30013,7 +30385,7 @@
       }
     ],
     "comment_hash": "fb2ec8fec765c830",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       35981505093,
       253929800569,
@@ -30064,10 +30436,10 @@
       1044260600619,
       128397927987
     ],
-    "n_shingles": 575,
-    "end_lineno": 208,
-    "loc": 81,
-    "complexity": 17
+    "n_shingles": 583,
+    "end_lineno": 218,
+    "loc": 83,
+    "complexity": 18
   },
   "C-5dda2c": {
     "coord_id": "C-5dda2c",
@@ -30151,7 +30523,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.TypeScriptParser.language",
     "path": "memway/parsers.py",
-    "lineno": 405,
+    "lineno": 415,
     "body_hash": "24ba16425120919e",
     "parent": "C-62fecb",
     "signature": "",
@@ -30213,7 +30585,7 @@
       63369235518287
     ],
     "n_shingles": 3,
-    "end_lineno": 405,
+    "end_lineno": 415,
     "loc": 1,
     "complexity": 1
   },
@@ -30222,7 +30594,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.PythonParser.language",
     "path": "memway/parsers.py",
-    "lineno": 68,
+    "lineno": 76,
     "body_hash": "dc3d33eb2e03f683",
     "parent": "C-990ef6",
     "signature": "",
@@ -30284,7 +30656,7 @@
       3636812235068
     ],
     "n_shingles": 3,
-    "end_lineno": 68,
+    "end_lineno": 76,
     "loc": 1,
     "complexity": 1
   },
@@ -30572,7 +30944,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.save",
     "path": "memway/edges.py",
-    "lineno": 220,
+    "lineno": 298,
     "body_hash": "bc40890948b6d977",
     "parent": "C-cbc42e",
     "signature": "save(self, coord_dir)",
@@ -30636,7 +31008,7 @@
       2236188797536
     ],
     "n_shingles": 69,
-    "end_lineno": 226,
+    "end_lineno": 304,
     "loc": 7,
     "complexity": 1
   },
@@ -31195,7 +31567,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.LanguageParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 44,
+    "lineno": 52,
     "body_hash": "81e13dd348d81661",
     "parent": "C-b2b3d1",
     "signature": "",
@@ -31257,7 +31629,7 @@
       112854468603267
     ],
     "n_shingles": 4,
-    "end_lineno": 44,
+    "end_lineno": 52,
     "loc": 1,
     "complexity": 1
   },
@@ -31656,7 +32028,7 @@
     "kind": "class",
     "qualname": "memway.parsers.TypeScriptParser",
     "path": "memway/parsers.py",
-    "lineno": 400,
+    "lineno": 410,
     "body_hash": "e21e5fae3e2acf41",
     "parent": "C-4ca895",
     "signature": "",
@@ -31724,7 +32096,7 @@
       305029449821
     ],
     "n_shingles": 310,
-    "end_lineno": 448,
+    "end_lineno": 458,
     "loc": 49,
     "complexity": 8
   },
@@ -33413,6 +33785,93 @@
     "loc": 9,
     "complexity": 3
   },
+  "C-652aaf": {
+    "coord_id": "C-652aaf",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_an_attribute_call_never_resolves_to_a_module_level_function",
+    "path": "tests/test_units_core2.py",
+    "lineno": 413,
+    "body_hash": "2d9baa5a9d9e27b8",
+    "parent": "C-80b544",
+    "signature": "test_an_attribute_call_never_resolves_to_a_module_level_function(tmp_path)",
+    "shape_hash": "f21c51dd11468968",
+    "logic_hash": "352640977aae7132",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "`d.get(x)` is not `def get` at module scope, however unique the name. The parser knew the call was written `receiver.name(...)` and threw that away; RawEdge carries it now. Without it, every dict.get(",
+        "kind": "docstring"
+      },
+      {
+        "line": 18,
+        "text": "...and a PLAIN call to the same name still resolves: the rule is",
+        "kind": "comment"
+      },
+      {
+        "line": 19,
+        "text": "about how the call was written, not about the name.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "b82737d3d6ff99dc",
+    "comment_rot": false,
+    "sketch": [
+      1053037621602,
+      4739479696284,
+      669327015395,
+      3427080566485,
+      1034694579426,
+      1914277189177,
+      1291904620021,
+      907282689254,
+      477918221576,
+      151264607246,
+      582065119944,
+      944578280745,
+      646222673427,
+      314286560801,
+      2166438053817,
+      200477378850,
+      456267338644,
+      863391360693,
+      2529422181130,
+      6748497267,
+      372378595536,
+      190295460468,
+      172267959474,
+      542746047526,
+      936817774159,
+      586994608965,
+      623976268802,
+      1365265943811,
+      119388878223,
+      73198970746,
+      428274450452,
+      2890306831155,
+      316399976848,
+      192460184596,
+      555547149384,
+      93043239763,
+      644593960373,
+      12501768764,
+      667903248842,
+      2151890216530,
+      529495389745,
+      323520921590,
+      752899888565,
+      469137204259,
+      624265627718,
+      45949175995,
+      273303830179,
+      247074004027
+    ],
+    "n_shingles": 310,
+    "end_lineno": 439,
+    "loc": 27,
+    "complexity": 11
+  },
   "C-6581dc": {
     "coord_id": "C-6581dc",
     "kind": "function",
@@ -33571,6 +34030,80 @@
     "end_lineno": 360,
     "loc": 11,
     "complexity": 4
+  },
+  "C-66a95d": {
+    "coord_id": "C-66a95d",
+    "kind": "function",
+    "qualname": "tests.test_viz._rule",
+    "path": "tests/test_viz.py",
+    "lineno": 691,
+    "body_hash": "0d4691d36b91fd85",
+    "parent": "C-bba297",
+    "signature": "_rule(html, selector)",
+    "shape_hash": "11cbfdef6706b6fd",
+    "logic_hash": "39fdcbb297df9ac4",
+    "param_types": {
+      "html": "str",
+      "selector": "str"
+    },
+    "return_type": "str",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": [
+      7259074795339,
+      15760987017208,
+      1160864796651,
+      7838368840216,
+      3762474983755,
+      3821285970419,
+      1017555617453,
+      5828359080407,
+      17930351016845,
+      1320867275612,
+      18290228662483,
+      4072849550630,
+      9194663457217,
+      477712004163,
+      22856973494299,
+      1513402119155,
+      2250735687742,
+      9686655985851,
+      3073615015870,
+      15798233211588,
+      17302868600672,
+      9045987824749,
+      2320006158883,
+      11147963331836,
+      3773398544351,
+      7235267972882,
+      4854948753109,
+      7748433927734,
+      1196457279240,
+      18380241526962,
+      2845400286711,
+      1766605121462,
+      5037787671049,
+      13212716244872,
+      5113845810072,
+      27150047844322,
+      3898961766186,
+      10275993406735,
+      13292106694336,
+      7160631095799,
+      2553148725358,
+      9796378817874,
+      10561126744610,
+      4904429223304,
+      15840260424323,
+      361685612295,
+      624176963706,
+      1867543393068
+    ],
+    "n_shingles": 39,
+    "end_lineno": 693,
+    "loc": 3,
+    "complexity": 1
   },
   "C-674e0a": {
     "coord_id": "C-674e0a",
@@ -37973,6 +38506,77 @@
     "loc": 431,
     "complexity": 36
   },
+  "C-738716": {
+    "coord_id": "C-738716",
+    "kind": "attribute",
+    "qualname": "memway.parsers.RawEdge.via_attr",
+    "path": "memway/parsers.py",
+    "lineno": 48,
+    "body_hash": "b573c2d51c4cd0ef",
+    "parent": "C-740ea2",
+    "signature": "",
+    "shape_hash": "05794c577667b6c2",
+    "logic_hash": "428e5e56a269d997",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": [
+      12599527790161,
+      171066490304,
+      87013146494467,
+      22758340589034,
+      99730483646077,
+      27495699410364,
+      112190293677655,
+      50082809931078,
+      124907706326657,
+      68289217650024,
+      137917134284539,
+      54485792817846,
+      9759681490645,
+      40814951045952,
+      22494274008847,
+      46918142890858,
+      43732858781561,
+      33144221920052,
+      56467513689939,
+      4062987150302,
+      68360259063693,
+      70810525553552,
+      13668120504347,
+      92340766497738,
+      18679985774637,
+      104783300190244,
+      40992350772215,
+      117380416006174,
+      46004589335449,
+      130097886851144,
+      63918805060515,
+      1270356244642,
+      66358975878385,
+      13987731013788,
+      37209071987867,
+      26447503296758,
+      23503807554725,
+      47960975413536,
+      29675731467599,
+      60558124259610,
+      17104401315097,
+      7884653780616,
+      75038700905819,
+      12879710639698,
+      96414733020597,
+      30811206635108,
+      108875043223023,
+      35806970234382
+    ],
+    "n_shingles": 3,
+    "end_lineno": 48,
+    "loc": 1,
+    "complexity": 1
+  },
   "C-73f243": {
     "coord_id": "C-73f243",
     "kind": "function",
@@ -38066,11 +38670,11 @@
     "qualname": "memway.parsers.RawEdge",
     "path": "memway/parsers.py",
     "lineno": 37,
-    "body_hash": "4fcd1a129b31dbdf",
+    "body_hash": "b3160b556a1c302d",
     "parent": "C-4ca895",
     "signature": "",
-    "shape_hash": "01cc505c571b79e0",
-    "logic_hash": "77afe80cdd8a3b4b",
+    "shape_hash": "af4fb2c77f83589d",
+    "logic_hash": "9edf311a4f23fee7",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -38083,63 +38687,98 @@
         "line": 4,
         "text": "imports | calls | emits | consumes",
         "kind": "comment"
+      },
+      {
+        "line": 5,
+        "text": "True when the call was written `receiver.name(...)` and the receiver's",
+        "kind": "comment"
+      },
+      {
+        "line": 6,
+        "text": "type could not be determined. The NAME survives, the fact that it was",
+        "kind": "comment"
+      },
+      {
+        "line": 7,
+        "text": "an attribute access does not - and that fact is decisive downstream:",
+        "kind": "comment"
+      },
+      {
+        "line": 8,
+        "text": "`d.get(x)` cannot be a module-level function called `get`, however",
+        "kind": "comment"
+      },
+      {
+        "line": 9,
+        "text": "unique that name happens to be in the index. Defaulting False keeps",
+        "kind": "comment"
+      },
+      {
+        "line": 10,
+        "text": "older cached edges constructible; the schema bump forces a re-parse",
+        "kind": "comment"
+      },
+      {
+        "line": 11,
+        "text": "so nothing keeps the stale default forever.",
+        "kind": "comment"
       }
     ],
-    "comment_hash": "a34875c339bf431e",
+    "comment_hash": "163542d3e88be41d",
     "comment_rot": false,
     "sketch": [
-      178043690356,
-      3911376132648,
-      4416590151176,
+      54881265986,
+      171066490304,
+      4130859255107,
       122327586462,
-      3495622247524,
-      1633652894409,
+      1843006328828,
+      459307083101,
       4295784818449,
       3047595165809,
-      9481323597139,
-      7698763514493,
-      4855600510249,
-      57035756338531,
-      10788155912241,
-      35909197143530,
+      918212798741,
+      3673358880215,
+      2463009508678,
+      4014132060761,
+      716939574891,
+      4710641496979,
       380687312968,
-      35403465152400,
-      15285252489451,
-      22797759393742,
+      354077434125,
+      2758371460553,
+      1266546747184,
       6307437555031,
       2077175225355,
-      9670429123977,
-      2694042738889,
-      6183243612012,
-      5032831688101,
-      4758428320601,
-      7513780873789,
-      10999483217600,
-      2704554133188,
+      741265315936,
+      1588379874552,
+      337600023142,
+      2481370287439,
+      1523410186366,
+      1857407609720,
+      494793313272,
+      1365265943811,
       7275775213230,
-      16866803131290,
-      3543636661430,
+      1807806317524,
+      2303154467140,
       35656541766,
-      60209517301771,
-      14943530737272,
-      39055012778830,
-      1041906538034,
-      18512689078799,
-      1917458558642,
-      18028438092213,
-      2147617305374,
-      5302532996668,
-      3287384889333,
-      6780986955266,
-      2504904245541,
+      1197838781051,
+      5490898210850,
+      555547149384,
+      25974565995,
+      9213779246083,
+      12501768764,
+      1212653862670,
+      1724275524080,
+      273426978990,
+      629678443433,
+      777695164244,
+      50413093509,
       928842869722,
-      4914536204561,
+      3450303240882,
       644153409108,
-      17427760311097
+      4991732195934
     ],
-    "n_shingles": 33,
-    "end_lineno": 40,
-    "loc": 4,
+    "n_shingles": 149,
+    "end_lineno": 48,
+    "loc": 12,
     "complexity": 1
   },
   "C-74ae45": {
@@ -39644,7 +40283,7 @@
     "kind": "function",
     "qualname": "memway.edges.event_pairs",
     "path": "memway/edges.py",
-    "lineno": 248,
+    "lineno": 326,
     "body_hash": "01691016cad1675a",
     "parent": "C-de4bf4",
     "signature": "event_pairs(edges)",
@@ -39714,7 +40353,7 @@
       423928226199
     ],
     "n_shingles": 143,
-    "end_lineno": 259,
+    "end_lineno": 337,
     "loc": 12,
     "complexity": 6
   },
@@ -41111,7 +41750,7 @@
     "kind": "method",
     "qualname": "memway.parsers.JavaParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 574,
+    "lineno": 584,
     "body_hash": "680e1c12d7a89f8d",
     "parent": "C-f56249",
     "signature": "parse(self, path, repo_root)",
@@ -41192,7 +41831,7 @@
       128397927987
     ],
     "n_shingles": 443,
-    "end_lineno": 647,
+    "end_lineno": 657,
     "loc": 74,
     "complexity": 16
   },
@@ -41201,7 +41840,7 @@
     "kind": "method",
     "qualname": "memway.parsers.JavaScriptParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 231,
+    "lineno": 241,
     "body_hash": "c072941f8d2324a9",
     "parent": "C-ef0704",
     "signature": "parse(self, path, repo_root)",
@@ -41282,7 +41921,7 @@
       128397927987
     ],
     "n_shingles": 897,
-    "end_lineno": 395,
+    "end_lineno": 405,
     "loc": 165,
     "complexity": 47
   },
@@ -41440,11 +42079,11 @@
     "qualname": "tests.test_units_core2",
     "path": "tests/test_units_core2.py",
     "lineno": 1,
-    "body_hash": "85860e6f38176d39",
+    "body_hash": "d2768000b2559c97",
     "parent": null,
     "signature": "",
-    "shape_hash": "9b831f092403c1c6",
-    "logic_hash": "066df5c0bad5f229",
+    "shape_hash": "49331ecbe25e71a7",
+    "logic_hash": "171b75d4cb4067db",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -41682,9 +42321,54 @@
         "line": 349,
         "text": "cycle revisit guard",
         "kind": "comment"
+      },
+      {
+        "line": 372,
+        "text": "--------------------------- a name-only match that cannot be the callee",
+        "kind": "comment"
+      },
+      {
+        "line": 430,
+        "text": "...and a PLAIN call to the same name still resolves: the rule is",
+        "kind": "comment"
+      },
+      {
+        "line": 431,
+        "text": "about how the call was written, not about the name.",
+        "kind": "comment"
+      },
+      {
+        "line": 443,
+        "text": "A PLAIN call, deliberately: `x.helper()` would also be dropped by the",
+        "kind": "comment"
+      },
+      {
+        "line": 444,
+        "text": "attribute-call rule, so the fixture would pass with this rule deleted.",
+        "kind": "comment"
+      },
+      {
+        "line": 445,
+        "text": "Isolate it or it proves nothing.",
+        "kind": "comment"
+      },
+      {
+        "line": 468,
+        "text": "PER LOOKUP, not a global count. Counting both and comparing totals",
+        "kind": "comment"
+      },
+      {
+        "line": 469,
+        "text": "passed with a guard deleted, because the \"exact\" tier's guard made up",
+        "kind": "comment"
+      },
+      {
+        "line": 470,
+        "text": "the difference - the arithmetic was right and the claim was wrong.",
+        "kind": "comment"
       }
     ],
-    "comment_hash": "7151d181c78104d6",
+    "comment_hash": "f1c89515e101a765",
     "comment_rot": false,
     "sketch": [
       145261643988,
@@ -41695,51 +42379,51 @@
       113956729004,
       255100400015,
       17093105503,
-      545840825625,
+      288229011486,
       52036460659,
-      389900338063,
-      218567173429,
+      29316848386,
+      63277277727,
       10478442931,
       296122851305,
-      43840859300,
-      104768938065,
-      80804431756,
+      35505212960,
+      6422313503,
+      45119625241,
       41750769537,
       65258803312,
-      366952354568,
+      6748497267,
       20185848053,
       54982987116,
       35964712841,
-      369136042204,
-      495697117715,
+      60369231284,
+      200546081029,
       163229588538,
       113437211669,
       248586315079,
       21010290006,
-      240271030276,
+      73198970746,
       105235484007,
       117264101488,
       6661605797,
-      322107383502,
+      192460184596,
       32778776901,
       46275643311,
       91029089483,
-      66424404704,
+      12501768764,
       30283110459,
       162147988064,
       166414102887,
-      149588001867,
+      143133761450,
       108688239045,
       157935672346,
-      253505811434,
+      90625262986,
       45949175995,
-      103324768701,
+      62484065295,
       203981028845
     ],
-    "n_shingles": 2197,
-    "end_lineno": 369,
-    "loc": 370,
-    "complexity": 74
+    "n_shingles": 3061,
+    "end_lineno": 483,
+    "loc": 484,
+    "complexity": 104
   },
   "C-80d7fc": {
     "coord_id": "C-80d7fc",
@@ -43433,7 +44117,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.LanguageParser.language",
     "path": "memway/parsers.py",
-    "lineno": 45,
+    "lineno": 53,
     "body_hash": "6da07ea7a33edec5",
     "parent": "C-b2b3d1",
     "signature": "",
@@ -43495,7 +44179,7 @@
       200612203739337
     ],
     "n_shingles": 4,
-    "end_lineno": 45,
+    "end_lineno": 53,
     "loc": 1,
     "complexity": 1
   },
@@ -43938,7 +44622,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.scope_walk",
     "path": "memway/parsers.py",
-    "lineno": 337,
+    "lineno": 347,
     "body_hash": "0432ea77087b59cc",
     "parent": "C-7f9bea",
     "signature": "scope_walk(node, stack)",
@@ -44006,7 +44690,7 @@
       1243906751093
     ],
     "n_shingles": 339,
-    "end_lineno": 392,
+    "end_lineno": 402,
     "loc": 56,
     "complexity": 24
   },
@@ -45042,7 +45726,7 @@
     "kind": "method",
     "qualname": "memway.parsers.JavaParser.__init__",
     "path": "memway/parsers.py",
-    "lineno": 569,
+    "lineno": 579,
     "body_hash": "f79ba2da61dd2bf6",
     "parent": "C-f56249",
     "signature": "__init__(self)",
@@ -45104,7 +45788,7 @@
       22489833401736
     ],
     "n_shingles": 27,
-    "end_lineno": 572,
+    "end_lineno": 582,
     "loc": 4,
     "complexity": 1
   },
@@ -45979,11 +46663,11 @@
     "qualname": "memway.indexer.Indexer",
     "path": "memway/indexer.py",
     "lineno": 360,
-    "body_hash": "dcf2943dd8897ffa",
+    "body_hash": "2cfbbd81da4b3e97",
     "parent": "C-13dc24",
     "signature": "",
-    "shape_hash": "2df5f45e0fd25593",
-    "logic_hash": "6ba6a4c193a3acac",
+    "shape_hash": "494f43f9d8a64cc4",
+    "logic_hash": "66244563c9a77b0a",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -46228,72 +46912,72 @@
         "kind": "comment"
       },
       {
-        "line": 348,
+        "line": 364,
         "text": "---------------------------------------------------------------- lookup",
         "kind": "comment"
       },
       {
-        "line": 359,
+        "line": 375,
         "text": "Hybrid ref support: \"ratelimit.py:refill_bucket\" or \"path/ratelimit.py:refill_bucket\"",
         "kind": "comment"
       },
       {
-        "line": 360,
+        "line": 376,
         "text": "Tiered matching: exact last-component beats suffix; shortest qualname wins ties.",
         "kind": "comment"
       },
       {
-        "line": 363,
+        "line": 379,
         "text": "If path_part ends with .py, treat as hybrid ref",
         "kind": "comment"
       },
       {
-        "line": 365,
+        "line": 381,
         "text": "Strip leading path components to get just the filename",
         "kind": "comment"
       },
       {
-        "line": 367,
+        "line": 383,
         "text": "Collect all entities in the matching file",
         "kind": "comment"
       },
       {
-        "line": 372,
+        "line": 388,
         "text": "Check if this entity's path matches the filename",
         "kind": "comment"
       },
       {
-        "line": 374,
+        "line": 390,
         "text": "Tier 1: exact last-component match",
         "kind": "comment"
       },
       {
-        "line": 377,
+        "line": 393,
         "text": "Tier 2: suffix match (but not already exact)",
         "kind": "comment"
       },
       {
-        "line": 380,
+        "line": 396,
         "text": "Prefer exact matches, then suffix matches; shortest qualname wins",
         "kind": "comment"
       },
       {
-        "line": 382,
+        "line": 398,
         "text": "sort by (length, qualname, cid)",
         "kind": "comment"
       },
       {
-        "line": 387,
+        "line": 403,
         "text": "If no match found with hybrid ref, fall through to normal resolution",
         "kind": "comment"
       },
       {
-        "line": 405,
+        "line": 421,
         "text": "D11b: ambiguous bare names - if exactly one candidate is",
         "kind": "comment"
       },
       {
-        "line": 406,
+        "line": 422,
         "text": "production code, prefer it over test fixtures/helpers",
         "kind": "comment"
       }
@@ -46302,16 +46986,16 @@
     "comment_rot": true,
     "sketch": [
       164762226460,
-      362373333900,
+      180016127034,
       67138694603,
       65227715963,
       13966993628,
       246200239705,
-      64008160442,
+      12838089949,
       43958470813,
       205415194227,
       2387646915,
-      359230396651,
+      219716534065,
       43900696172,
       38763741404,
       69402994649,
@@ -46323,7 +47007,7 @@
       47205855331,
       877775883,
       101025454537,
-      61157178240,
+      22169160994,
       21288667394,
       136920961809,
       138407295981,
@@ -46350,10 +47034,10 @@
       179570046764,
       128397927987
     ],
-    "n_shingles": 3042,
-    "end_lineno": 772,
-    "loc": 413,
-    "complexity": 86
+    "n_shingles": 3212,
+    "end_lineno": 788,
+    "loc": 429,
+    "complexity": 88
   },
   "C-925f7b": {
     "coord_id": "C-925f7b",
@@ -47867,12 +48551,12 @@
     "kind": "class",
     "qualname": "memway.parsers.PythonParser",
     "path": "memway/parsers.py",
-    "lineno": 66,
-    "body_hash": "01828e0858eea29e",
+    "lineno": 74,
+    "body_hash": "aa2c8fbf6975f1ac",
     "parent": "C-4ca895",
     "signature": "",
-    "shape_hash": "0ecfcfeab673ea5a",
-    "logic_hash": "ea33ba10907ea793",
+    "shape_hash": "5f5e776dabd7e401",
+    "logic_hash": "597cb0e1971707a0",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -47998,7 +48682,7 @@
       }
     ],
     "comment_hash": "67fd0f9a9fa9bb3c",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       35981505093,
       253929800569,
@@ -48049,10 +48733,10 @@
       307481614996,
       16122711391
     ],
-    "n_shingles": 964,
-    "end_lineno": 211,
-    "loc": 146,
-    "complexity": 35
+    "n_shingles": 973,
+    "end_lineno": 221,
+    "loc": 148,
+    "complexity": 36
   },
   "C-997f80": {
     "coord_id": "C-997f80",
@@ -48657,6 +49341,83 @@
     "loc": 13,
     "complexity": 12
   },
+  "C-9b3a31": {
+    "coord_id": "C-9b3a31",
+    "kind": "function",
+    "qualname": "tests.test_viz.test_every_edge_kind_the_payload_can_carry_has_a_colour",
+    "path": "tests/test_viz.py",
+    "lineno": 672,
+    "body_hash": "435f85200ef89da6",
+    "parent": "C-bba297",
+    "signature": "test_every_edge_kind_the_payload_can_carry_has_a_colour(tmp_path)",
+    "shape_hash": "2a4ea75f08edc2f8",
+    "logic_hash": "5febbc6b8ef2af6d",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Guard against a kind existing in data with no rule to draw it. Executed against a real payload rather than the constant above, so a new edge kind added to the indexer shows up here instead of renderin",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "68aaa37285143d2f",
+    "comment_rot": false,
+    "sketch": [
+      3362460528622,
+      1205705721686,
+      504532501284,
+      2532300346930,
+      363239416057,
+      1296491980420,
+      437733897271,
+      306722383062,
+      1500242097043,
+      333708247217,
+      2950249684919,
+      2764811584776,
+      420961581129,
+      1275751703534,
+      2944837186928,
+      456321898726,
+      680958368736,
+      1266546747184,
+      383967687965,
+      153051986226,
+      372378595536,
+      3494378264537,
+      1421738339063,
+      1435250693078,
+      2609320742372,
+      953814397604,
+      279519730889,
+      429706722813,
+      338518504772,
+      4522323841244,
+      2845400286711,
+      565590955823,
+      124224079458,
+      556107695546,
+      316216204251,
+      4929538768778,
+      142276601147,
+      380101357456,
+      759397612996,
+      9803757663,
+      184106494316,
+      545060529538,
+      293876627053,
+      2703566995492,
+      1551746142843,
+      361685612295,
+      577172425088,
+      35708603481
+    ],
+    "n_shingles": 218,
+    "end_lineno": 688,
+    "loc": 17,
+    "complexity": 5
+  },
   "C-9b58cc": {
     "coord_id": "C-9b58cc",
     "kind": "function",
@@ -49129,6 +49890,85 @@
     "end_lineno": 81,
     "loc": 12,
     "complexity": 3
+  },
+  "C-9dc8f3": {
+    "coord_id": "C-9dc8f3",
+    "kind": "function",
+    "qualname": "tests.test_units_core2._edges_for",
+    "path": "tests/test_units_core2.py",
+    "lineno": 374,
+    "body_hash": "2243f53d46ef42d6",
+    "parent": "C-80b544",
+    "signature": "_edges_for(tmp_path, files)",
+    "shape_hash": "44642bede5b21d75",
+    "logic_hash": "4db559179dbd899a",
+    "param_types": {
+      "files": "dict"
+    },
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Index a throwaway repo and return (indexer, edges).",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "2481b57e23f6e014",
+    "comment_rot": false,
+    "sketch": [
+      2058004590906,
+      1047738517301,
+      342557361679,
+      697108753195,
+      754589595162,
+      1307864931661,
+      2728323551996,
+      2372438404064,
+      2753080184583,
+      60268122756,
+      1256100704306,
+      1358245536248,
+      6905220562900,
+      1351057756510,
+      1312883732058,
+      5840956747088,
+      2979123008642,
+      52358955566,
+      3388712744320,
+      3118398551924,
+      762639757378,
+      2938986985325,
+      61157178240,
+      3220791165536,
+      2853805948354,
+      361850004019,
+      2988009219108,
+      365981869694,
+      2785182702755,
+      1130043142178,
+      2845400286711,
+      1923485388368,
+      2016189062690,
+      2332717994397,
+      853238637452,
+      102633504176,
+      4689733923034,
+      6394888874757,
+      2761178203306,
+      859930397807,
+      5655549350514,
+      2944655711377,
+      2236151128899,
+      469137204259,
+      1963684404795,
+      1946192482063,
+      1106749263603,
+      1145423411480
+    ],
+    "n_shingles": 125,
+    "end_lineno": 388,
+    "loc": 15,
+    "complexity": 2
   },
   "C-9decaa": {
     "coord_id": "C-9decaa",
@@ -49651,11 +50491,11 @@
     "qualname": "memway.__init__",
     "path": "memway/__init__.py",
     "lineno": 1,
-    "body_hash": "c11933bc9cb3174f",
+    "body_hash": "b6cb214c34600051",
     "parent": null,
     "signature": "",
     "shape_hash": "c97484f1ccd6973a",
-    "logic_hash": "f91544fa2931a149",
+    "logic_hash": "74ca80807a0fa0aa",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -49699,7 +50539,7 @@
       4525188129957,
       927803687346,
       3285394218250,
-      4516964245515,
+      3549310749946,
       2427464081375,
       3074437499962,
       4741566970533,
@@ -49735,7 +50575,7 @@
       663370547192,
       4619525242602,
       2318129694502,
-      1668917266612
+      8383663464604
     ],
     "n_shingles": 88,
     "end_lineno": 7,
@@ -51249,7 +52089,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.TypeScriptParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 404,
+    "lineno": 414,
     "body_hash": "e8b3edaa24697412",
     "parent": "C-62fecb",
     "signature": "",
@@ -51311,7 +52151,7 @@
       20148213051274
     ],
     "n_shingles": 11,
-    "end_lineno": 404,
+    "end_lineno": 414,
     "loc": 1,
     "complexity": 1
   },
@@ -52072,7 +52912,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.node_text",
     "path": "memway/parsers.py",
-    "lineno": 241,
+    "lineno": 251,
     "body_hash": "6fd6ec643fa5ad2b",
     "parent": "C-7f9bea",
     "signature": "node_text(n)",
@@ -52134,7 +52974,7 @@
       4998954446829
     ],
     "n_shingles": 24,
-    "end_lineno": 242,
+    "end_lineno": 252,
     "loc": 2,
     "complexity": 1
   },
@@ -53474,7 +54314,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.JavaScriptParser.extensions",
     "path": "memway/parsers.py",
-    "lineno": 223,
+    "lineno": 233,
     "body_hash": "ef2d779d50b45dcb",
     "parent": "C-ef0704",
     "signature": "",
@@ -53536,7 +54376,7 @@
       20148213051274
     ],
     "n_shingles": 14,
-    "end_lineno": 223,
+    "end_lineno": 233,
     "loc": 1,
     "complexity": 1
   },
@@ -54117,7 +54957,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.leading_doc",
     "path": "memway/parsers.py",
-    "lineno": 251,
+    "lineno": 261,
     "body_hash": "8828884e6b8e4ed0",
     "parent": "C-7f9bea",
     "signature": "leading_doc(n)",
@@ -54185,7 +55025,7 @@
       4998954446829
     ],
     "n_shingles": 90,
-    "end_lineno": 258,
+    "end_lineno": 268,
     "loc": 8,
     "complexity": 4
   },
@@ -57134,7 +57974,7 @@
     "kind": "class",
     "qualname": "memway.parsers.LanguageParser",
     "path": "memway/parsers.py",
-    "lineno": 43,
+    "lineno": 51,
     "body_hash": "1b739931c84c48e8",
     "parent": "C-4ca895",
     "signature": "",
@@ -57196,7 +58036,7 @@
       7531105416622
     ],
     "n_shingles": 83,
-    "end_lineno": 53,
+    "end_lineno": 61,
     "loc": 11,
     "complexity": 1
   },
@@ -57581,7 +58421,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaParser.parse.walk",
     "path": "memway/parsers.py",
-    "lineno": 608,
+    "lineno": 618,
     "body_hash": "86290117ac892f00",
     "parent": "C-7f8289",
     "signature": "walk(n, owner)",
@@ -57659,7 +58499,7 @@
       128397927987
     ],
     "n_shingles": 242,
-    "end_lineno": 644,
+    "end_lineno": 654,
     "loc": 37,
     "complexity": 9
   },
@@ -58023,6 +58863,83 @@
     "end_lineno": 200,
     "loc": 13,
     "complexity": 8
+  },
+  "C-b4bc20": {
+    "coord_id": "C-b4bc20",
+    "kind": "function",
+    "qualname": "tests.test_viz.test_one_colour_per_kind_feeds_swatch_line_and_lit",
+    "path": "tests/test_viz.py",
+    "lineno": 655,
+    "body_hash": "53d19b50f3504e3a",
+    "parent": "C-bba297",
+    "signature": "test_one_colour_per_kind_feeds_swatch_line_and_lit()",
+    "shape_hash": "200246fe46824d88",
+    "logic_hash": "03f43aec932971ef",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Three places must agree, so they read ONE variable. The legend teaches the mapping, the resting line uses it, the lit line uses it. Hard-coded hexes in any of the three is how a legend comes to descri",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "67288bde432f7d66",
+    "comment_rot": false,
+    "sketch": [
+      208822010239,
+      6058509140449,
+      517964877511,
+      381059914358,
+      3271872386604,
+      924617930937,
+      2041494714186,
+      659664982790,
+      309418604542,
+      1187400120296,
+      547948388138,
+      163398252185,
+      420961581129,
+      241087424643,
+      5207972718199,
+      847950082500,
+      1072631689375,
+      12577580560,
+      3601319913223,
+      2216860073269,
+      220299931456,
+      927370147791,
+      61157178240,
+      98117506822,
+      1733716048037,
+      269207887193,
+      6215107131122,
+      525883066109,
+      2928107817790,
+      4309495267647,
+      1471652858359,
+      2275789105646,
+      2209023068794,
+      237191633050,
+      3953463544004,
+      1070275504251,
+      26884999780,
+      754606640793,
+      1327496965983,
+      1868402465369,
+      1010074535665,
+      2811172397737,
+      2190803626858,
+      2562247830120,
+      3372628903900,
+      3281413653284,
+      709848518337,
+      548186942219
+    ],
+    "n_shingles": 151,
+    "end_lineno": 669,
+    "loc": 15,
+    "complexity": 5
   },
   "C-b591d3": {
     "coord_id": "C-b591d3",
@@ -59983,7 +60900,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaParser.parse.arity",
     "path": "memway/parsers.py",
-    "lineno": 600,
+    "lineno": 610,
     "body_hash": "22ec1b473df0cd65",
     "parent": "C-7f8289",
     "signature": "arity(n)",
@@ -60045,7 +60962,7 @@
       1736934867958
     ],
     "n_shingles": 46,
-    "end_lineno": 606,
+    "end_lineno": 616,
     "loc": 7,
     "complexity": 3
   },
@@ -60286,17 +61203,94 @@
     "loc": 35,
     "complexity": 12
   },
+  "C-bb792b": {
+    "coord_id": "C-bb792b",
+    "kind": "function",
+    "qualname": "tests.test_viz.test_selecting_a_node_keeps_the_edge_kinds_distinguishable",
+    "path": "tests/test_viz.py",
+    "lineno": 634,
+    "body_hash": "5f891c8b0b2de881",
+    "parent": "C-bba297",
+    "signature": "test_selecting_a_node_keeps_the_edge_kinds_distinguishable()",
+    "shape_hash": "fa585cc2a3aa1e1d",
+    "logic_hash": "21301caf170c6341",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Lit edges must stay coloured by kind. `.link.lit` set `stroke:var(--amber)`, which beat every per-kind rule below it - so the moment you clicked a node, calls, inherits, imports and contains all becam",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "8eb2c9985c4577b8",
+    "comment_rot": false,
+    "sketch": [
+      1157386490946,
+      3398485326370,
+      1100932742269,
+      2226563694,
+      75719062082,
+      1921835776489,
+      1701526273009,
+      306722383062,
+      91515480058,
+      610183528367,
+      653223144256,
+      163398252185,
+      420961581129,
+      576511399253,
+      2338592815467,
+      505213568292,
+      3652057747095,
+      350589438881,
+      65154541350,
+      2235232396558,
+      2098578067256,
+      3941420192515,
+      61157178240,
+      2732232652319,
+      111978729922,
+      568280053556,
+      1293664349724,
+      2481643954849,
+      734235762410,
+      1609038074335,
+      1471652858359,
+      2756654088259,
+      540553089717,
+      4649782859264,
+      1910475915035,
+      304903202154,
+      230698989274,
+      754606640793,
+      193937402446,
+      1624727365030,
+      406715219278,
+      2833477178263,
+      8573792232904,
+      369957055238,
+      1550622844863,
+      687481826504,
+      207898976019,
+      291680793778
+    ],
+    "n_shingles": 203,
+    "end_lineno": 652,
+    "loc": 19,
+    "complexity": 5
+  },
   "C-bba297": {
     "coord_id": "C-bba297",
     "kind": "module",
     "qualname": "tests.test_viz",
     "path": "tests/test_viz.py",
     "lineno": 1,
-    "body_hash": "848f2c09255e2053",
+    "body_hash": "228c55a5ad137f91",
     "parent": null,
     "signature": "",
-    "shape_hash": "8d8fdbacfcd4d594",
-    "logic_hash": "12ce2acd4b55edfe",
+    "shape_hash": "0359f04006434c3b",
+    "logic_hash": "2b23f4478cbd110f",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -60404,16 +61398,21 @@
         "line": 596,
         "text": "(b) title and header carry the IDENTICAL label",
         "kind": "comment"
+      },
+      {
+        "line": 629,
+        "text": "------------------------------- an edge keeps its kind when you select it",
+        "kind": "comment"
       }
     ],
-    "comment_hash": "9ec2d1afea3d010e",
+    "comment_hash": "ee5ce04685bcdce2",
     "comment_rot": false,
     "sketch": [
-      22360793802,
+      5003244946,
       103687158857,
       174865529451,
-      70485009141,
-      108235721493,
+      2226563694,
+      75719062082,
       27410514557,
       3844150875,
       202267491586,
@@ -60426,8 +61425,8 @@
       1728863189,
       23238222549,
       19555613040,
-      32561486409,
-      146428952431,
+      12577580560,
+      65154541350,
       12186708291,
       56352632308,
       94191621742,
@@ -60445,7 +61444,7 @@
       100018275958,
       74709185574,
       46275643311,
-      102754885667,
+      26884999780,
       7416475824,
       57069082920,
       9803757663,
@@ -60456,12 +61455,12 @@
       872202299,
       28808485227,
       11221457392,
-      260530514909
+      35708603481
     ],
-    "n_shingles": 4054,
-    "end_lineno": 626,
-    "loc": 627,
-    "complexity": 185
+    "n_shingles": 4537,
+    "end_lineno": 699,
+    "loc": 700,
+    "complexity": 197
   },
   "C-bba405": {
     "coord_id": "C-bba405",
@@ -65712,11 +66711,11 @@
     "qualname": "memway.edges.EdgeBuilder",
     "path": "memway/edges.py",
     "lineno": 23,
-    "body_hash": "2ed3291a8a1714ca",
+    "body_hash": "33f3a3750c91055b",
     "parent": "C-de4bf4",
     "signature": "",
-    "shape_hash": "cc4852807731403f",
-    "logic_hash": "938a11b8f0fa5d50",
+    "shape_hash": "115cba5b82d5c9aa",
+    "logic_hash": "28f114d0a354fec3",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -65746,143 +66745,298 @@
         "kind": "comment"
       },
       {
-        "line": 81,
-        "text": "materialize class hierarchy as structural edges: until now the",
-        "kind": "comment"
-      },
-      {
-        "line": 82,
-        "text": "MRO data was consumed during resolution and thrown away - as",
-        "kind": "comment"
-      },
-      {
-        "line": 83,
-        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
-        "kind": "comment"
-      },
-      {
-        "line": 84,
-        "text": "overrides) and knowledge can flow down the hierarchy.",
-        "kind": "comment"
-      },
-      {
-        "line": 94,
-        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
+        "line": 101,
+        "text": "1. FUNCTION-LOCAL targets. A class or def inside a function body",
         "kind": "comment"
       },
       {
         "line": 102,
-        "text": "containment from the index itself (structural: certain)",
+        "text": "cannot be named from outside that body - it does not exist",
+        "kind": "comment"
+      },
+      {
+        "line": 103,
+        "text": "until the function runs, and not by that path afterwards.",
+        "kind": "comment"
+      },
+      {
+        "line": 112,
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
         "kind": "comment"
       },
       {
         "line": 113,
-        "text": "dynamic dispatch: string-named events are the least",
+        "text": "cannot be a plain `def get` at module scope, however unique",
         "kind": "comment"
       },
       {
         "line": 114,
-        "text": "grounded edge kind we emit",
+        "text": "that name is in the index. The parser knows the call was",
+        "kind": "comment"
+      },
+      {
+        "line": 115,
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 116,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 117,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 118,
+        "text": "named get, because caller and target were both tests.",
         "kind": "comment"
       },
       {
         "line": 121,
-        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
         "kind": "comment"
       },
       {
         "line": 122,
-        "text": "self.meth was attributed to the calling subclass, but meth",
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
         "kind": "comment"
       },
       {
         "line": 123,
-        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
         "kind": "comment"
       },
       {
-        "line": 129,
-        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "line": 124,
+        "text": "could never help here: these names have exactly one definition,",
         "kind": "comment"
       },
       {
-        "line": 130,
-        "text": "ref's first segment is a parameter of the calling entity",
+        "line": 125,
+        "text": "and no competition was read as high confidence when it is the",
         "kind": "comment"
       },
       {
-        "line": 131,
-        "text": "with an annotation, resolve the method against that class",
+        "line": 126,
+        "text": "case that most deserves suspicion.",
         "kind": "comment"
       },
       {
-        "line": 132,
-        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "line": 134,
+        "text": "counted, not silent: dropping an edge is a claim about the",
         "kind": "comment"
       },
       {
-        "line": 133,
-        "text": "every edge this wins was previously a guess or a drop.",
+        "line": 135,
+        "text": "graph and the number belongs where someone can see it.",
         "kind": "comment"
       },
       {
-        "line": 153,
-        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "line": 138,
+        "text": "materialize class hierarchy as structural edges: until now the",
         "kind": "comment"
       },
       {
-        "line": 154,
-        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "line": 139,
+        "text": "MRO data was consumed during resolution and thrown away - as",
         "kind": "comment"
       },
       {
-        "line": 155,
-        "text": "drops the edge (conservatism preserved).",
+        "line": 140,
+        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
         "kind": "comment"
       },
       {
-        "line": 165,
-        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "line": 141,
+        "text": "overrides) and knowledge can flow down the hierarchy.",
         "kind": "comment"
       },
       {
-        "line": 166,
-        "text": "subclass, but meth is defined on an ancestor. Without",
+        "line": 151,
+        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
         "kind": "comment"
       },
       {
-        "line": 167,
-        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "line": 159,
+        "text": "containment from the index itself (structural: certain)",
         "kind": "comment"
       },
       {
-        "line": 168,
-        "text": "method name anywhere in the index - flagged as a guess.",
+        "line": 170,
+        "text": "dynamic dispatch: string-named events are the least",
         "kind": "comment"
       },
       {
-        "line": 175,
-        "text": "bare-name fallback: unique short-name match anywhere in",
-        "kind": "comment"
-      },
-      {
-        "line": 176,
-        "text": "the index. Grounded enough to keep WITH a low score -",
+        "line": 171,
+        "text": "grounded edge kind we emit",
         "kind": "comment"
       },
       {
         "line": 177,
+        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
+        "kind": "comment"
+      },
+      {
+        "line": 178,
+        "text": "wrong. Checked here rather than inside resolve() because the",
+        "kind": "comment"
+      },
+      {
+        "line": 179,
+        "text": "rule needs the CALLER, which resolve() has no business knowing.",
+        "kind": "comment"
+      },
+      {
+        "line": 186,
+        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "kind": "comment"
+      },
+      {
+        "line": 187,
+        "text": "self.meth was attributed to the calling subclass, but meth",
+        "kind": "comment"
+      },
+      {
+        "line": 188,
+        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "kind": "comment"
+      },
+      {
+        "line": 194,
+        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "kind": "comment"
+      },
+      {
+        "line": 195,
+        "text": "ref's first segment is a parameter of the calling entity",
+        "kind": "comment"
+      },
+      {
+        "line": 196,
+        "text": "with an annotation, resolve the method against that class",
+        "kind": "comment"
+      },
+      {
+        "line": 197,
+        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "kind": "comment"
+      },
+      {
+        "line": 198,
+        "text": "every edge this wins was previously a guess or a drop.",
+        "kind": "comment"
+      },
+      {
+        "line": 208,
+        "text": "guarded like the other short-name lookups: a",
+        "kind": "comment"
+      },
+      {
+        "line": 209,
+        "text": "declared type is strong evidence, but the CLASS",
+        "kind": "comment"
+      },
+      {
+        "line": 210,
+        "text": "is still being found by bare name and can land",
+        "kind": "comment"
+      },
+      {
+        "line": 211,
+        "text": "on a function-local class no annotation could",
+        "kind": "comment"
+      },
+      {
+        "line": 212,
+        "text": "legally name.",
+        "kind": "comment"
+      },
+      {
+        "line": 224,
+        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "kind": "comment"
+      },
+      {
+        "line": 225,
+        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "kind": "comment"
+      },
+      {
+        "line": 226,
+        "text": "drops the edge (conservatism preserved).",
+        "kind": "comment"
+      },
+      {
+        "line": 236,
+        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "kind": "comment"
+      },
+      {
+        "line": 237,
+        "text": "subclass, but meth is defined on an ancestor. Without",
+        "kind": "comment"
+      },
+      {
+        "line": 238,
+        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "kind": "comment"
+      },
+      {
+        "line": 239,
+        "text": "method name anywhere in the index - flagged as a guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 240,
+        "text": "guarded like the other two short-name tiers - this",
+        "kind": "comment"
+      },
+      {
+        "line": 241,
+        "text": "one was missed on the first pass and kept feeding the",
+        "kind": "comment"
+      },
+      {
+        "line": 242,
+        "text": "same false hubs, which is the argument for the test",
+        "kind": "comment"
+      },
+      {
+        "line": 243,
+        "text": "below that enumerates every site rather than trusting",
+        "kind": "comment"
+      },
+      {
+        "line": 244,
+        "text": "that they were all found.",
+        "kind": "comment"
+      },
+      {
+        "line": 252,
+        "text": "bare-name fallback: unique short-name match anywhere in",
+        "kind": "comment"
+      },
+      {
+        "line": 253,
+        "text": "the index. Grounded enough to keep WITH a low score -",
+        "kind": "comment"
+      },
+      {
+        "line": 254,
         "text": "dropping it silently (old behavior) hides real coupling.",
         "kind": "comment"
       },
       {
-        "line": 191,
+        "line": 269,
         "text": "Phase A: set dedup, was O(edges^2)",
         "kind": "comment"
       }
     ],
-    "comment_hash": "c589f8b3209d743f",
-    "comment_rot": true,
+    "comment_hash": "06d6516f5e4c5b77",
+    "comment_rot": false,
     "sketch": [
       96553741035,
       44852427196,
@@ -65894,16 +67048,16 @@
       115953637255,
       8424773659,
       216753661304,
-      192075012929,
+      15066389981,
       10287284009,
-      80082320043,
-      52054130119,
-      313125283355,
-      21744827324,
+      4795654970,
+      122232186344,
+      115793522781,
+      2706762140,
       45119625241,
       16842180795,
       87056483932,
-      122826261527,
+      44022777880,
       14230941825,
       7789923745,
       61157178240,
@@ -65912,31 +67066,31 @@
       17545455202,
       18530527276,
       4326221900,
-      219106523352,
+      36833105880,
       139429199661,
       71620563606,
       192260644895,
-      211978161541,
+      15617481598,
       153072121127,
       39659269136,
       191872329431,
       286674141979,
-      812684160368,
+      12501768764,
       104405774071,
       239938951869,
       102284741846,
       120632463895,
       45021223180,
       778488099,
-      147001137545,
-      149219264697,
-      128367834526,
+      57694400726,
+      4838877296,
+      62484065295,
       128397927987
     ],
-    "n_shingles": 1672,
-    "end_lineno": 240,
-    "loc": 218,
-    "complexity": 65
+    "n_shingles": 2451,
+    "end_lineno": 318,
+    "loc": 296,
+    "complexity": 79
   },
   "C-cc3b13": {
     "coord_id": "C-cc3b13",
@@ -66458,7 +67612,7 @@
     "kind": "method",
     "qualname": "memway.indexer.Indexer.resolve",
     "path": "memway/indexer.py",
-    "lineno": 709,
+    "lineno": 725,
     "body_hash": "4366e90989249ae2",
     "parent": "C-920e4b",
     "signature": "resolve(self, ref)",
@@ -66593,7 +67747,7 @@
       128397927987
     ],
     "n_shingles": 565,
-    "end_lineno": 772,
+    "end_lineno": 788,
     "loc": 64,
     "complexity": 22
   },
@@ -66756,7 +67910,7 @@
     "kind": "method",
     "qualname": "memway.parsers.PythonParser.parse.V.__init__",
     "path": "memway/parsers.py",
-    "lineno": 129,
+    "lineno": 137,
     "body_hash": "d3283a643abdba73",
     "parent": "C-5d57dd",
     "signature": "__init__(v)",
@@ -66829,7 +67983,7 @@
       584959934745
     ],
     "n_shingles": 39,
-    "end_lineno": 132,
+    "end_lineno": 140,
     "loc": 4,
     "complexity": 1
   },
@@ -67441,7 +68595,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaParser.parse.add_calls",
     "path": "memway/parsers.py",
-    "lineno": 587,
+    "lineno": 597,
     "body_hash": "af90c5f122b44f75",
     "parent": "C-7f8289",
     "signature": "add_calls(scope, n)",
@@ -67503,7 +68657,7 @@
       1736934867958
     ],
     "n_shingles": 88,
-    "end_lineno": 598,
+    "end_lineno": 608,
     "loc": 12,
     "complexity": 6
   },
@@ -67905,7 +69059,7 @@
     "kind": "method",
     "qualname": "memway.parsers.JavaScriptParser.__init__",
     "path": "memway/parsers.py",
-    "lineno": 226,
+    "lineno": 236,
     "body_hash": "61fa2e0dcf7969a7",
     "parent": "C-ef0704",
     "signature": "__init__(self)",
@@ -67967,7 +69121,7 @@
       1568689904968
     ],
     "n_shingles": 27,
-    "end_lineno": 229,
+    "end_lineno": 239,
     "loc": 4,
     "complexity": 1
   },
@@ -69025,7 +70179,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.walk",
     "path": "memway/parsers.py",
-    "lineno": 279,
+    "lineno": 289,
     "body_hash": "69160b1d1ff88767",
     "parent": "C-7f9bea",
     "signature": "walk(node, parent_qual, in_class)",
@@ -69093,7 +70247,7 @@
       423928226199
     ],
     "n_shingles": 217,
-    "end_lineno": 332,
+    "end_lineno": 342,
     "loc": 54,
     "complexity": 15
   },
@@ -69337,7 +70491,7 @@
     "kind": "method",
     "qualname": "memway.parsers.TypeScriptParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 415,
+    "lineno": 425,
     "body_hash": "414e95c2d3ddf3b9",
     "parent": "C-62fecb",
     "signature": "parse(self, path, repo_root)",
@@ -69402,7 +70556,7 @@
       305029449821
     ],
     "n_shingles": 220,
-    "end_lineno": 448,
+    "end_lineno": 458,
     "loc": 34,
     "complexity": 8
   },
@@ -70612,7 +71766,7 @@
     "kind": "function",
     "qualname": "memway.parsers.JavaScriptParser.parse.name_of",
     "path": "memway/parsers.py",
-    "lineno": 244,
+    "lineno": 254,
     "body_hash": "6b3946b7ec859bb4",
     "parent": "C-7f9bea",
     "signature": "name_of(n)",
@@ -70674,7 +71828,7 @@
       305029449821
     ],
     "n_shingles": 36,
-    "end_lineno": 249,
+    "end_lineno": 259,
     "loc": 6,
     "complexity": 3
   },
@@ -70882,7 +72036,7 @@
     "kind": "function",
     "qualname": "memway.parsers.GoParser.parse.add_calls",
     "path": "memway/parsers.py",
-    "lineno": 500,
+    "lineno": 510,
     "body_hash": "4b23b426fb51512f",
     "parent": "C-2fb621",
     "signature": "add_calls(scope, n)",
@@ -70944,7 +72098,7 @@
       128397927987
     ],
     "n_shingles": 96,
-    "end_lineno": 508,
+    "end_lineno": 518,
     "loc": 9,
     "complexity": 6
   },
@@ -72419,7 +73573,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.JavaParser.language",
     "path": "memway/parsers.py",
-    "lineno": 567,
+    "lineno": 577,
     "body_hash": "84eaf91665fefda4",
     "parent": "C-f56249",
     "signature": "",
@@ -72481,7 +73635,7 @@
       22323914760420
     ],
     "n_shingles": 3,
-    "end_lineno": 567,
+    "end_lineno": 577,
     "loc": 1,
     "complexity": 1
   },
@@ -72491,11 +73645,11 @@
     "qualname": "memway.edges",
     "path": "memway/edges.py",
     "lineno": 1,
-    "body_hash": "bd5f466e6b0bd751",
+    "body_hash": "8860467ca329c870",
     "parent": null,
     "signature": "",
-    "shape_hash": "68e62ce143660a31",
-    "logic_hash": "302bad7ed6df8426",
+    "shape_hash": "a76dba91c6a74c5b",
+    "logic_hash": "2dc356b0e477a035",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -72525,143 +73679,298 @@
         "kind": "comment"
       },
       {
-        "line": 103,
-        "text": "materialize class hierarchy as structural edges: until now the",
-        "kind": "comment"
-      },
-      {
-        "line": 104,
-        "text": "MRO data was consumed during resolution and thrown away - as",
-        "kind": "comment"
-      },
-      {
-        "line": 105,
-        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
-        "kind": "comment"
-      },
-      {
-        "line": 106,
-        "text": "overrides) and knowledge can flow down the hierarchy.",
-        "kind": "comment"
-      },
-      {
-        "line": 116,
-        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
+        "line": 123,
+        "text": "1. FUNCTION-LOCAL targets. A class or def inside a function body",
         "kind": "comment"
       },
       {
         "line": 124,
-        "text": "containment from the index itself (structural: certain)",
+        "text": "cannot be named from outside that body - it does not exist",
+        "kind": "comment"
+      },
+      {
+        "line": 125,
+        "text": "until the function runs, and not by that path afterwards.",
+        "kind": "comment"
+      },
+      {
+        "line": 134,
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
         "kind": "comment"
       },
       {
         "line": 135,
-        "text": "dynamic dispatch: string-named events are the least",
+        "text": "cannot be a plain `def get` at module scope, however unique",
         "kind": "comment"
       },
       {
         "line": 136,
-        "text": "grounded edge kind we emit",
+        "text": "that name is in the index. The parser knows the call was",
+        "kind": "comment"
+      },
+      {
+        "line": 137,
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 138,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 139,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 140,
+        "text": "named get, because caller and target were both tests.",
         "kind": "comment"
       },
       {
         "line": 143,
-        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
         "kind": "comment"
       },
       {
         "line": 144,
-        "text": "self.meth was attributed to the calling subclass, but meth",
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
         "kind": "comment"
       },
       {
         "line": 145,
-        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
         "kind": "comment"
       },
       {
-        "line": 151,
-        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "line": 146,
+        "text": "could never help here: these names have exactly one definition,",
         "kind": "comment"
       },
       {
-        "line": 152,
-        "text": "ref's first segment is a parameter of the calling entity",
+        "line": 147,
+        "text": "and no competition was read as high confidence when it is the",
         "kind": "comment"
       },
       {
-        "line": 153,
-        "text": "with an annotation, resolve the method against that class",
+        "line": 148,
+        "text": "case that most deserves suspicion.",
         "kind": "comment"
       },
       {
-        "line": 154,
-        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "line": 156,
+        "text": "counted, not silent: dropping an edge is a claim about the",
         "kind": "comment"
       },
       {
-        "line": 155,
-        "text": "every edge this wins was previously a guess or a drop.",
+        "line": 157,
+        "text": "graph and the number belongs where someone can see it.",
         "kind": "comment"
       },
       {
-        "line": 175,
-        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "line": 160,
+        "text": "materialize class hierarchy as structural edges: until now the",
         "kind": "comment"
       },
       {
-        "line": 176,
-        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "line": 161,
+        "text": "MRO data was consumed during resolution and thrown away - as",
         "kind": "comment"
       },
       {
-        "line": 177,
-        "text": "drops the edge (conservatism preserved).",
+        "line": 162,
+        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
         "kind": "comment"
       },
       {
-        "line": 187,
-        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "line": 163,
+        "text": "overrides) and knowledge can flow down the hierarchy.",
         "kind": "comment"
       },
       {
-        "line": 188,
-        "text": "subclass, but meth is defined on an ancestor. Without",
+        "line": 173,
+        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
         "kind": "comment"
       },
       {
-        "line": 189,
-        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "line": 181,
+        "text": "containment from the index itself (structural: certain)",
         "kind": "comment"
       },
       {
-        "line": 190,
-        "text": "method name anywhere in the index - flagged as a guess.",
+        "line": 192,
+        "text": "dynamic dispatch: string-named events are the least",
         "kind": "comment"
       },
       {
-        "line": 197,
-        "text": "bare-name fallback: unique short-name match anywhere in",
-        "kind": "comment"
-      },
-      {
-        "line": 198,
-        "text": "the index. Grounded enough to keep WITH a low score -",
+        "line": 193,
+        "text": "grounded edge kind we emit",
         "kind": "comment"
       },
       {
         "line": 199,
+        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
+        "kind": "comment"
+      },
+      {
+        "line": 200,
+        "text": "wrong. Checked here rather than inside resolve() because the",
+        "kind": "comment"
+      },
+      {
+        "line": 201,
+        "text": "rule needs the CALLER, which resolve() has no business knowing.",
+        "kind": "comment"
+      },
+      {
+        "line": 208,
+        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "kind": "comment"
+      },
+      {
+        "line": 209,
+        "text": "self.meth was attributed to the calling subclass, but meth",
+        "kind": "comment"
+      },
+      {
+        "line": 210,
+        "text": "is defined on an ancestor - walk the MRO to find it.",
+        "kind": "comment"
+      },
+      {
+        "line": 216,
+        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "kind": "comment"
+      },
+      {
+        "line": 217,
+        "text": "ref's first segment is a parameter of the calling entity",
+        "kind": "comment"
+      },
+      {
+        "line": 218,
+        "text": "with an annotation, resolve the method against that class",
+        "kind": "comment"
+      },
+      {
+        "line": 219,
+        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "kind": "comment"
+      },
+      {
+        "line": 220,
+        "text": "every edge this wins was previously a guess or a drop.",
+        "kind": "comment"
+      },
+      {
+        "line": 230,
+        "text": "guarded like the other short-name lookups: a",
+        "kind": "comment"
+      },
+      {
+        "line": 231,
+        "text": "declared type is strong evidence, but the CLASS",
+        "kind": "comment"
+      },
+      {
+        "line": 232,
+        "text": "is still being found by bare name and can land",
+        "kind": "comment"
+      },
+      {
+        "line": 233,
+        "text": "on a function-local class no annotation could",
+        "kind": "comment"
+      },
+      {
+        "line": 234,
+        "text": "legally name.",
+        "kind": "comment"
+      },
+      {
+        "line": 246,
+        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "kind": "comment"
+      },
+      {
+        "line": 247,
+        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "kind": "comment"
+      },
+      {
+        "line": 248,
+        "text": "drops the edge (conservatism preserved).",
+        "kind": "comment"
+      },
+      {
+        "line": 258,
+        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "kind": "comment"
+      },
+      {
+        "line": 259,
+        "text": "subclass, but meth is defined on an ancestor. Without",
+        "kind": "comment"
+      },
+      {
+        "line": 260,
+        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "kind": "comment"
+      },
+      {
+        "line": 261,
+        "text": "method name anywhere in the index - flagged as a guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 262,
+        "text": "guarded like the other two short-name tiers - this",
+        "kind": "comment"
+      },
+      {
+        "line": 263,
+        "text": "one was missed on the first pass and kept feeding the",
+        "kind": "comment"
+      },
+      {
+        "line": 264,
+        "text": "same false hubs, which is the argument for the test",
+        "kind": "comment"
+      },
+      {
+        "line": 265,
+        "text": "below that enumerates every site rather than trusting",
+        "kind": "comment"
+      },
+      {
+        "line": 266,
+        "text": "that they were all found.",
+        "kind": "comment"
+      },
+      {
+        "line": 274,
+        "text": "bare-name fallback: unique short-name match anywhere in",
+        "kind": "comment"
+      },
+      {
+        "line": 275,
+        "text": "the index. Grounded enough to keep WITH a low score -",
+        "kind": "comment"
+      },
+      {
+        "line": 276,
         "text": "dropping it silently (old behavior) hides real coupling.",
         "kind": "comment"
       },
       {
-        "line": 213,
+        "line": 291,
         "text": "Phase A: set dedup, was O(edges^2)",
         "kind": "comment"
       }
     ],
-    "comment_hash": "1d830e5b45ea4ba9",
-    "comment_rot": true,
+    "comment_hash": "a952fe62c920f2ff",
+    "comment_rot": false,
     "sketch": [
       15579900330,
       44852427196,
@@ -72673,16 +73982,16 @@
       115953637255,
       8424773659,
       216753661304,
-      192075012929,
+      15066389981,
       10287284009,
-      80082320043,
-      52054130119,
-      313125283355,
-      21744827324,
+      4795654970,
+      122232186344,
+      115793522781,
+      2706762140,
       45119625241,
       16842180795,
       87056483932,
-      122826261527,
+      44022777880,
       14230941825,
       7789923745,
       61157178240,
@@ -72691,31 +74000,31 @@
       17545455202,
       18530527276,
       4326221900,
-      219106523352,
+      36833105880,
       139429199661,
       71620563606,
       192260644895,
-      211978161541,
+      15617481598,
       153072121127,
       39659269136,
       128137938625,
       286674141979,
-      812684160368,
+      12501768764,
       104405774071,
       239938951869,
       102284741846,
       25655998166,
       45021223180,
       778488099,
-      147001137545,
-      149219264697,
-      128367834526,
+      57694400726,
+      4838877296,
+      62484065295,
       128397927987
     ],
-    "n_shingles": 1954,
-    "end_lineno": 259,
-    "loc": 260,
-    "complexity": 72
+    "n_shingles": 2732,
+    "end_lineno": 337,
+    "loc": 338,
+    "complexity": 86
   },
   "C-de813f": {
     "coord_id": "C-de813f",
@@ -73634,6 +74943,80 @@
     "end_lineno": 424,
     "loc": 19,
     "complexity": 7
+  },
+  "C-e35689": {
+    "coord_id": "C-e35689",
+    "kind": "function",
+    "qualname": "tests.test_viz._swatch",
+    "path": "tests/test_viz.py",
+    "lineno": 696,
+    "body_hash": "abab1f0f2c90c6fe",
+    "parent": "C-bba297",
+    "signature": "_swatch(html, kind)",
+    "shape_hash": "f6403168a7c8b2c1",
+    "logic_hash": "fc9e3f2668df807e",
+    "param_types": {
+      "html": "str",
+      "kind": "str"
+    },
+    "return_type": "str",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": [
+      7259074795339,
+      6534705657021,
+      1160864796651,
+      9771787537545,
+      3762474983755,
+      5215285611115,
+      1017555617453,
+      2243213775822,
+      3703005204808,
+      2886316104384,
+      2912009617139,
+      4072849550630,
+      2008184364408,
+      4536285432840,
+      14442395874265,
+      923184362605,
+      1596029083147,
+      6865671314261,
+      9549709146568,
+      1713782513881,
+      663270979979,
+      9045987824749,
+      2320006158883,
+      7033098342195,
+      13935974029646,
+      2130817167249,
+      1723072859874,
+      7748433927734,
+      2928107817790,
+      5045469626241,
+      2845400286711,
+      8882200333071,
+      2141161409472,
+      626657681335,
+      1003923618771,
+      1486878411808,
+      1705659105568,
+      12174780812368,
+      3191682501934,
+      10608494685980,
+      2618876261379,
+      3287384889333,
+      10561126744610,
+      4904429223304,
+      2396762175820,
+      361685612295,
+      624176963706,
+      1867543393068
+    ],
+    "n_shingles": 51,
+    "end_lineno": 699,
+    "loc": 4,
+    "complexity": 1
   },
   "C-e3c8b8": {
     "coord_id": "C-e3c8b8",
@@ -75694,12 +77077,12 @@
     "kind": "method",
     "qualname": "memway.parsers.PythonParser.parse.V.visit_Call",
     "path": "memway/parsers.py",
-    "lineno": 170,
-    "body_hash": "8b8b9269b37e2222",
+    "lineno": 178,
+    "body_hash": "cd36135343afda6f",
     "parent": "C-5d57dd",
     "signature": "visit_Call(v, n)",
-    "shape_hash": "00fdf816f5b5be52",
-    "logic_hash": "cfe603cb823b2675",
+    "shape_hash": "bcc3017a734af915",
+    "logic_hash": "1b8db8b9216cce17",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -75750,7 +77133,7 @@
       }
     ],
     "comment_hash": "fe450f08e466d927",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       638457642536,
       253929800569,
@@ -75772,9 +77155,9 @@
       1690274079579,
       172859626786,
       595863050857,
-      372378595536,
+      825671723608,
       771469565732,
-      1183079047644,
+      372289783485,
       147629550561,
       876423726733,
       418113716370,
@@ -75790,7 +77173,7 @@
       176707680154,
       153240244196,
       5710618626556,
-      1205980513120,
+      863503687376,
       1032177683212,
       184106494316,
       7274710725,
@@ -75801,10 +77184,10 @@
       1876642272465,
       128397927987
     ],
-    "n_shingles": 292,
-    "end_lineno": 208,
-    "loc": 39,
-    "complexity": 14
+    "n_shingles": 301,
+    "end_lineno": 218,
+    "loc": 41,
+    "complexity": 15
   },
   "C-e7a9a0": {
     "coord_id": "C-e7a9a0",
@@ -77861,6 +79244,163 @@
     "loc": 123,
     "complexity": 27
   },
+  "C-eb7e05": {
+    "coord_id": "C-eb7e05",
+    "kind": "method",
+    "qualname": "memway.edges.EdgeBuilder._unreachable_target",
+    "path": "memway/edges.py",
+    "lineno": 100,
+    "body_hash": "d95ff114fc0239ef",
+    "parent": "C-cbc42e",
+    "signature": "_unreachable_target(self, src_ent, dst_ent)",
+    "shape_hash": "2f13ba3a3157e541",
+    "logic_hash": "6ac3017c39d30bb3",
+    "param_types": {},
+    "return_type": "str",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Why a NAME-ONLY match cannot be the real callee. '' if it can be. Bare refs are most of what the parser emits - 6,513 of 6,644 call refs on this repo - because a receiver's type is usually unknown. re",
+        "kind": "docstring"
+      },
+      {
+        "line": 24,
+        "text": "1. FUNCTION-LOCAL targets. A class or def inside a function body",
+        "kind": "comment"
+      },
+      {
+        "line": 25,
+        "text": "cannot be named from outside that body - it does not exist",
+        "kind": "comment"
+      },
+      {
+        "line": 26,
+        "text": "until the function runs, and not by that path afterwards.",
+        "kind": "comment"
+      },
+      {
+        "line": 35,
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
+        "kind": "comment"
+      },
+      {
+        "line": 36,
+        "text": "cannot be a plain `def get` at module scope, however unique",
+        "kind": "comment"
+      },
+      {
+        "line": 37,
+        "text": "that name is in the index. The parser knows the call was",
+        "kind": "comment"
+      },
+      {
+        "line": 38,
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 39,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 40,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 41,
+        "text": "named get, because caller and target were both tests.",
+        "kind": "comment"
+      },
+      {
+        "line": 44,
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
+        "kind": "comment"
+      },
+      {
+        "line": 45,
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
+        "kind": "comment"
+      },
+      {
+        "line": 46,
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
+        "kind": "comment"
+      },
+      {
+        "line": 47,
+        "text": "could never help here: these names have exactly one definition,",
+        "kind": "comment"
+      },
+      {
+        "line": 48,
+        "text": "and no competition was read as high confidence when it is the",
+        "kind": "comment"
+      },
+      {
+        "line": 49,
+        "text": "case that most deserves suspicion.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "7962be8952550a61",
+    "comment_rot": false,
+    "sketch": [
+      258833564202,
+      570808629005,
+      80538489124,
+      378740048203,
+      445105919602,
+      192249450576,
+      438363324711,
+      279427256365,
+      1153407495626,
+      489643762552,
+      15066389981,
+      731563336631,
+      4795654970,
+      175396839557,
+      606278072964,
+      751656935277,
+      654833509054,
+      40555972251,
+      1235034267338,
+      44022777880,
+      307383765037,
+      219685082604,
+      1296339590286,
+      220426671945,
+      2086892698197,
+      283081638715,
+      586782992181,
+      1203295688657,
+      36833105880,
+      930194756589,
+      310580498752,
+      626354729941,
+      15617481598,
+      803854700235,
+      757423740915,
+      946070324269,
+      1986011085887,
+      12501768764,
+      129616112941,
+      258496016261,
+      1471987672902,
+      434556424808,
+      1261085051590,
+      1197994508836,
+      138862547839,
+      4838877296,
+      62484065295,
+      154213482686
+    ],
+    "n_shingles": 618,
+    "end_lineno": 152,
+    "loc": 53,
+    "complexity": 9
+  },
   "C-ebdd88": {
     "coord_id": "C-ebdd88",
     "kind": "function",
@@ -77948,7 +79488,7 @@
     "kind": "function",
     "qualname": "memway.parsers.GoParser.parse.sig",
     "path": "memway/parsers.py",
-    "lineno": 486,
+    "lineno": 496,
     "body_hash": "9b484f329d5bc794",
     "parent": "C-2fb621",
     "signature": "sig(n, nm)",
@@ -78016,7 +79556,7 @@
       1736934867958
     ],
     "n_shingles": 120,
-    "end_lineno": 498,
+    "end_lineno": 508,
     "loc": 13,
     "complexity": 3
   },
@@ -78025,7 +79565,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder._add",
     "path": "memway/edges.py",
-    "lineno": 211,
+    "lineno": 289,
     "body_hash": "33f2aa6c2fa11d37",
     "parent": "C-cbc42e",
     "signature": "_add(self, src, dst, kind)",
@@ -78093,7 +79633,7 @@
       2405487058619
     ],
     "n_shingles": 94,
-    "end_lineno": 218,
+    "end_lineno": 296,
     "loc": 8,
     "complexity": 2
   },
@@ -78348,7 +79888,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.PythonParser.parse.V.visit_AsyncFunctionDef",
     "path": "memway/parsers.py",
-    "lineno": 168,
+    "lineno": 176,
     "body_hash": "8d73669cb276cfe5",
     "parent": "C-5d57dd",
     "signature": "",
@@ -78410,7 +79950,7 @@
       136967715813334
     ],
     "n_shingles": 1,
-    "end_lineno": 168,
+    "end_lineno": 176,
     "loc": 1,
     "complexity": 1
   },
@@ -79244,7 +80784,7 @@
     "kind": "class",
     "qualname": "memway.parsers.JavaScriptParser",
     "path": "memway/parsers.py",
-    "lineno": 218,
+    "lineno": 228,
     "body_hash": "b466506763c511ec",
     "parent": "C-4ca895",
     "signature": "",
@@ -79327,7 +80867,7 @@
       128397927987
     ],
     "n_shingles": 995,
-    "end_lineno": 395,
+    "end_lineno": 405,
     "loc": 178,
     "complexity": 47
   },
@@ -80956,7 +82496,7 @@
     "kind": "method",
     "qualname": "memway.parsers.LanguageParser.parse",
     "path": "memway/parsers.py",
-    "lineno": 47,
+    "lineno": 55,
     "body_hash": "51c09679eb469c68",
     "parent": "C-b2b3d1",
     "signature": "parse(self, path, repo_root)",
@@ -81027,7 +82567,7 @@
       15453955014044
     ],
     "n_shingles": 37,
-    "end_lineno": 49,
+    "end_lineno": 57,
     "loc": 3,
     "complexity": 1
   },
@@ -81148,7 +82688,7 @@
     "kind": "class",
     "qualname": "memway.parsers.JavaParser",
     "path": "memway/parsers.py",
-    "lineno": 561,
+    "lineno": 571,
     "body_hash": "1ba23e65eac1e3da",
     "parent": "C-4ca895",
     "signature": "",
@@ -81231,7 +82771,7 @@
       16122711391
     ],
     "n_shingles": 545,
-    "end_lineno": 647,
+    "end_lineno": 657,
     "loc": 87,
     "complexity": 16
   },
@@ -81976,7 +83516,7 @@
     "kind": "function",
     "qualname": "memway.parsers.GoParser.parse.leading_doc",
     "path": "memway/parsers.py",
-    "lineno": 477,
+    "lineno": 487,
     "body_hash": "44516666b9c2448f",
     "parent": "C-2fb621",
     "signature": "leading_doc(n, txt)",
@@ -82044,7 +83584,7 @@
       6191604556142
     ],
     "n_shingles": 92,
-    "end_lineno": 484,
+    "end_lineno": 494,
     "loc": 8,
     "complexity": 4
   },
@@ -82775,7 +84315,7 @@
     "kind": "attribute",
     "qualname": "memway.parsers.GoParser.language",
     "path": "memway/parsers.py",
-    "lineno": 457,
+    "lineno": 467,
     "body_hash": "45ae64a432906d3b",
     "parent": "C-5a82b9",
     "signature": "",
@@ -82837,7 +84377,7 @@
       63369235518287
     ],
     "n_shingles": 3,
-    "end_lineno": 457,
+    "end_lineno": 467,
     "loc": 1,
     "complexity": 1
   },
@@ -83116,7 +84656,7 @@
     "kind": "function",
     "qualname": "memway.parsers.GoParser.parse.ntext",
     "path": "memway/parsers.py",
-    "lineno": 473,
+    "lineno": 483,
     "body_hash": "279a431f4d19a732",
     "parent": "C-2fb621",
     "signature": "ntext(n)",
@@ -83178,7 +84718,7 @@
       4998954446829
     ],
     "n_shingles": 24,
-    "end_lineno": 475,
+    "end_lineno": 485,
     "loc": 3,
     "complexity": 1
   },
@@ -83406,7 +84946,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.load",
     "path": "memway/edges.py",
-    "lineno": 229,
+    "lineno": 307,
     "body_hash": "61040655cb2995d5",
     "parent": "C-cbc42e",
     "signature": "load(coord_dir, write_cache)",
@@ -83477,7 +85017,7 @@
       283629020483
     ],
     "n_shingles": 124,
-    "end_lineno": 240,
+    "end_lineno": 318,
     "loc": 12,
     "complexity": 2
   },

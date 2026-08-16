@@ -97,8 +97,65 @@ class EdgeBuilder:
             q.extend(self._bases.get(anc, []))
         return None
 
+    def _unreachable_target(self, src_ent, dst_ent) -> str:
+        """Why a NAME-ONLY match cannot be the real callee. '' if it can be.
+
+        Bare refs are most of what the parser emits - 6,513 of 6,644 call
+        refs on this repo - because a receiver's type is usually unknown.
+        resolve() then matches on the last segment alone, and a name with
+        exactly ONE definition anywhere wins outright. UNIQUENESS WAS
+        BEING READ AS CERTAINTY: the edge was scored 0.95 "exact", above
+        the <0.7 line the grounding block warns about, so nothing flagged
+        it.
+
+        Measured before this guard: 369 of 1,627 call edges (23%) landed
+        on an entity whose short name is a stdlib method the repo never
+        defines. Two absorbed 295 of them - `tests.test_console.get`
+        collecting every dict.get() in the package, and a one-line stub
+        class D inside a test function collecting every Path.read_text().
+        That was the hairball in the rendered map, and it inflated fan_in
+        and blast radius everywhere those nodes were reached.
+
+        Both rules below are facts about reachability, not name lists. A
+        list of stdlib names would be endless, language-specific, and
+        wrong the moment a repo legitimately defines `get`.
+        """
+        # 1. FUNCTION-LOCAL targets. A class or def inside a function body
+        #    cannot be named from outside that body - it does not exist
+        #    until the function runs, and not by that path afterwards.
+        e, hops = dst_ent, 0
+        while getattr(e, "parent", None) and hops < 12:
+            parent = self.ix.entities.get(e.parent)
+            if parent is None:
+                break
+            if parent.kind in ("function", "method"):
+                return "function-local"
+            e, hops = parent, hops + 1
+        # 2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`
+        #    cannot be a plain `def get` at module scope, however unique
+        #    that name is in the index. The parser knows the call was
+        #    written `receiver.name(...)` and used to discard it; RawEdge
+        #    carries it now. This is what the first two rules could not
+        #    reach: tests calling dict.get() still landed on a test helper
+        #    named get, because caller and target were both tests.
+        if getattr(self, "_via_attr", False) and dst_ent.kind == "function":
+            return "attr-call-to-function"
+        # 3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry
+        #    is already relied on by metrics (fan_in excludes test sources)
+        #    and by D11b - which only fires on AMBIGUOUS names, and so
+        #    could never help here: these names have exactly one definition,
+        #    and no competition was read as high confidence when it is the
+        #    case that most deserves suspicion.
+        from .verify import is_test_entity
+        if is_test_entity(dst_ent) and not is_test_entity(src_ent):
+            return "test-only"
+        return ""
+
     def build(self):
         self.edges = []
+        # counted, not silent: dropping an edge is a claim about the
+        # graph and the number belongs where someone can see it.
+        self._dropped_unreachable = 0
         self._bases = self._hierarchy()
         # materialize class hierarchy as structural edges: until now the
         # MRO data was consumed during resolution and thrown away - as
@@ -139,6 +196,14 @@ class EdgeBuilder:
                 continue
             dst_ent = self.ix.resolve(raw.dst_ref)
             conf, how = 0.95, "exact"
+            # A NAME-ONLY match is a guess, and some guesses are provably
+            # wrong. Checked here rather than inside resolve() because the
+            # rule needs the CALLER, which resolve() has no business knowing.
+            self._via_attr = getattr(raw, "via_attr", False)
+            if dst_ent is not None and "." not in raw.dst_ref:
+                if self._unreachable_target(src_ent, dst_ent):
+                    dst_ent = None
+                    self._dropped_unreachable += 1
             if dst_ent is None and "." in raw.dst_ref:
                 # inheritance dispatch, resolved via REAL class hierarchy:
                 # self.meth was attributed to the calling subclass, but meth
@@ -162,8 +227,14 @@ class EdgeBuilder:
                     base_short = base.rsplit(".", 1)[-1]
                     cls_e = self.ix.resolve(base)
                     if cls_e is None or cls_e.kind != "class":
+                        # guarded like the other short-name lookups: a
+                        # declared type is strong evidence, but the CLASS
+                        # is still being found by bare name and can land
+                        # on a function-local class no annotation could
+                        # legally name.
                         cs = [c for c in self._by_short.get(base_short, [])
-                              if c.kind == "class"]
+                              if c.kind == "class"
+                              and not self._unreachable_target(src_ent, c)]
                         cls_e = cs[0] if len(cs) == 1 else None
                     if cls_e is not None and cls_e.kind == "class":
                         meth = rest.split(".", 1)[0]
@@ -188,8 +259,14 @@ class EdgeBuilder:
                     # subclass, but meth is defined on an ancestor. Without
                     # base-class info, accept a UNIQUE definition of the bare
                     # method name anywhere in the index - flagged as a guess.
+                    # guarded like the other two short-name tiers - this
+                    # one was missed on the first pass and kept feeding the
+                    # same false hubs, which is the argument for the test
+                    # below that enumerates every site rather than trusting
+                    # that they were all found.
                     meth = [e for e in self._by_short.get(last, [])
-                            if e.kind in ("function", "method")]
+                            if e.kind in ("function", "method")
+                            and not self._unreachable_target(src_ent, e)]
                     if len(meth) == 1:
                         dst_ent = meth[0]
                         conf, how = 0.70, "inherited-guess"
@@ -198,7 +275,8 @@ class EdgeBuilder:
                 # the index. Grounded enough to keep WITH a low score -
                 # dropping it silently (old behavior) hides real coupling.
                 cands = [e for e in self._by_short.get(raw.dst_ref, [])
-                         if e.kind in ("function", "method", "class")]
+                         if e.kind in ("function", "method", "class")
+                         and not self._unreachable_target(src_ent, e)]
                 if len(cands) == 1:
                     dst_ent = cands[0]
                     conf, how = 0.60, "bare-name"
