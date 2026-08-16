@@ -57,7 +57,9 @@ class Entity:
     complexity: int = 1      # cyclomatic approx, from parser body text (D1)
 
     def to_dict(self):
-        return asdict(self)
+        d = asdict(self)
+        d["sketch"] = encode_sketch(d.get("sketch") or [])
+        return d
 
 
 def _hash_body(text: str) -> str:
@@ -76,7 +78,79 @@ _SKETCH_K = 48
 #
 #   1  builtin hash() - randomized per process, never comparable across runs
 #   2  blake2b, stable forever
-SKETCH_VERSION = 2
+#   3  blake2b, stored base64 instead of 48 JSON integers
+SKETCH_VERSION = 3
+
+
+def encode_sketch(values) -> str:
+    """48 minhash values -> one base64 string. SERIALIZATION ONLY.
+
+    IT IS DECODED BACK TO A LIST AT LOAD. The in-memory shape must stay a
+    list of ints: an AST sweep found TWENTY reads of `.sketch` across
+    lineage.py - not just sketch_jaccard, which is what the obvious
+    reading of the code suggests - and several are `zip(a, b)` and
+    `len(a)`. Those work on a string without raising and compare
+    CHARACTERS, so leaving the compact form in memory would not crash,
+    it would quietly return wrong similarity for every pair. Verified by
+    walking the AST rather than trusting the claim.
+
+    Why base64 over hex, benchmarked on 800 real sketches from a flask
+    map: 386 vs 578 bytes per entity against 728 for JSON integers - 47%
+    smaller versus 21%. Base64 decodes slower (5.7us vs 4.2us per
+    sketch), which would matter if it happened per COMPARISON; it happens
+    once per entity per load, ~10ms for the whole flask map, and the hot
+    path in lineage never sees it.
+
+    Six bytes per value because the permutation masks to 48 bits.
+    """
+    import base64
+    if isinstance(values, str):
+        return values
+    return base64.b64encode(
+        b"".join(int(v).to_bytes(6, "big") for v in values)).decode()
+
+
+def decode_sketch(value):
+    """base64 -> list of ints. A list passes through untouched.
+
+    Maps written before 0.55.1 hold a JSON array, and they must keep
+    working: absent-or-old reads as the prior generation, never as
+    current. Third application of that pattern - after the sketch
+    generation stamp and the raw-edge field filter.
+    """
+    import base64
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        raw = base64.b64decode(value)
+        return [int.from_bytes(raw[i:i + 6], "big")
+                for i in range(0, len(raw), 6)]
+    except Exception:
+        return []
+
+
+def _untrack_legacy_cache(repo_root, legacy: Path) -> None:
+    """Drop the old parse-cache path from git's index, and say so.
+
+    `git rm --cached` only - the file has already been moved, and the
+    working tree is not ours to delete from. Announced on one line
+    because a tool that quietly rewrites what your next commit contains
+    has taken a decision that was not offered to it.
+    """
+    import subprocess
+    rel = "index/parse_cache.json"
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(repo_root), "rm", "--cached", "-q", "--ignore-unmatch",
+             f".coord/{rel}"], capture_output=True, text=True, timeout=10)
+        if r.returncode == 0:
+            print(f"  moved .coord/{rel} -> .coord/cache/parse_cache.json "
+                  f"and untracked it (regenerable; it was 38% of the "
+                  f"tracked map)")
+    except (OSError, subprocess.SubprocessError):
+        pass
 
 
 def stored_sketch_version(coord_dir) -> int:
@@ -395,6 +469,8 @@ class Indexer:
             except (json.JSONDecodeError, EOFError):
                 data = self._recover_from_snapshot()
             for cid, e in data.items():
+                e = dict(e)
+                e["sketch"] = decode_sketch(e.get("sketch"))
                 self.entities[cid] = Entity(**e)
                 self.by_qualname[e["qualname"]] = cid
 
@@ -454,7 +530,27 @@ class Indexer:
         # the parser logic changes - see PARSE_SCHEMA_VERSION. Named, not
         # line-numbered: this said "lines 284-295" until 2026-08-16, by
         # which point those lines were _new_id() and a class header.
-        cache_file = self.coord_dir / "index" / "parse_cache.json"
+        # .coord/cache/, NOT .coord/index/. It is REGENERABLE - rebuilt
+        # from source on any schema bump or cache miss - and the derived
+        # taxonomy already has a home for that: cache/ and evidence/ are
+        # ignored, meta/ and lineage/ are authored and tracked, and
+        # docbindings/versions are snapshot baselines. This file sat in
+        # index/ and inherited "tracked" by its address rather than its
+        # nature, which cost 2.9 MB of git history per repo - 38% of
+        # everything memway tracked on flask - for bytes any machine can
+        # rebuild in seconds.
+        cache_file = self.coord_dir / "cache" / "parse_cache.json"
+        legacy = self.coord_dir / "index" / "parse_cache.json"
+        if legacy.exists() and not cache_file.exists():
+            # MIGRATION, announced. Moving it is not enough: git still has
+            # the old path staged, so an untouched `git rm --cached` would
+            # leave it in every future commit.
+            try:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                legacy.replace(cache_file)
+                _untrack_legacy_cache(self.repo_root, legacy)
+            except OSError:
+                cache_file = legacy          # a failed move is not fatal
         cache = {}
         if cache_file.exists():
             try:

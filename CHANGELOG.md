@@ -7,6 +7,53 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-08-16
+
+Theme: **the map earns its bytes.** 0.55.0 made the map ride inside every
+commit, which made its size a recurring cost rather than a one-off. Two
+changes, measured on flask (1,816 entities, 5,556 commits) before and
+after:
+
+| | 0.55.0 | 0.55.1 |
+|---|---|---|
+| tracked map | 7.70 MB | **3.62 MB** (-53%) |
+| `coordinates.json` | 3.2 MB | **2.05 MB** |
+| bytes/entity | 1,818 | **1,184** |
+| tracked files | 7 | **6** |
+| per-commit diff | 21 ins / 13 del | 20 ins / 12 del |
+| commit latency | 0.66 s | **0.63 s** |
+| 59k-entity extrapolation | 102.3 MB | **66.6 MB** |
+
+### Changed
+
+- **The parse cache is no longer tracked.** It lived in `.coord/index/`
+  and inherited "tracked" from its address rather than its nature - 2.9 MB
+  on flask, **38% of everything memway committed**, for bytes any machine
+  rebuilds in seconds. It moves to `.coord/cache/`, where the derived
+  taxonomy already ignores its family. Existing repos are migrated on the
+  next index: the file is moved AND `git rm --cached`'d, because moving
+  alone would leave git carrying the old path in every future commit. The
+  migration announces itself on one line; a tool that quietly changes what
+  your next commit contains has taken a decision nobody offered it.
+
+- **Sketches are stored base64, not as 48 JSON integers.** Benchmarked on
+  800 real sketches: base64 386 B/entity, hex 578, raw integers 728 - so
+  47% off the largest field in the map, which was 55% of every entity
+  record.
+
+  **Serialization only: it is decoded back to a list at load.** An AST
+  sweep found TWENTY reads of `.sketch` across `lineage.py`, not just
+  `sketch_jaccard` as the code reads at a glance, and several are `zip()`
+  and `len()`. Those accept a string without raising and compare
+  CHARACTERS - a compact form left in memory would not crash, it would
+  silently return wrong similarity for every pair. Base64 decodes slower
+  than hex (5.7 vs 4.2 us), which would matter per COMPARISON; it happens
+  once per entity per load, ~10 ms for all of flask.
+
+  `SKETCH_VERSION` 2 -> 3. A stored array still loads - absent-or-old
+  reads as the prior generation, never as current. Third application of
+  that pattern, after the generation stamp and the raw-edge field filter.
+
 ## [0.55.0] - 2026-08-16
 
 Theme: **automation you don't have to think about.** Neither of these is

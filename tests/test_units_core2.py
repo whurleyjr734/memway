@@ -283,7 +283,7 @@ def test_parse_cache_invalidates_on_schema_bump(tmp_path):
     from memway.indexer import Indexer
     ix = Indexer(tmp_path, tmp_path / ".coord")
     ix.index()
-    cf = tmp_path / ".coord" / "index" / "parse_cache.json"
+    cf = tmp_path / ".coord" / "cache" / "parse_cache.json"
     c = _j.loads(cf.read_text())
     from memway.parsers import PARSE_SCHEMA_VERSION
     assert c["_schema"] == PARSE_SCHEMA_VERSION

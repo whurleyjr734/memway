@@ -562,3 +562,101 @@ def test_superseded_is_carried_into_the_rendered_page(tmp_path):
     import re
     assert re.search(r'class="note \$\{k\.superseded\?"superseded"', html), \
         "the template does not style superseded entries distinctly"
+
+
+# --------------------------- the map earns the bytes it commits
+
+def test_the_parse_cache_is_not_tracked(tmp_path):
+    """It is REGENERABLE, and the taxonomy already had a home for that.
+
+    It sat in .coord/index/ and inherited "tracked" from its address
+    rather than its nature - 2.9 MB on flask, 38% of everything memway
+    committed, for bytes any machine rebuilds in seconds. cache/ is
+    ignored by the .gitignore init writes; index/ is not.
+    """
+    r = tmp_path / "t"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    assert (r / ".coord" / "cache" / "parse_cache.json").exists(), \
+        "the parse cache is not in cache/"
+    assert not (r / ".coord" / "index" / "parse_cache.json").exists(), \
+        "the parse cache is still in index/"
+
+    _git(r, "add", "-A")
+    staged = _git(r, "status", "--porcelain").stdout
+    assert "parse_cache" not in staged, f"the cache got staged:\n{staged}"
+    assert ".coord/index/coordinates.json" in staged, \
+        "the index itself must still be tracked"
+
+
+def test_an_existing_repo_gets_the_cache_untracked_and_is_told(tmp_path):
+    """Migration, announced. Moving the file is not enough - git still has
+    the old path staged, so without `rm --cached` it rides in every future
+    commit forever."""
+    r = tmp_path / "legacy"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    # forge the pre-0.55.1 layout: cache back in index/, and tracked
+    legacy = r / ".coord" / "index" / "parse_cache.json"
+    (r / ".coord" / "cache" / "parse_cache.json").replace(legacy)
+    _git(r, "add", "-A")
+    _git(r, "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "old layout", "--no-gpg-sign")
+    assert "index/parse_cache.json" in _git(r, "ls-files", ".coord").stdout
+
+    out = _cli("index", str(r))
+    assert "untracked it" in out.stdout, f"the migration was silent:\n{out.stdout}"
+    assert not legacy.exists(), "the old file survived"
+    assert "index/parse_cache.json" not in _git(r, "ls-files", ".coord").stdout, \
+        "git still tracks the old path"
+
+
+def test_sketch_round_trips_on_REAL_values(tmp_path):
+    """Encode/decode against sketches produced by the indexer, not
+    hand-made arrays - a synthetic fixture of small ints would pass a
+    codec that truncates the high bytes."""
+    from memway.indexer import encode_sketch, decode_sketch, Indexer
+    r = tmp_path / "rt"
+    r.mkdir()
+    (r / "m.py").write_text(SRC + "\n\ndef other(y):\n    return y * 3\n")
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    ix = Indexer(r, r / ".coord")
+    ix.load_existing(write_cache=False)
+    sketches = [e.sketch for e in ix.entities.values() if e.sketch]
+    assert sketches, "fixture produced no sketches"
+    assert any(max(s) > 2 ** 32 for s in sketches), \
+        "no value exceeds 32 bits, so this cannot catch a truncating codec"
+    for s in sketches:
+        assert decode_sketch(encode_sketch(s)) == s
+
+
+def test_the_in_memory_sketch_stays_a_LIST(tmp_path):
+    """The encoding is serialization only.
+
+    An AST sweep found 20 reads of .sketch across lineage.py, several of
+    them zip() and len(). Those accept a string without raising and
+    compare CHARACTERS - so a compact form left in memory would not
+    crash, it would silently return wrong similarity for every pair.
+    """
+    from memway.indexer import Indexer
+    r = tmp_path / "mem"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    ix = Indexer(r, r / ".coord")
+    ix.load_existing(write_cache=False)
+    for e in ix.entities.values():
+        assert isinstance(e.sketch, list), f"{e.qualname}: {type(e.sketch)}"
+        assert all(isinstance(v, int) for v in e.sketch), e.qualname
+    # ...and on disk it is compact
+    import json
+    raw = json.loads((r / ".coord/index/coordinates.json").read_text())
+    assert all(isinstance(v["sketch"], str) for v in raw.values()), \
+        "the sketch is still an array on disk"

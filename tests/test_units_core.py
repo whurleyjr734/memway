@@ -47,7 +47,7 @@ def test_skip_dirs_min_and_corrupt_parse_cache(tmp_path):
     assert not any("in_dist" in q for q in quals)       # SKIP_DIRS
     assert not any("lib" in q for q in quals)           # .min. skip
     # corrupt parse cache json -> silently rebuilt
-    pc = tmp_path / ".coord" / "index" / "parse_cache.json"
+    pc = tmp_path / ".coord" / "cache" / "parse_cache.json"
     if pc.exists():
         pc.write_text("{ not json")
     ix2 = Indexer(tmp_path, tmp_path / ".coord")

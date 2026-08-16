@@ -107,20 +107,40 @@ def normalize(value, lo=0.0, hi=1.0):
 }
 
 DERIVED = ["index/coordinates.json", "index/edges.json",
-           "index/raw_edges.json", "index/parse_cache.json",
+           "index/raw_edges.json", "cache/parse_cache.json",   # moved in 0.55.1
            "metrics/metrics.json", "manifest.json"]
 
 
 @pytest.fixture
 def twin(tmp_path):
-    """Two independent checkouts of one identical tree."""
+    """Two independent checkouts of ONE commit.
+
+    THE SECOND ONE IS A CLONE, and that is the whole point. This used to
+    run `git init` + commit twice, which yields the same commit sha only
+    while both land in the same wall-clock SECOND - git hashes the author
+    timestamp. Straddle a second boundary and the shas differ, and
+    manifest.json records indexed_at_sha, so the comparison fails.
+
+    That is a fixture race wearing the costume of nondeterministic
+    indexing: it failed roughly one full-suite run in ten across this
+    project's 0.54.x and 0.55.x work, always this test, never
+    reproducible in isolation - because in isolation the two commits are
+    microseconds apart and almost always share a second.
+
+    Cloning gives both checkouts the SAME commit by construction, which
+    is also what the property under test actually means: same tree, same
+    map, on two machines.
+    """
     a, b = tmp_path / "a", tmp_path / "b"
-    for d in (a, b):
-        d.mkdir()
-        for name, body in SRC.items():
-            (d / name).write_text(body)
-        _git(d, "init", "-q", "-b", "main")
-        _commit(d, "one")
+    a.mkdir()
+    for name, body in SRC.items():
+        (a / name).write_text(body)
+    _git(a, "init", "-q", "-b", "main")
+    _commit(a, "one")
+    _git(a, "clone", "-q", str(a), str(b))
+    assert _git(a, "rev-parse", "HEAD").stdout.strip() == \
+        _git(b, "rev-parse", "HEAD").stdout.strip(), \
+        "the clone did not inherit the commit"
     return a, b
 
 
@@ -293,7 +313,11 @@ def test_a_pre_054_map_does_not_get_confident_deletions(tmp_path):
     assert not auto_deletes, (
         f"a migrating index asserted a deletion it could not know: "
         f"{auto_deletes}")
-    assert json.loads(man_p.read_text())["sketch_version"] == 2, \
+    from memway.indexer import SKETCH_VERSION
+    # the CONSTANT, not a literal: this asserted == 2 and broke on the
+    # next bump, which is the test pinning an implementation detail
+    # rather than the behaviour (a migrating index must stamp).
+    assert json.loads(man_p.read_text())["sketch_version"] == SKETCH_VERSION, \
         "the migrating index must stamp the map so the NEXT one is normal"
 
 
