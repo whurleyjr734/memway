@@ -284,16 +284,23 @@ def test_the_installed_hook_names_an_absolute_memway(repo):
         # verify-change instead - the property under test is "no bare
         # memway", not "every hook indexes".
         blk = body[body.index(BEGIN):body.index(END)]
-        line = [l for l in blk.splitlines()
+        cmds = [l.strip() for l in blk.splitlines()
                 if l.strip() and not l.lstrip().startswith("#")]
-        assert len(line) == 1, body
-        assert line[0].lstrip().startswith('"'), (
-            f"{name} invokes a bare name, which needs the right PATH: {line[0]}")
-        exe = line[0].split('"')[1]
-        assert Path(exe).is_absolute(), f"{name}: {exe} is not absolute"
-        assert Path(exe).exists(), f"{name} pins a path that is not there: {exe}"
-        assert str(Path(sys.executable).parent) in exe or exe.endswith("memway"), \
-            f"{name} pinned some other install: {exe}"
+        assert cmds, body
+        # A block may run several commands - 0.55.0's pre-commit reports,
+        # indexes and stages. The property is not "one line", it is that
+        # every MEMWAY invocation is an absolute quoted path; `git add`
+        # is not memway and needs no pin.
+        line = [l for l in cmds if "memway" in l]
+        assert line, f"no memway invocation in the block: {body}"
+        for cmd in line:
+            assert cmd.startswith('"'), (
+                f"{name} invokes a bare name, which needs the right PATH: {cmd}")
+            exe = cmd.split('"')[1]
+            assert Path(exe).is_absolute(), f"{name}: {exe} is not absolute"
+            assert Path(exe).exists(), f"{name} pins a missing path: {exe}"
+            assert str(Path(sys.executable).parent) in exe or exe.endswith("memway"), \
+                f"{name} pinned some other install: {exe}"
 
 
 def test_the_hook_fires_with_no_venv_on_path(repo):
@@ -317,6 +324,12 @@ def test_the_hook_fires_with_no_venv_on_path(repo):
     man = repo / ".coord" / "manifest.json"
     d = json.loads(man.read_text())
     d[freshness.SHA_KEY] = "0" * 40
+    # BOTH stamps, as of 0.55.0. Zeroing only the sha no longer makes the
+    # map look stale, because the recorded TREE still matches HEAD and
+    # freshness now believes content over commit identity - so --if-stale
+    # correctly did nothing and this test failed on its own premise
+    # rather than on the behaviour it exists to pin.
+    d.pop(freshness.TREE_KEY, None)
     man.write_text(json.dumps(d))
     assert json.loads(man.read_text())[freshness.SHA_KEY] != head
 
@@ -383,10 +396,15 @@ def test_uninstall_removes_only_our_block(repo):
 
 
 def test_install_is_idempotent(repo):
+    """Unchanged block -> untouched file. The message moved in 0.55.0
+    from "already has the memway block" to "already current", because a
+    marked block is no longer left alone unconditionally - it is compared
+    and upgraded when it differs. Idempotence is the property; the
+    sentence was never the point."""
     _cli("hooks", "install", str(repo))
     first = (repo / ".git" / "hooks" / "post-commit").read_text()
     r = _cli("hooks", "install", str(repo))
-    assert "already has the memway block" in r.stdout
+    assert "already current" in r.stdout, r.stdout
     assert (repo / ".git" / "hooks" / "post-commit").read_text() == first
 
 
@@ -506,16 +524,33 @@ def test_many_map_commits_never_accumulate(repo):
     assert freshness.lag(repo, repo / ".coord") == {}
 
 
-def test_an_unreachable_sha_reports_rather_than_going_silent(repo):
+def test_an_unreachable_sha_reports_when_the_TREE_also_moved(repo):
     """Rebase, force-push and shallow clones can orphan the recorded sha.
-    'Cannot tell' is not 'nothing changed', and collapsing them would let a
-    rewritten history read as current."""
+
+    The original rule was "cannot tell is not nothing changed" - correct
+    while the sha was the only evidence available. 0.55.0 records the
+    tree, so the two cases separate: an orphaned sha whose TREE still
+    matches means the map describes this code exactly, whatever git did
+    to the commit graph, and silence is the honest answer. An orphaned
+    sha whose tree ALSO moved is the case the rule was written for, and
+    it still reports.
+
+    Both halves are asserted here; pinning only one would let a change
+    that always reports, or never does, pass.
+    """
     p = repo / ".coord" / "manifest.json"
     man = json.loads(p.read_text())
     man[freshness.SHA_KEY] = "0" * 40
     p.write_text(json.dumps(man))
+
+    # tree still matches -> the map fits the code -> silent
+    assert freshness.lag(repo, repo / ".coord") == {},         "an orphaned sha reported even though the tree proves the map fits"
+
+    # now move the tree too -> the case the rule exists for
+    man[freshness.TREE_KEY] = "deadbeefdeadbeef"
+    p.write_text(json.dumps(man))
     gap = freshness.lag(repo, repo / ".coord")
-    assert gap, "an unreachable sha went silent"
+    assert gap, "an unreachable sha with a moved tree went silent"
     assert gap["known"] is False
     assert "cannot reach" in gap["message"]
 
@@ -526,5 +561,8 @@ def test_one_counting_implementation():
     src = (HERE / "memway" / "freshness.py").read_text()
     assert src.count('"rev-list"') == 1, \
         "a second rev-list appeared; unify it into code_commits_between"
-    assert src.count(':(exclude).coord') == 2, \
+    # THREE now: the dirty check, the behind count, and the tree hash.
+    # All three ask the same question - "did the CODE move" - and .coord
+    # is not code. A fourth appearing without a reason is the smell.
+    assert src.count(':(exclude).coord') == 3, \
         "both the dirty check and the behind count must exclude .coord"

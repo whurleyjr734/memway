@@ -33,11 +33,13 @@ no sha recorded, and reports "unknown" rather than lying in either
 direction.
 """
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
 
 SHA_KEY = "indexed_at_sha"
+TREE_KEY = "indexed_at_tree"
 DIRTY_KEY = "indexed_at_dirty"
 
 
@@ -74,6 +76,52 @@ def is_dirty(repo) -> bool:
     _, ok = _git(repo, "diff", "--quiet", "HEAD", "--",
                  ".", ":(exclude).coord")
     return not ok
+
+
+def code_tree(repo) -> str:
+    """A hash of the STAGED code, excluding .coord. '' when unavailable.
+
+    THE TREE, NOT THE COMMIT. Freshness asked "is the map's sha the same
+    as HEAD" and then patched around the consequences: committing the map
+    moves HEAD, so 0.53.2 had to add a commit-counting rule that excludes
+    .coord just to stop the warning firing forever on the workflow this
+    project recommends. Comparing CONTENT instead makes that whole class
+    disappear - same code, same map, current, wherever git wandered. It
+    also makes bisect, rebase and fresh worktrees honest for free: they
+    change commit shas and leave the tree alone.
+
+    WHY NOT `git write-tree`, which is the obvious answer: write-tree
+    covers .coord, and the value gets recorded INTO .coord/manifest.json.
+    Recording the hash would change the tree the hash describes, so it
+    could never match on the next read. Excluding .coord is not a nicety
+    here, it is what makes the scheme self-consistent - measured before
+    the design was committed to.
+
+    `ls-files -s` is the INDEX, deliberately. During a pre-commit hook the
+    index is exactly what is about to be committed, so a hash taken there
+    matches HEAD's tree the instant the commit lands - which is what lets
+    the map ride inside its own commit and still read as current.
+    """
+    out, ok = _git(repo, "ls-files", "-s", "--", ".", ":(exclude).coord")
+    if not ok:
+        return ""
+    return hashlib.sha256(out.encode()).hexdigest()[:16]
+
+
+def head_tree(repo) -> str:
+    """The same hash for HEAD's committed content. '' when unavailable."""
+    out, ok = _git(repo, "ls-tree", "-r", "HEAD", "--", ".")
+    if not ok:
+        return ""
+    lines = [l for l in out.splitlines()
+             if l.strip() and "\t.coord/" not in l and not l.endswith("\t.coord")]
+    norm = []
+    for l in lines:
+        meta, _, path = l.partition("\t")
+        mode, _, rest = meta.partition(" ")
+        _, _, blob = rest.partition(" ")
+        norm.append(f"{mode} {blob} 0\t{path}")
+    return hashlib.sha256("\n".join(norm).encode()).hexdigest()[:16] if norm else ""
 
 
 def code_commits_between(repo, was: str, sha: str) -> tuple:
@@ -118,6 +166,14 @@ def record(coord, repo) -> None:
     if sha:
         man[SHA_KEY] = sha
         man[DIRTY_KEY] = is_dirty(repo)
+        # The staged tree, excluding .coord. Recorded alongside the sha
+        # rather than instead of it: the sha still answers "which commit
+        # was this built from", which lineage and dig want, while the tree
+        # answers "does this map still describe the code", which is the
+        # only question freshness should ask.
+        tree = code_tree(repo)
+        if tree:
+            man[TREE_KEY] = tree
     try:
         (coord / "manifest.json").write_text(json.dumps(man, indent=1) + "\n")
     except OSError:
@@ -153,6 +209,18 @@ def lag(repo, coord) -> dict:
     if not was:
         return {}                                # map predates the stamp
     dirty = is_dirty(repo)
+
+    # CONTENT FIRST. A recorded tree hash answers the real question
+    # directly: does this map describe the code that is committed? If yes,
+    # nothing else matters - not how many commits happened, not whether a
+    # rebase renumbered them, not which worktree this is. The commit-
+    # counting path below stays for maps written before the tree was
+    # recorded; it must never slander them (the 0.53.x pattern: absent
+    # means old, and old means fall back, not fail).
+    tree_was = man.get(TREE_KEY, "")
+    if tree_was and not dirty:
+        if tree_was == head_tree(repo):
+            return {}
     behind, known = code_commits_between(repo, was, sha)
     # COMMITTING THE MAP MOVES HEAD. memway tells you to commit .coord, so
     # `was != sha` the instant you do - while the map still describes the

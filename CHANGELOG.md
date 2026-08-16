@@ -7,6 +7,67 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-08-16
+
+Theme: **automation you don't have to think about.** Neither of these is
+a correctness bug. Both are daily grit - the kind that makes someone
+quietly stop using a tool, which is worse than a crash because nobody
+files it.
+
+### Fixed
+
+- **An existing hook install is UPGRADED, not left alone.** `plan()`
+  returned "already has the memway block - leaving it" for any file
+  carrying the markers, so an install could never receive a changed hook
+  body. Everything below would have shipped installed and inert for every
+  repo that had run `hooks install` before. Found by running the upgrade
+  on memway's own repo before committing, rather than on a fresh fixture
+  where the question cannot arise. Content outside the markers is
+  untouched, and a second run reports "already current" and rewrites
+  nothing.
+
+- **The map rides inside the commit that changed the code.** The
+  post-commit hook re-indexed AFTER the commit, leaving `.coord` dirty,
+  so every change cost TWO commits - and `git checkout` refuses to switch
+  branches with a dirty tree. That blocked a merge twice in one session
+  on 2026-08-16, for the person who wrote the hook.
+
+  The pre-commit hook now reports what you staled, re-indexes, and
+  `git add .coord`. **Order is the design and it is not the obvious one:**
+  the staleness report runs FIRST, against the pre-index state, because
+  that is the only moment it can see what your change invalidated. Index
+  first and the report goes quiet - still installed, silently useless.
+
+  It stages `.coord` and nothing else. Never `git add -A`: a hook that
+  stages the user's unrelated work has taken a decision nobody offered
+  it.
+
+- **Freshness compares TREES, not commit shas.** The enabling fix, and it
+  had to come first: a map indexed during pre-commit records the PREVIOUS
+  HEAD, so a sha comparison reports `behind: 1` on a map that describes
+  the code exactly.
+
+  Comparing content makes a whole class disappear. 0.53.2 had to add a
+  commit-counting rule that excludes `.coord` purely to stop the warning
+  firing forever on the workflow this project recommends; bisect, rebase
+  and fresh worktrees are now honest for free, because they move commit
+  shas and leave the tree alone. Maps with no tree recorded fall back to
+  the commit path - absent means old, and old means fall back, never
+  fail.
+
+- **A drifted MCP server says so.** An MCP server keeps the code it
+  started with, so upgrading memway underneath a live agent leaves it on
+  the old build. Silently, usually: notes written through a session-old
+  server came back stale while the same notes through the CLI landed
+  fresh. Once, not silently at all - 0.54.3 added a field to `RawEdge`
+  and the old server raised `unexpected keyword argument` on every call.
+
+  Tool output now carries `server_version_drift` when the installed
+  version has moved past the running one. Once per session, because the
+  condition cannot resolve while the process lives and repeating it
+  trains the reader to scroll past. **It never refuses:** a stale server
+  that answers beats a dead one mid-session.
+
 ## [0.54.3] - 2026-08-16
 
 Theme: **uniqueness is not certainty.**

@@ -214,6 +214,52 @@ def _error(id_, code, msg):
             "error": {"code": code, "message": msg}}
 
 
+# The version this SERVER PROCESS is running, captured once at import.
+# An MCP server is long-lived: it keeps the code it started with, so
+# upgrading memway underneath a live agent session leaves the agent
+# talking to the old build with no sign that anything moved.
+#
+# Measured twice on 2026-08-16, and the second time it was not subtle.
+# Superseding notes written through a session-old server came back stale
+# while the same notes written through the CLI landed fresh - the server
+# was still applying the pre-fix stamping rule. Then 0.54.3 added a field
+# to RawEdge, and the old server did not degrade at all: it raised
+# `unexpected keyword argument` on every call the moment the map was
+# re-indexed by the new build. A hard crash, mid-session, with nothing
+# anywhere saying "restart your server".
+_SERVER_VERSION = __import__("memway").__version__
+_ANNOUNCED = False
+
+
+def version_drift() -> str:
+    """One line when the installed package has moved past this process.
+
+    '' when they agree, and '' after it has been said once. ONCE PER
+    SESSION, deliberately: the condition cannot resolve itself while the
+    process lives, so repeating it every call would train the reader to
+    scroll past exactly the line that explains their next confusing
+    result. Said once, at the first opportunity, when it is still news.
+
+    NEVER REFUSES. A stale server that answers is more useful than a dead
+    one mid-session - the agent can finish its task and restart after.
+    The warning changes what the reader believes; refusing would change
+    what they can do, and that is not this function's call to make.
+    """
+    global _ANNOUNCED
+    if _ANNOUNCED:
+        return ""
+    try:
+        from importlib.metadata import version as _v
+        installed = _v("memway")
+    except Exception:
+        return ""                    # cannot tell is not the same as stale
+    if installed == _SERVER_VERSION:
+        return ""
+    _ANNOUNCED = True
+    return (f"server running {_SERVER_VERSION}, installed is {installed} "
+            f"- restart your MCP server")
+
+
 def handle(msg: dict, repo: str) -> dict | None:
     """Handle one JSON-RPC message. Returns a response dict, or None
     for notifications (no id)."""
@@ -245,6 +291,11 @@ def handle(msg: dict, repo: str) -> dict | None:
             data = tool["fn"](repo, args)
             record(repo, name, args,
                    ok=not (isinstance(data, dict) and "error" in data))
+            # carried as a FIELD, like map_lag and knowledge_lag - the
+            # pattern already exists and agents already read it.
+            drift = version_drift()
+            if drift and isinstance(data, dict):
+                data = {"server_version_drift": drift, **data}
             return _result(id_, {"content": [
                 {"type": "text", "text": _json.dumps(data, indent=2)}]})
         except Exception as e:                       # never crash the agent

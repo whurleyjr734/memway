@@ -64,25 +64,39 @@ def block_for(exe: str) -> str:
 
 
 def pre_commit_block_for(exe: str) -> str:
-    """The staleness report, printed before a commit is sealed.
+    """Report what you staled, then put the map INSIDE the commit.
 
-    EXITS 0 ALWAYS, unconditionally, by construction: the report is
-    followed by `|| true` AND the block ends in `exit 0` reached whatever
-    happens. A hook that blocks a commit gets removed, correctly - see
-    the module docstring - and this one has less right to block than any
-    other, because "you did not update a note" is advice, not an error.
+    EXITS 0 ALWAYS, on every path: each command carries `|| true` and the
+    block adds no exit of its own, so a fresh hook's trailing `exit 0` or
+    a foreign hook's own control flow decides the status. A hook that
+    blocks a commit gets removed, correctly - and "your map is stale" has
+    less right to block than anything.
 
-    Why it exists at all: memway shipped a workflow rule saying supersede
-    what your change staled, and the rule's own author broke it twice in
-    one evening with the tool installed. Nothing told them. A rule that
-    depends on recall is the failure this project exists to fix, so the
-    telling moved into the one place that fires with zero memory
-    required - the commit itself.
+    ORDER IS THE DESIGN, and it is not the obvious one. The staleness
+    report runs FIRST, against the pre-index state: that is the only
+    moment it can see what your change invalidated. Index first and the
+    report goes quiet, because the index would already agree with the
+    tree it was about to describe - the feature would still be installed
+    and would silently stop telling you anything.
+
+    Then index, then `git add .coord`, so the map lands in the same commit
+    as the code it describes. Before this the map arrived one commit late
+    and every change cost two commits: the post-commit hook re-indexed,
+    left .coord dirty, and the next `git checkout` refused to switch
+    branches until you committed the stamp. That happened twice in one
+    session on 2026-08-16, mid-merge, to the person who wrote the hook.
+
+    `git add .coord` is scoped to .coord and nothing else. It must never
+    become `git add -A`: a hook that stages the user's unrelated work has
+    taken a decision that was not offered to it.
     """
     return f"""{BEGIN}
-# reports knowledge your staged work invalidated. NEVER blocks a commit.
-# remove with: memway hooks uninstall
+# 1. what did this change invalidate? asked BEFORE the index moves.
 {exe} verify-change . 2>/dev/null | grep -A 99 "STALED KNOWLEDGE" || true
+# 2. refresh the map and put it IN this commit, so code and map arrive
+#    together. remove with: memway hooks uninstall
+{exe} index . --if-stale --quiet || true
+git add .coord 2>/dev/null || true
 {END}"""
 
 
@@ -142,7 +156,18 @@ def plan(path: Path, exe: str = "") -> tuple:
         return SHEBANG + "\n" + BLOCK + "\n\nexit 0\n", f"wrote {name}"
     cur = path.read_text()
     if BEGIN in cur and END in cur:
-        return None, f"{name} already has the memway block - leaving it"
+        # UPGRADE IN PLACE, the marker-block pattern the rules files use.
+        # This used to return "leaving it" unconditionally, which meant an
+        # existing install NEVER received a changed hook body: 0.55.0's
+        # pre-commit stages the map, and every repo that had installed
+        # hooks before would have upgraded memway and silently kept the
+        # old behaviour. The markers exist precisely so the managed region
+        # can be replaced without touching anything around it.
+        i, j = cur.index(BEGIN), cur.index(END) + len(END)
+        if cur[i:j] == BLOCK:
+            return None, f"{name} already current - leaving it"
+        return (cur[:i] + BLOCK + cur[j:],
+                f"upgraded {name} (kept everything outside the markers)")
     if not cur.startswith("#!"):
         return None, (f"{name} exists and has no shebang, so appending is "
                       f"not safe - REFUSING (add {BEGIN} / {END} around a "
