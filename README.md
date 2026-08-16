@@ -66,6 +66,10 @@ named in parentheses. Use whichever your client supports.
   record - a constraint strong enough to stop work is exactly what the next
   session needs and exactly what the code cannot say on its own. Capture it
   before you reply.
+- If your change staled knowledge, supersede it before you finish.
+  `memway_verify_change` names what you invalidated; write a fresh entry in
+  the same channel. Superseding never deletes - the old entry stays as
+  history.
 ```
 
 Three properties matter. Tool names are **exact** — agents that have to

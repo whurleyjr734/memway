@@ -192,8 +192,28 @@ def _resolve_error(ref: str, ix, coord=None) -> dict:
                 "hint": f"re-query with {last}",
             }
 
-    # Find fuzzy matches
     all_qualnames = list(ix.by_qualname.keys())
+
+    # AMBIGUITY IS NOT ABSENCE. A bare name matching several entities used
+    # to be reported as "no entity matches", which is false and sends the
+    # caller down the wrong path: they conclude the map does not know the
+    # thing and fall back to grep, when the map knows five and needed one
+    # word of disambiguation. Measured in the 0.54.0 acceptance -
+    # `get_signature` matched 5 entities in itsdangerous, `save` matched 3
+    # here, and both answered "no entity matches". The candidates are in
+    # hand at the moment of failure; only the message was wrong.
+    tail = str(ref).rsplit(".", 1)[-1]
+    matches = sorted(qn for qn in all_qualnames
+                     if qn == ref or qn.rsplit(".", 1)[-1] == tail)
+    if len(matches) > 1:
+        return {
+            "error": f"{ref!r} is ambiguous - {len(matches)} entities match",
+            "matches": matches,
+            "hint": (f"qualify it, e.g. {matches[0]!r}, or use "
+                     f"memway_at <file:line>"),
+        }
+
+    # Find fuzzy matches
     scored = []
     for qn in all_qualnames:
         ratio = SequenceMatcher(None, ref, qn).ratio()
@@ -737,13 +757,19 @@ QUERIES = {
     # which tests reach a change is a read; executing them is not, and a
     # query that shells out to pytest is a different tool than this one.
     #
-    # THE ODD ONE OUT: every other query leaves .coord untouched, and this
-    # one does not - it re-indexes and rewrites the edge cache so the map
-    # reflects the tree it just measured (see verify_change below). That is
-    # the MCP tool's long-standing behaviour and is shared deliberately, but
-    # it means `--json verify-change` is a WRITE. test_verify_query records
-    # that so nobody infers inertness from the company it keeps.
+    # NO LONGER THE ODD ONE OUT. Through 0.54.0 this re-indexed and
+    # rewrote the edge cache "so the map reflects the tree it just
+    # measured" - a deliberate, documented exception that made
+    # `--json verify-change` a WRITE, five files' worth. 0.54.1 reverses
+    # that decision: a read surface that mutates state could, after
+    # 0.54.0, perform the sketch migration and announce it to a stdout a
+    # --json caller never displays. It computes in memory now and is
+    # enrolled in the read fence like everything else.
     "verify-change": lambda repo, a: verify_change(repo),
+    # attention was MCP-only until 0.54.1 - not a query, not a command -
+    # so anyone driving memway from the CLI could not ask the one question
+    # that finds staled knowledge repo-wide.
+    "attention": lambda repo, a: attention(repo),
 }
 
 
@@ -753,20 +779,73 @@ def _dig(repo, ref):
 
 
 def verify_change(repo_root, run=False):
-    """MCP/CLI entry: post-change impact + test selection (see verify.py)."""
+    """MCP/CLI entry: post-change impact, test selection, and the knowledge
+    this change invalidated (see verify.py).
+
+    A PURE READ, as of 0.54.1. It used to write five files - the index, the
+    edges, the parse cache and both pickles - because it re-indexed the
+    working tree and then saved. It was never enrolled in the read fence,
+    so nothing caught it; a "read" that reindexes could, after 0.54.0, even
+    perform the sketch migration and announce it to a stdout that a --json
+    caller has no reason to display.
+
+    STALED KNOWLEDGE IS THE POINT. This is the step the workflow rules send
+    you to after an edit, and it used to report blast radius and tests while
+    saying nothing about the notes the edit had just invalidated - so the
+    loop never closed and staleness was discovered later, by whoever
+    happened to open a map. Five notes on memway's own flagship went stale
+    that way and sat coral on the public site.
+
+    The report is computed against the WORKING TREE, not the stored index:
+    index(persist=False) recomputes hashes in memory for changed files. At
+    the moment you would ask - edited, not re-indexed, not committed - the
+    stored index still holds the OLD hashes and would report everything
+    fresh. That is the trap this exists to avoid.
+    """
     from pathlib import Path
     from .indexer import Indexer
     from .edges import EdgeBuilder
+    from .metadata import MetaStore, accepted_for, unsuperseded_stale
     from .verify import verify_change as _vc
     repo_root = Path(repo_root)
-    ix = Indexer(repo_root, repo_root / ".coord")
-    ix.load_existing()
+    coord = repo_root / ".coord"
+    ix = Indexer(repo_root, coord)
+    # BOTH loaders, or the fence still fails. load_existing warms
+    # coordinates.pkl and EdgeBuilder.load warms edges.pkl; suppressing
+    # only the first left edges.pkl behind, which is precisely how the
+    # earlier leaks in this file survived - there are exactly two
+    # cache-warming loaders on this path and missing either one is a write.
+    ix.load_existing(write_cache=False)
     eb = EdgeBuilder(ix)
-    edges = EdgeBuilder.load(repo_root / ".coord") or []
-    result = _vc(ix, edges or eb.build(), repo_root, run=run)
-    # refresh edges against the new tree so the next call sees them
-    eb2 = EdgeBuilder(ix); eb2.build(); eb2.save(repo_root / ".coord")
-    ix.save()
+    edges = EdgeBuilder.load(coord, write_cache=False) or []
+    result = _vc(ix, edges or eb.build(), repo_root, run=run, persist=False)
+
+    # Which knowledge did this change invalidate? Only entries that are the
+    # NEWEST in their channel: an older entry somebody already superseded
+    # is history, and re-reporting it would drown the one that needs an
+    # answer. Same rule the ring uses, one implementation.
+    meta = MetaStore(coord)
+    staled = []
+    for cid in dict.fromkeys(result.get("changed_ids", [])):
+        ent = ix.entities.get(cid)
+        if not ent:
+            continue
+        rows = []
+        for ch, entries in meta.read_all(cid, accepted_for(ent)).items():
+            for en in entries:
+                rows.append({**en, "channel": ch})
+        for row in unsuperseded_stale(rows):
+            staled.append({
+                "coordinate": cid,
+                "qualname": ent.qualname,
+                # CHANNEL IS REQUIRED. Superseding only heals when the
+                # fresh entry lands in the SAME channel - a confirm does
+                # not answer a stale note. A report without it sends the
+                # reader to write an entry that changes nothing.
+                "channel": row.get("channel", ""),
+                "text": row.get("text", ""),
+            })
+    result["staled_knowledge"] = staled
     return result
 
 

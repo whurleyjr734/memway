@@ -84,7 +84,12 @@ def _cli(*args):
 
 def test_verify_change_is_a_registered_query():
     assert "verify-change" in query.QUERIES
-    assert len(query.QUERIES) == 7
+    # Named, not just counted: a bare count tells you something moved but
+    # not what, and it passes when one query is swapped for another.
+    assert set(query.QUERIES) == {
+        "summary", "at", "show", "before-edit", "lineage", "dig",
+        "verify-change", "attention",
+    }, sorted(query.QUERIES)
 
 
 def test_the_query_and_the_mcp_tool_share_one_implementation():
@@ -185,11 +190,22 @@ def test_an_unknown_query_still_lists_the_available_ones(repo):
     assert "verify-change" in err, "the error must name the real query"
 
 
-# ------------------------------------------- the write, stated out loud
+# ------------------------------------ the write, deliberately reversed
 
-def test_this_query_writes_unlike_the_other_six(repo):
-    """Recorded, not assumed. If this ever becomes inert, this test should
-    fail and the change should be deliberate."""
+def test_this_query_no_longer_writes(repo):
+    """The old test here asserted the OPPOSITE, and said what to do if the
+    behaviour ever changed: "if that is intended, move it under the read
+    fence in test_read_fence.py rather than leaving this test as the only
+    record." 0.54.1 did exactly that, so this now asserts inertness and
+    the fence carries the real guarantee.
+
+    Why the reversal: the write was justified as keeping the map in step
+    with the tree it just measured. After 0.54.0 a re-index can perform
+    the sketch migration, which announces itself on stdout - invisible to
+    a --json caller. A read that can silently migrate a map is worse than
+    a map one commit behind, and the lag warning already covers the
+    latter.
+    """
     import hashlib
     def fp():
         return {str(p.relative_to(repo)): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -197,9 +213,9 @@ def test_this_query_writes_unlike_the_other_six(repo):
                 if p.is_file() and "log" not in p.parts}
     (repo / "m.py").write_text(SRC.replace("return lo", "return lo + 0"))
     before = fp()
-    query.QUERIES["verify-change"](str(repo), [])
+    out = query.QUERIES["verify-change"](str(repo), [])
     after = fp()
-    assert after != before, (
-        "verify-change no longer re-indexes; if that is intended, move it "
-        "under the read fence in test_read_fence.py rather than leaving "
-        "this test as the only record")
+    assert out["changed"], "fixture no longer produces a change to measure"
+    assert after == before, (
+        f"verify-change wrote: "
+        f"{sorted(k for k in set(before)|set(after) if before.get(k)!=after.get(k))}")

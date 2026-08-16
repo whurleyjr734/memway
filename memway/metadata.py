@@ -50,6 +50,31 @@ def accepted_for(entity) -> set:
     return {getattr(entity, "logic_hash", ""), entity.body_hash} - {""}
 
 
+def unsuperseded_stale(knowledge: list) -> list:
+    """THE ONE RING RULE, as rows. Per channel, only the NEWEST entry counts.
+
+    Entries are append-only and never deleted, so a coordinate accumulates
+    its own history: re-reading the code and writing a fresh entry leaves
+    the superseded one on disk forever. A rule of "any entry is stale"
+    means a coordinate that went coral once stays coral no matter how many
+    times somebody answers it - measured on memway's own map, 12 rings
+    that no amount of fresh confirmation could clear.
+
+    Callers want this in two shapes and there is ONE implementation:
+    viz.has_unsuperseded_stale asks whether to draw a ring, verify_change
+    asks WHICH entries a change just invalidated. A second copy of a rule
+    is how the behind-count shipped without the exclusion the dirty check
+    already had.
+
+    Input rows are dicts with 'channel' and 'stale'. Order is file order,
+    which is append order.
+    """
+    newest = {}
+    for row in knowledge:
+        newest[row.get("channel", "")] = row
+    return [r for r in newest.values() if r.get("stale")]
+
+
 class MetaStore:
     def __init__(self, coord_dir: str):
         self.root = Path(coord_dir) / "meta"

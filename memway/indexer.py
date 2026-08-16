@@ -422,8 +422,20 @@ class Indexer:
 
     # ----------------------------------------------------------------- index
 
-    def index(self) -> dict:
-        """Re-scan the repo. Returns a report of added/removed/changed."""
+    def index(self, *, persist: bool = True) -> dict:
+        """Re-scan the repo. Returns a report of added/removed/changed.
+
+        persist=False computes everything in memory and writes NOTHING -
+        specifically it does not refresh the parse cache, which is the
+        only write this method makes on its own. Read surfaces that need
+        current-tree hashes (verify_change, attention) use it; they pair
+        it with load_existing(write_cache=False) and never call save().
+
+        Keyword-only and defaulting to True because 41 callers depend on
+        the current behaviour, and because a positional flag here would
+        eventually be passed by accident. Refreshing the cache is a write
+        like any other - see the read fence.
+        """
         old_entities = dict(self.entities)
         old_by_qualname = dict(self.by_qualname)
 
@@ -506,16 +518,17 @@ class Indexer:
                 self._parse_errors.append(
                     (str(f.relative_to(self.repo_root)),
                      f"{type(e).__name__}: {e}"))
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        tmp = cache_file.with_suffix(".tmp")
-        _t = tmp.with_suffix('.tmp')
+        if persist:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache_file.with_suffix(".tmp")
+            _t = tmp.with_suffix('.tmp')
 
-        from .parsers import PARSE_SCHEMA_VERSION
-        new_cache["_schema"] = PARSE_SCHEMA_VERSION
-        _t.write_text(json.dumps(new_cache))
+            from .parsers import PARSE_SCHEMA_VERSION
+            new_cache["_schema"] = PARSE_SCHEMA_VERSION
+            _t.write_text(json.dumps(new_cache))
 
-        os.replace(_t, tmp)
-        os.replace(tmp, cache_file)
+            os.replace(_t, tmp)
+            os.replace(tmp, cache_file)
 
         added = [c for c in self.entities if c not in old_entities]
         removed = [c for c in old_entities if c not in self.entities]

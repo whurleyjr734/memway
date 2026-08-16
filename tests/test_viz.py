@@ -539,3 +539,88 @@ def test_the_real_map_has_the_components_the_label_describes():
     comps.sort(key=len, reverse=True)
     assert len(comps) > 1, "the detached label would describe nothing"
     assert len(comps[0]) / len(p["entities"]) > 0.8, "one dominant island"
+
+
+# ------------------------------- the page must not lie about itself
+
+def test_title_and_header_come_from_one_derivation(tmp_path):
+    """The tab and the header must carry the SAME derived label.
+
+    They were independent: the header was computed per-repo and the title
+    was a constant in the template - "memway - itsdangerous, the real map"
+    - left over from when the flagship map really was itsdangerous. Every
+    user's map inherited it, so their tab announced somebody else's
+    project (C-b93d8e).
+
+    Nothing caught it because a wrong constant is not a wrong behaviour.
+    The payload tests, the airgap tests and the executed-predicate tests
+    all pass on a page whose tab lies.
+
+    This asserts against map_label() rather than against any literal, so
+    it says nothing about WHAT the name should be - only that one
+    derivation feeds both. It therefore keeps passing when 0.54.2 changes
+    the derivation from the directory name to the project name.
+    """
+    import json as _json
+    import re as _re
+    from pathlib import Path as _P
+    from memway.viz import export, render, map_label
+
+    repo = tmp_path / "proj"
+    repo.mkdir()
+    (repo / "m.py").write_text(
+        'def alpha(x):\n    """D."""\n    return x + 1\n\n\n'
+        'def beta(y):\n    """D."""\n    return alpha(y)\n')
+    subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"],
+                   capture_output=True)
+    r = subprocess.run([sys.executable, "-m", "memway.cli", "init", str(repo)],
+                       capture_output=True, text=True, cwd=str(HERE))
+    assert r.returncode == 0, r.stderr[-400:]
+
+    payload = export(str(repo))
+    html = render(payload)
+
+    n_ent = len(payload["entities"])
+    n_edg = len(payload["edges"])
+    assert n_ent, "fixture produced no entities - the test would be vacuous"
+    expected = map_label(_P(str(repo)), "", n_ent, n_edg)
+
+    # (a) the emitted title carries exactly the derived label
+    m = _re.search(r"<title>(.*?)</title>", html, _re.S)
+    assert m, "the emitted page has no <title>"
+    title = m.group(1).strip()
+    assert title.endswith(expected), (
+        f"title does not carry the derived label\n"
+        f"  title   : {title!r}\n  expected: ...{expected!r}")
+
+    # (b) title and header carry the IDENTICAL label
+    assert payload["repo"] == expected
+    assert expected in title and payload["repo"] in title, (
+        f"header={payload['repo']!r} title={title!r}")
+
+
+def test_the_title_tracks_a_changed_derivation(tmp_path):
+    """Guard the guard. If the title were still a constant that merely
+    happened to contain the label, the test above could pass by accident;
+    changing what map_label returns must move the title with it."""
+    import re as _re
+    from pathlib import Path as _P
+    from memway import viz
+
+    repo = tmp_path / "proj2"
+    repo.mkdir()
+    (repo / "m.py").write_text('def solo(x):\n    """D."""\n    return x\n')
+    subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"],
+                   capture_output=True)
+    subprocess.run([sys.executable, "-m", "memway.cli", "init", str(repo)],
+                   capture_output=True, text=True, cwd=str(HERE))
+
+    real = viz.map_label
+    try:
+        viz.map_label = lambda p, f, a, b: "SENTINEL-LABEL-42"
+        html = viz.render(viz.export(str(repo)))
+    finally:
+        viz.map_label = real
+    title = _re.search(r"<title>(.*?)</title>", html, _re.S).group(1)
+    assert "SENTINEL-LABEL-42" in title, (
+        f"the title ignored the derivation and is still a constant: {title!r}")

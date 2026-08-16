@@ -82,6 +82,12 @@ READS = {
     "lineage":     lambda r: query.lineage(str(r), "m.alpha"),
     "viz":         lambda r: viz(str(r), str(r / "map.html")),
     "dig":         lambda r: dig(str(r), "m.alpha"),
+    # Enrolled in 0.54.1. verify_change was a documented exception - it
+    # re-indexed and saved, and tests/test_verify_query recorded that as
+    # deliberate. It is a pure read now, and this is where the guarantee
+    # lives. attention was never enrolled because it was never a query.
+    "verify_change": lambda r: query.verify_change(str(r)),
+    "attention":     lambda r: query.attention(str(r)),
 }
 
 
@@ -253,3 +259,31 @@ def test_parser_hint_is_shell_safe():
     src = (HERE / "memway" / "cli.py").read_text()
     assert "pip install 'memway[languages]'" in src, "must be QUOTED for zsh"
     assert "pip install -e ." not in src, "dev advice must not ship to users"
+
+
+# ---------------------------------------- no query may skip the fence
+
+def test_every_json_query_is_enrolled_in_this_fence():
+    """The structural half. verify_change spent two releases writing five
+    files because nothing forced a new query into READS - it was added to
+    QUERIES, documented as an exception, and that was the end of it.
+
+    A count would not have caught it either: the table had the right
+    number of entries, just not the right names. So this compares the two
+    sets and names what is missing.
+    """
+    queries = {q.replace("-", "_") for q in query.QUERIES}
+    enrolled = set(READS)
+    missing = sorted(queries - enrolled)
+    assert not missing, (
+        f"these --json queries are not in READS and so are never checked "
+        f"for writes: {missing}\n"
+        f"queries: {sorted(queries)}\nenrolled: {sorted(enrolled)}")
+
+
+def test_the_fence_covers_more_than_the_queries():
+    """Guard the guard: READS must not shrink to exactly the query list.
+    viz, dig and console are read surfaces that are not --json queries,
+    and dropping them would leave the test above passing."""
+    assert len(READS) > len(query.QUERIES), sorted(READS)
+    assert {"viz", "dig"} <= set(READS)

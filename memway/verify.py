@@ -101,18 +101,24 @@ def _pytest_node(e, repo_root: Path) -> str:
 
 
 def verify_change(indexer, edges, repo_root, max_depth: int = 4,
-                  run: bool = False, timeout: int = 600) -> dict:
+                  run: bool = False, timeout: int = 600,
+                  persist: bool = True) -> dict:
     """Diff the repo against the saved index, trace impact, select tests.
 
     `indexer` must have load_existing() called; this calls index() itself
     so the returned report reflects the CURRENT working tree.
+
+    persist=False threads through to Indexer.index so nothing is written -
+    the query layer passes it, because this is a read surface and the
+    parse-cache refresh inside index() is the one write it makes.
     """
     repo_root = Path(repo_root)
-    report = indexer.index()
+    report = indexer.index(persist=persist)
     changed_ids = list(report.get("changed", [])) + list(report.get("added", []))
     if not changed_ids:
-        return {"changed": [], "impacted": 0, "tests": {"grounded": [],
-                "name_hit": []}, "note": "no entity-level changes detected"}
+        return {"changed": [], "changed_ids": [], "impacted": 0,
+                "tests": {"grounded": [], "name_hit": []},
+                "note": "no entity-level changes detected"}
 
     ents = indexer.entities
     # reverse adjacency over calls/imports, plus closure containment
@@ -182,6 +188,11 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
 
     out = {
         "changed": [ents[c].qualname for c in changed_ids if c in ents],
+        # Coordinate ids for the same set. `changed` is qualnames, for
+        # humans; anything that needs to look the entity up needs ids, and
+        # re-deriving them from qualnames in the caller silently returns
+        # nothing when a qualname is ambiguous or was just renamed.
+        "changed_ids": [c for c in changed_ids if c in ents],
         "impacted": len(seen) - len(changed_ids),
         "tests": {
             "grounded": sorted(grounded),

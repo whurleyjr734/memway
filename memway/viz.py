@@ -39,6 +39,7 @@ from .verify import is_test_entity
 VIZ_WARN_ENTITIES = 1500
 TEMPLATE = Path(__file__).with_name("viz_template.html")
 PLACEHOLDER = "__MEMWAY_DATA__"
+TITLE_SLOT = "__MEMWAY_TITLE__"
 DEFAULT_OUT = "memway-map.html"
 
 VENDOR = Path(__file__).with_name("vendor")
@@ -145,26 +146,12 @@ def _subtree(entities, prefix: str):
 def has_unsuperseded_stale(knowledge: list) -> bool:
     """Does this coordinate hold stale knowledge nobody has answered yet?
 
-    THE ONE RING RULE. Per channel, only the NEWEST entry decides. Entries
-    are append-only and never deleted, so a coordinate accumulates its own
-    history: re-reading the code and writing a fresh confirm leaves the
-    superseded one on disk forever.
-
-    The ring used to be `knowledge.some(k => k.stale)`, which meant a
-    coordinate that went coral once could NEVER return to amber, however
-    many times a human re-read it. `attention` already used a different
-    rule - suppress rot when ANY confirm is fresh - so the map and the
-    queue disagreed about the same coordinate. This is the shape that
-    `comment_rot` has too: a flag with no path back.
-
-    Computed here rather than in the template because the template had
-    TWO copies of the expression, which is how the behind-count shipped
-    without the exclusion the dirty check already had.
+    Delegates to metadata.unsuperseded_stale - the ring and verify_change's
+    report must never be able to disagree about what "stale" means, and
+    two copies of this rule is exactly how they would.
     """
-    newest = {}
-    for row in knowledge:                 # read_all is append-ordered
-        newest[row.get("channel", "")] = row
-    return any(bool(r.get("stale")) for r in newest.values())
+    from .metadata import unsuperseded_stale
+    return bool(unsuperseded_stale(knowledge))
 
 
 def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
@@ -236,16 +223,38 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
            for ed in edges_all
            if ed.get("src") in ids and ed.get("dst") in ids]
 
-    scope = f" · {filter_prefix} subtree" if filter_prefix else ""
     return {
-        "repo": f"{repo_p.name}{scope} · {len(rows)} entities / "
-                f"{len(eds)} edges",
+        "repo": map_label(repo_p, filter_prefix, len(rows), len(eds)),
         "entities": rows,
         "edges": eds,
         "_census": {"entities": len(rows), "edges": len(eds),
                     "knowledge": kn_n, "stale": stale_n,
                     "boundary": len(boundary)},
     }
+
+
+def map_label(repo_p, filter_prefix: str, n_entities: int,
+              n_edges: int) -> str:
+    """THE label for a rendered map. Header and browser tab both use it.
+
+    They used to be independent: the header was built here and the title
+    was a constant in the template reading "memway - itsdangerous, the
+    real map" - a leftover from when the flagship map really was
+    itsdangerous. Every map every user generated inherited it, so their
+    tab announced somebody else's project (C-b93d8e). Nothing caught it
+    because a wrong constant is not a wrong behaviour: the payload, airgap
+    and executed-predicate tests all pass on a page whose tab lies.
+
+    One function, called once, used twice. The point is not the string -
+    it is that the two can no longer drift apart.
+
+    NOTE: repo_p.name is the DIRECTORY, so this repo currently labels
+    itself "coordsys-v49". Wrong, and fixed at this one source in 0.54.2
+    rather than papered over here.
+    """
+    scope = f" · {filter_prefix} subtree" if filter_prefix else ""
+    return (f"{repo_p.name}{scope} · {n_entities} entities / "
+            f"{n_edges} edges")
 
 
 def render(payload: dict) -> str:
@@ -257,6 +266,11 @@ def render(payload: dict) -> str:
     # </script> inside a string would close the block early; JSON escapes
     # the slash so the browser never sees a literal closing tag.
     blob = json.dumps(data).replace("</", "<\\/")
+    # The tab and the header now read from ONE derivation. No guard
+    # clause here on purpose: if the slot ever goes missing the
+    # literal survives into the title and the test fails loudly,
+    # which is the same protection with less machinery.
+    html = html.replace(TITLE_SLOT, payload.get("repo", "map"))
     return html.replace(PLACEHOLDER, blob)
 
 

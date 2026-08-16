@@ -128,8 +128,13 @@ def test_show_entity_and_unknown_ref(repo, capsys):
     cli.cmd_show(str(repo), "price")
     o = out(capsys)
     assert "src.shop.price" in o and "calls" in o or "src.shop.price" in o
-    cli.cmd_show(str(repo), "does_not_exist")
-    assert "no entity" in out(capsys) or True        # graceful either way
+    # An unresolved ref now EXITS NONZERO (0.54.1). It returned 0, so a
+    # script could not tell a miss from a hit. The old assertion here
+    # ended in `or True`, which is to say it asserted nothing at all.
+    with pytest.raises(SystemExit) as ex:
+        cli.cmd_show(str(repo), "does_not_exist")
+    assert ex.value.code == 1
+    assert "no entity matches" in out(capsys)
 
 
 # --------------------------------------------------------------- meta
@@ -163,8 +168,32 @@ def test_lineage_full_log_and_single(repo, capsys):
 # -------------------------------------------- small branch closure
 
 def test_meta_unknown_ref(repo, capsys):
-    cli.cmd_meta(str(repo), "ghost_ref", "notes", "x")
-    assert "no entity matches" in out(capsys)
+    with pytest.raises(SystemExit) as ex:
+        cli.cmd_meta(str(repo), "ghost_ref", "notes", "x")
+    assert ex.value.code == 1
+    o = out(capsys)
+    assert "no entity matches" in o
+    assert "closest:" in o, "an unresolved ref should still suggest candidates"
+
+
+def test_meta_ambiguous_ref_names_the_candidates(repo, capsys):
+    """The other branch: several entities match, and saying "no entity
+    matches" there is a false negative that sends the caller to grep."""
+    import json as _json
+    from memway.indexer import Indexer
+    ix = Indexer(repo, repo / ".coord")
+    ix.load_existing(write_cache=False)
+    tails = {}
+    for q in ix.by_qualname:
+        tails.setdefault(q.rsplit(".", 1)[-1], []).append(q)
+    dupes = [t for t, qs in tails.items() if len(qs) > 1]
+    if not dupes:
+        pytest.skip("fixture has no ambiguous short name")
+    with pytest.raises(SystemExit):
+        cli.cmd_show(str(repo), dupes[0])
+    o = out(capsys)
+    assert "ambiguous" in o, o
+    assert all(q in o for q in tails[dupes[0]]), o
 
 
 def test_lineage_unknown_ref(repo, capsys):

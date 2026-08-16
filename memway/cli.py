@@ -41,12 +41,16 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         CANDIDATES - judging rationale vs
                                         restatement is the caller's job.
                                         Never gates, scores, or writes.
+  memway attention <repo>             the queue: stale knowledge, comment
+                                        rot, drifted design docs, markers
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --version                    print the installed version (-V)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage, dig,
-                                        verify-change (this one WRITES:
-                                        it re-indexes against your tree)
+                                        attention, verify-change (which
+                                        also names the knowledge your
+                                        change just staled). All eight are
+                                        reads: .coord is left untouched.
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
   claude mcp add memway -- memway mcp .
@@ -253,13 +257,33 @@ def _warn_if_lagged(repo, coord):
         print(f"  note: {gap['message']}")
 
 
+def _unresolved(ref, ix) -> None:
+    """Print why a ref did not resolve, then exit nonzero.
+
+    ONE printer for both commands. They had a copy each, both saying
+    "no entity matches" even when several entities did - which is how a
+    caller concludes the map is ignorant and reaches for grep instead.
+    Exiting 0 on a failed lookup was the other half: a script could not
+    tell a miss from a hit.
+    """
+    from . import query
+    err = query._resolve_error(str(ref), ix)
+    print(err["error"])
+    for qn in err.get("matches", []):
+        print(f"  {qn}")
+    if err.get("closest"):
+        print(f"  closest: {', '.join(err['closest'])}")
+    if err.get("hint"):
+        print(f"  {err['hint']}")
+    sys.exit(1)
+
+
 def cmd_show(repo, ref):
     repo, coord, ix, edges, meta, reg = _load(repo)
     _warn_if_lagged(repo, coord)
     e = ix.resolve(ref)
     if not e:
-        print(f"no entity matches {ref!r}")
-        return
+        _unresolved(ref, ix)
     print(f"{e.coord_id}  {e.kind}  {e.qualname}")
     print(f"  at {e.path}:{e.lineno}"
           + (f"  sig={e.signature}" if e.signature else ""))
@@ -302,8 +326,7 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
     repo, coord, ix, edges, meta, _ = _load(repo)
     e = ix.resolve(ref)
     if not e:
-        print(f"no entity matches {ref!r}")
-        return
+        _unresolved(ref, ix)
     meta.add(e.coord_id, channel, text, author=author,
              body_hash=stamp_for(e))
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
@@ -478,6 +501,10 @@ named in parentheses. Use whichever your client supports.
   record - a constraint strong enough to stop work is exactly what the next
   session needs and exactly what the code cannot say on its own. Capture it
   before you reply.
+- If your change staled knowledge, supersede it before you finish.
+  `memway_verify_change` names what you invalidated; write a fresh entry in
+  the same channel. Superseding never deletes - the old entry stays as
+  history.
 """
 
 
@@ -735,6 +762,40 @@ def cmd_evidence(repo, ref="", which=""):
             for line in body.splitlines()[:4]:
                 print(f"      {line[:76]}")
         print()
+def cmd_attention(repo):
+    """The repo's attention queue: everything flagged as needing eyes.
+
+    MCP-only until 0.54.1. It was not a --json query and not a command, so
+    anyone driving memway from a terminal - which is how this project's own
+    releases are built - had no way to ask what had gone stale.
+    """
+    from . import query
+    r = query.attention(repo)
+    if "error" in r:
+        print(r["error"])
+        sys.exit(1)
+    rot = r.get("comment_rot") or []
+    docs = r.get("stale_design_docs") or []
+    marks = r.get("markers") or []
+    print(f"stale knowledge entries: {r.get('stale_notes', 0)}")
+    print(f"comment rot: {len(rot)}   design docs drifted: {len(docs)}   "
+          f"markers: {r.get('marker_total', 0)}")
+    # These lists carry plain qualname strings, not dicts. Written as
+    # dicts first, which printed a traceback on the very first run - the
+    # shape is worth reading rather than assuming.
+    def _label(x):
+        return x if isinstance(x, str) else (
+            x.get("qualname") or x.get("doc") or x.get("coord") or str(x))
+    for item in rot[:15]:
+        print(f"  rot   {_label(item)}")
+    if len(rot) > 15:
+        print(f"  ... and {len(rot) - 15} more")
+    for d in docs[:10]:
+        print(f"  doc   {_label(d)}")
+    for m in marks[:10]:
+        print(f"  mark  {_label(m)}")
+
+
 def cmd_viz(repo, *args, force=False):
     """Render the map as a self-contained HTML explorer. Read-only.
 
@@ -788,11 +849,18 @@ def cmd_console(repo, *args):
         else:
             raise SystemExit(f"unknown flag {a!r} - use --port N")
     httpd, url, _ = serve(repo, port=port)
-    print(f"memway console on {url}")
-    print("  127.0.0.1 only; the URL carries a single-session token")
-    print("  read tools: summary show before_edit lineage dig")
-    print("  the only write: a note at a coordinate")
-    print("  ctrl-c to stop")
+    # flush=True, and it matters. Python block-buffers stdout when it is
+    # not a TTY, and this process then blocks in serve_forever() without
+    # ever flushing - so `memway console > log` produced ZERO bytes while
+    # the server was up and listening, and the single-session token, which
+    # exists nowhere else, was unobtainable. Measured in the 0.54.0
+    # acceptance: the banner only appeared under `python -u`.
+    print(f"memway console on {url}", flush=True)
+    print("  127.0.0.1 only; the URL carries a single-session token",
+          flush=True)
+    print("  read tools: summary show before_edit lineage dig", flush=True)
+    print("  the only write: a note at a coordinate", flush=True)
+    print("  ctrl-c to stop", flush=True)
     try:
         import time
         while True:
@@ -808,7 +876,7 @@ COMMANDS = {
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
     "viz": cmd_viz, "console": cmd_console,
-    "pull": cmd_pull,
+    "pull": cmd_pull, "attention": cmd_attention,
 }
 
 

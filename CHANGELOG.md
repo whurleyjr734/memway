@@ -7,6 +7,117 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.54.1] - 2026-08-16
+
+Theme: **close the loop.** The tool detected staleness perfectly and never
+told you at the moment you caused it.
+
+### Fixed
+
+- **`verify_change` now names the knowledge your change staled**, with the
+  coordinate, qualname, **channel** and note text. It is the step the
+  workflow rules send you to after an edit, and it reported blast radius
+  and tests while saying nothing about the notes the edit had just
+  invalidated - so the loop never closed and staleness was found later, by
+  whoever happened to open a map.
+
+  Channel is not decorative: superseding only heals when the fresh entry
+  lands in the SAME channel, so a report omitting it sends the reader to
+  write an entry that changes nothing.
+
+  Measured on this repo: five notes on the flagship map went stale during
+  0.54.0 and sat coral on memway.io until someone looked. All three
+  workflow rules were followed and it still happened.
+
+- **The report is computed against the WORKING TREE, not the stored
+  index.** At the moment you would ask - edited, not re-indexed, not
+  committed - the stored index still holds the old hashes and reports
+  everything fresh. `tests/test_close_the_loop.py` pins that exact state
+  and asserts `show` and `verify_change` DISAGREE there, because one reads
+  the map and the other reads the tree.
+
+- **`verify_change` is a pure read.** It wrote five files - the index, the
+  edges, the parse cache and both pickles. That was a documented exception
+  ("THE ODD ONE OUT"), recorded by a test that said what to do if it ever
+  changed: move it under the read fence. 0.54.1 does exactly that. After
+  0.54.0 a read that re-indexes could perform the sketch migration and
+  announce it to a stdout a `--json` caller never displays.
+
+  Both cache-warming loaders had to be suppressed; fixing only the first
+  left `edges.pkl` behind, which is how the earlier leaks in this file
+  survived.
+
+- **A new query cannot skip the fence.** `test_every_json_query_is_enrolled_
+  in_this_fence` compares `QUERIES` against `READS` and names what is
+  missing. A count would not have caught the original: the table had the
+  right number of entries, just not the right names.
+
+- **`'X' is ambiguous - N entities match'`** replaces the false
+  `no entity matches 'X'`, listing the qualnames the resolver already had
+  in hand, and failed lookups now exit nonzero from the CLI (they exited
+  0, so a script could not tell a miss from a hit). Measured on the
+  published 0.54.0 wheel: `get_signature` matched 5 entities in
+  itsdangerous, `save` matches 3 here, and both answered "no entity
+  matches" - a false negative that sends an agent to grep.
+
+- **The console banner survives redirection.** Python block-buffers a
+  non-TTY stdout while the server blocks in `serve_forever`, so
+  `memway console > log` produced zero bytes with the server up and the
+  single-session token - which exists nowhere else - was unobtainable.
+
+### Fixed
+
+- **Every generated map's browser tab claimed to be a map of
+  `itsdangerous`.** The title was hardcoded in `viz_template.html` and
+  `render` never overrode it, so this shipped in the wheel: two maps built
+  by the published 0.54.0 wheel for unrelated repos both carried it, and
+  on memway.io the string `itsdangerous` appeared exactly once in 761KB -
+  in the tab - while the body was memway's own 909 entities. A leftover
+  from when the flagship map really was itsdangerous.
+
+  Fixed by unifying the source, not by editing the string: `viz.map_label`
+  is now the one derivation, and the header and the title are two uses of
+  one call. They can no longer drift apart, which is the actual fix.
+
+  **The trade, stated plainly: the tab now reads `coordsys-v49` - this
+  repo's directory name - instead of `itsdangerous`.** That is a strict
+  improvement (wrong-but-ours beats false attribution) and it is not the
+  end state. The label is still built from the directory; 0.54.2 replaces
+  that with a real project-name derivation at this single source, after
+  which it reads `memway`. Anyone reading between the two releases should
+  file the stale name as known, not as new.
+
+  Found by a human looking at a browser tab. Nothing automated caught it,
+  because a wrong constant is not a wrong behaviour: the payload, airgap
+  and executed-predicate tests all pass on a page whose tab lies. The
+  regression test asserts title and header against `map_label` rather than
+  against any literal, so it stays true when 0.54.2 changes the answer.
+
+### Added
+
+- **`attention` on all three surfaces.** It was MCP-only: not a `--json`
+  query, and `memway attention` printed the usage banner. Every release in
+  this project is driven from the CLI, so the one question that finds
+  staled knowledge repo-wide could not be asked by its own author.
+
+- **A fourth workflow rule**, emitted byte-identically to `AGENTS.md`,
+  `CLAUDE.md` and `GEMINI.md` through the marker-block upgrade path:
+
+  > If your change staled knowledge, supersede it before you finish.
+  > `memway_verify_change` names what you invalidated; write a fresh entry
+  > in the same channel. Superseding never deletes - the old entry stays
+  > as history.
+
+### Changed
+
+- `Indexer.index(persist=False)` computes in memory and writes nothing -
+  the parse-cache refresh is the only write the method makes on its own.
+  Keyword-only, defaulting to today's behaviour, because 41 callers
+  depend on it.
+- The ring rule moved to `metadata.unsuperseded_stale` and returns rows;
+  `viz.has_unsuperseded_stale` delegates. The ring and the staleness
+  report must never be able to disagree about what "stale" means.
+
 ## [0.54.0] - 2026-08-16
 
 ### Fixed
