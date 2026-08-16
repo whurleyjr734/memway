@@ -36,10 +36,53 @@ END = "# <<< memway <<<"
 # Short enough to read in one glance, which is the point: a hook nobody
 # can read is a hook nobody trusts. `|| true` is belt and braces on top
 # of --if-stale's own exit-0 contract.
-BLOCK = f"""{BEGIN}
+#
+# THE PATH IS PINNED AT INSTALL TIME, absolute. A bare `memway` needs the
+# right PATH, and a git hook inherits whatever environment invoked git -
+# a GUI client, an IDE, a shell without the venv activated. Measured: the
+# hook printed "memway: command not found" from a shell that had not
+# activated the venv, and `|| true` swallowed it, so the map silently
+# stopped syncing while every surface reported hooks installed.
+#
+# If the venv is later moved or deleted the pinned path stops resolving
+# and the hook goes quiet again - which is why the lag warning on every
+# read tool, not this hook, is the actual guarantee.
+def block_for(exe: str) -> str:
+    return f"""{BEGIN}
 # keeps the map in step with the tree. remove with: memway hooks uninstall
-memway index . --if-stale --quiet || true
+# path pinned at install time; if it stops resolving (venv moved or gone)
+# the hook goes quiet, and the map-lag warning on reads is the backstop.
+{exe} index . --if-stale --quiet || true
 {END}"""
+
+
+def memway_exe() -> str:
+    """The invocation to pin into a hook: absolute, and THIS memway.
+
+    Not resolve(). A venv's bin/python is usually a SYMLINK to the base
+    interpreter, so resolving it walks out of the venv entirely - measured:
+    installing from .venv/bin/python pinned the framework Python's memway,
+    a different install at a different version, and the hook then ran the
+    wrong tool with a straight face.
+
+    Falls back to `<python> -m memway.cli` when no console script exists,
+    which is the case in a plain source checkout. Uglier, always true.
+    """
+    import shutil
+    import sys
+    argv0 = Path(sys.argv[0])
+    if argv0.name in ("memway", "memway.exe") and argv0.exists():
+        return f'"{argv0.absolute()}"'
+    beside = Path(sys.executable).absolute().with_name("memway")
+    if beside.exists():
+        return f'"{beside}"'
+    found = shutil.which("memway")
+    if found:
+        return f'"{Path(found).absolute()}"'
+    return f'"{Path(sys.executable).absolute()}" -m memway.cli'
+
+
+BLOCK = block_for('"memway"')          # marker detection only; never written
 
 SHEBANG = "#!/bin/sh\n"
 
@@ -59,9 +102,10 @@ def hooks_dir(repo) -> Path:
     return g / "hooks"
 
 
-def plan(path: Path) -> tuple:
+def plan(path: Path, exe: str = "") -> tuple:
     """(content_or_None, message) for one hook file. Never clobbers."""
     name = path.name
+    BLOCK = block_for(exe or memway_exe())
     if not path.exists():
         return SHEBANG + "\n" + BLOCK + "\n\nexit 0\n", f"wrote {name}"
     cur = path.read_text()
@@ -132,10 +176,11 @@ def install(repo) -> list:
     if not d.parent.exists():
         return [f"no .git at {repo} - nothing to install into"]
     d.mkdir(parents=True, exist_ok=True)
+    exe = memway_exe()
     out = []
     for name in HOOKS:
         p = d / name
-        content, msg = plan(p)
+        content, msg = plan(p, exe)
         if content is not None:
             p.write_text(content)
             p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

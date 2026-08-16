@@ -253,11 +253,74 @@ def test_install_writes_all_three_executable(repo):
 
 
 def test_hook_body_is_posix_and_short():
-    """A hook nobody can read is a hook nobody trusts."""
-    body = hooks.BLOCK
-    assert len(body.splitlines()) <= 5, body
+    """A hook nobody can read is a hook nobody trusts.
+
+    The bound was 5 and is 6: pinning the absolute path bought two comment
+    lines saying where the path came from and what happens when it stops
+    resolving. Read the block below - if it ever needs a seventh line the
+    hook is doing too much, and the work belongs in memway, not in sh.
+    """
+    body = hooks.block_for("/venv/bin/memway")
+    assert len(body.splitlines()) <= 6, body
     for bashism in ("[[", "declare ", "local ", "function ", "=~"):
         assert bashism not in body, bashism
+
+
+# ------------------------------------------------- the pinned path
+
+def test_the_installed_hook_names_an_absolute_memway(repo):
+    """A bare `memway` needs the right PATH; a git hook has no such promise.
+
+    git hooks inherit the environment that invoked git - a GUI client, an
+    IDE, a cron job, a shell that never activated the venv. `|| true` then
+    swallows "command not found" and the map silently stops syncing while
+    `hooks install` reported success. Pin the path at install time.
+    """
+    _cli("hooks", "install", str(repo))
+    for name in HOOKS:
+        body = (repo / ".git" / "hooks" / name).read_text()
+        line = [l for l in body.splitlines()
+                if "--if-stale" in l and not l.lstrip().startswith("#")]
+        assert len(line) == 1, body
+        assert line[0].lstrip().startswith('"'), (
+            f"{name} invokes a bare name, which needs the right PATH: {line[0]}")
+        exe = line[0].split('"')[1]
+        assert Path(exe).is_absolute(), f"{name}: {exe} is not absolute"
+        assert Path(exe).exists(), f"{name} pins a path that is not there: {exe}"
+        assert str(Path(sys.executable).parent) in exe or exe.endswith("memway"), \
+            f"{name} pinned some other install: {exe}"
+
+
+def test_the_hook_fires_with_no_venv_on_path(repo):
+    """The whole point, executed: run the hook body under `env -i`.
+
+    Presence of an absolute path in the file proves nothing about whether
+    the thing at that path runs. So: strip the environment down to
+    PATH=/usr/bin (git and sh, no venv, no HOME), run the installed hook
+    the way git would, and require the map to have moved.
+    """
+    _cli("hooks", "install", str(repo))
+    hook = repo / ".git" / "hooks" / "post-commit"
+    (repo / "m.py").write_text('def alpha(x):\n    """D."""\n    return x + 2\n')
+    _commit(repo, "two")
+    head = _git(repo, "rev-parse", "HEAD").stdout.strip()
+
+    # That commit already fired the hook - from a shell that HAS the venv,
+    # which is not what this test is about. Roll the stamp back so the
+    # env -i run below is the only thing that can move it, or the
+    # assertion passes on work done before the interesting part started.
+    man = repo / ".coord" / "manifest.json"
+    d = json.loads(man.read_text())
+    d[freshness.SHA_KEY] = "0" * 40
+    man.write_text(json.dumps(d))
+    assert json.loads(man.read_text())[freshness.SHA_KEY] != head
+
+    r = subprocess.run(["env", "-i", "PATH=/usr/bin", "/bin/sh", str(hook)],
+                       capture_output=True, text=True, cwd=str(repo))
+    assert r.returncode == 0, r.stderr[-400:]
+    assert "not found" not in (r.stdout + r.stderr).lower(), r.stdout + r.stderr
+    assert json.loads(man.read_text())[freshness.SHA_KEY] == head, (
+        "hook ran without the venv on PATH and the map did not move")
 
 
 def test_append_preserves_a_foreign_hook_byte_identically(repo):

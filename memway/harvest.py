@@ -211,8 +211,9 @@ class Harvester:
 
     def _mine_by_assertion(self) -> int:
         count = 0
+        from .verify import is_test_entity
         test_files = {e.path for e in self.ix.entities.values()
-                      if "test" in e.path.lower()
+                      if is_test_entity(e)
                       and e.path.endswith(".py")}
         for path in sorted(test_files):
             try:
@@ -244,7 +245,7 @@ class Harvester:
                     tgt = self.ix.resolve(nm)
                     if not tgt or tgt.kind not in ("function", "method"):
                         continue
-                    if "test" in tgt.path.lower():
+                    if is_test_entity(tgt):
                         continue      # never attach contracts to tests
                     if self._already(tgt.coord_id, "notes",
                                      "mined-test-assert"):

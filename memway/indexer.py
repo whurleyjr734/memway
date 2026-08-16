@@ -673,8 +673,9 @@ class Indexer:
         # D11b: ambiguous bare names - if exactly one candidate is
         # production code, prefer it over test fixtures/helpers
         if len(matches) > 1:
+            from .verify import is_test_entity
             prod = [c for c in matches
-                    if "test" not in self.entities[c].path.lower()]
+                    if not is_test_entity(self.entities[c])]
             if len(prod) == 1:
                 return self.entities[prod[0]]
         return None

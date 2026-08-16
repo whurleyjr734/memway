@@ -11,6 +11,49 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`memway viz --force` was documented and rejected.** The flag is printed
+  in viz's own usage line, and typing it produced
+  `--force applies to 'pull' only`, because the pre-dispatch flag table
+  mapped each flag to exactly ONE owning command and pull claimed `--force`
+  first. Flags now declare a tuple of owning commands, and `cmd_viz`
+  receives it.
+
+  The reason nothing caught it: the help text lived in a docstring and the
+  flag table lived inside `main()`, and no test had ever compared the two.
+  `tests/test_cli_usage.py` now reads the flags back OUT of the shipped
+  usage text - 12 flags across 7 commands, parsed, not hand-listed - and
+  requires every one to be receivable by the command it is printed under,
+  by either route (lifted into a keyword, or parsed by the command itself).
+  A flag on the wrong command still fails, which the same file pins.
+
+- **Hooks pinned a bare `memway` and could silently do nothing.** A git hook
+  inherits whatever environment invoked git - a GUI client, an IDE, a shell
+  that never activated the venv - so `memway index . --if-stale` resolved
+  only when PATH happened to be right, and the `|| true` that keeps a hook
+  from ever blocking a commit also swallowed `command not found`. The map
+  stopped syncing while `hooks install` reported success.
+
+  `hooks install` now writes the absolute path of the memway performing the
+  install, with two comment lines in the hook saying where it came from and
+  what happens if it stops resolving. Proven by execution, not by reading
+  the file: `tests/test_freshness.py` runs an installed hook under
+  `env -i PATH=/usr/bin` and requires the map to move.
+
+  Found while writing that test: resolving the interpreter path walked out
+  of the venv entirely, since `bin/python` is usually a symlink to the base
+  install - so the first version of this fix confidently pinned a DIFFERENT
+  memway at a different version. It no longer resolves.
+
+- **One test/source rule, enforced across the whole package.** `verify.
+  is_test_entity` was promoted to the canonical rule in 0.53.1, and the
+  structural test guarding it scanned two modules: the two being edited at
+  the time. Four copies of the crude `"test" in path.lower()` heuristic
+  survived it - in `indexer`, `harvest` (twice) and `metrics` - which
+  disagree with the real rule on `test_helpers/`, `contest.py` and every
+  `foo_test.go`. All four now call the shared rule, and the structural test
+  walks every module in the package by AST and names what it scanned, so a
+  new module cannot pass by being absent from a hand-written list.
+
 - **A coordinate can return to amber once someone re-reads the code.** The
   map's ring was `knowledge.some(k => k.stale)`, and entries are append-only
   and never deleted, so a coordinate that went coral once stayed coral

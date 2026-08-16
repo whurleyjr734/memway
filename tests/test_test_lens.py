@@ -60,25 +60,70 @@ def test_qualname_is_never_consulted():
     assert is_test_entity(E("tests/x.py", "tests.x.helper")) is True
 
 
-def test_only_one_test_rule_exists():
-    """Structural: aggregate views join the shared rule, never define one.
+def _path_heuristics_in(path: Path) -> list:
+    """AST-level: every `"test" in <expr>.lower()` style comparison.
 
-    Checked by AST, not substring. A first attempt banned the strings
-    `startswith` and `lower` outright and failed on `k.startswith("_")` and
-    `(e.kind or "").lower()`, which have nothing to do with tests; an
-    earlier attempt flagged query.py's own comment, which quotes the old
-    heuristic on purpose to record the bug. The invariant is narrow: use
-    the shared rule, and do not grow a second detector.
+    Substring scanning cannot do this job. An early version banned the
+    strings `startswith` and `lower` and tripped over `k.startswith("_")`
+    and `(e.kind or "").lower()`; an earlier one flagged query.py's own
+    comment, which quotes the old heuristic on purpose to record the bug.
+    Comments and docstrings are invisible to ast.parse, which is the point.
     """
     import ast
-    for mod in ("query.py", "viz.py"):
-        src = (HERE / "memway" / mod).read_text()
-        tree = ast.parse(src)
-        assert "is_test_entity" in src, f"{mod} does not use the shared rule"
-        homegrown = [n.name for n in ast.walk(tree)
-                     if isinstance(n, ast.FunctionDef)
-                     and "test" in n.name.lower()]
-        assert not homegrown, f"{mod} defines its own test detector: {homegrown}"
+    out = []
+    for node in ast.walk(ast.parse(path.read_text())):
+        if not isinstance(node, ast.Compare):
+            continue
+        if not any(isinstance(o, (ast.In, ast.NotIn)) for o in node.ops):
+            continue
+        left = node.left
+        if not (isinstance(left, ast.Constant) and isinstance(left.value, str)
+                and "test" in left.value.lower()):
+            continue
+        for comp in node.comparators:
+            src = ast.dump(comp)
+            if "'lower'" in src or "'path'" in src:
+                out.append(f"line {node.lineno}: '{left.value}' in ...path/lower()")
+    return out
+
+
+def test_only_one_test_rule_exists():
+    """Structural: ONE test/source rule, across every module in the package.
+
+    This test used to scan query.py and viz.py only - the two modules I
+    happened to be editing when the rule was promoted. It passed while
+    FOUR copies of the crude `"test" in path.lower()` heuristic survived in
+    indexer.py, harvest.py (twice) and metrics.py. A guard scoped to where
+    the author was looking is not a guard.
+
+    It now walks the whole package and NAMES what it scanned, so a new
+    module cannot hide by being absent from a hand-written list.
+    """
+    import ast
+    mods = sorted(p for p in (HERE / "memway").glob("*.py")
+                  if p.name not in ("__init__.py", "__main__.py"))
+    assert len(mods) >= 15, f"only scanned {len(mods)} modules: {[m.name for m in mods]}"
+    offenders = {}
+    for m in mods:
+        if m.name == "verify.py":
+            continue                     # the canonical rule lives here
+        hits = _path_heuristics_in(m)
+        if hits:
+            offenders[m.name] = hits
+    assert not offenders, (
+        "path-based test heuristics outside verify.is_test_entity:\n  " +
+        "\n  ".join(f"{k}: {v}" for k, v in offenders.items()) +
+        f"\n(scanned {len(mods)} modules: {', '.join(m.name for m in mods)})")
+
+    homegrown = {}
+    for m in mods:
+        if m.name == "verify.py":
+            continue
+        names = [n.name for n in ast.walk(ast.parse(m.read_text()))
+                 if isinstance(n, ast.FunctionDef) and "is_test" in n.name]
+        if names:
+            homegrown[m.name] = names
+    assert not homegrown, f"a second detector was defined: {homegrown}"
 
 
 # ------------------------------------------------------- data untouched

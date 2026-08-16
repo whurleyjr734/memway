@@ -89,8 +89,9 @@ class MetricsStore:
         # production code. Test suites calling a fixture thousands of
         # times says nothing about production attention; test coverage
         # is a separate (positive) signal, not centrality.
+        from .verify import is_test_entity
         test_srcs = {cid for cid, ent in indexer.entities.items()
-                     if "test" in ent.path.lower()}
+                     if is_test_entity(ent)}
         fan_in, fan_out = {}, {}
         for e in edges:
             if e["kind"] in ("calls", "imports"):

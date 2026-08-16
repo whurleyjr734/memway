@@ -719,10 +719,15 @@ def cmd_evidence(repo, ref="", which=""):
             for line in body.splitlines()[:4]:
                 print(f"      {line[:76]}")
         print()
-def cmd_viz(repo, *args):
-    """Render the map as a self-contained HTML explorer. Read-only."""
+def cmd_viz(repo, *args, force=False):
+    """Render the map as a self-contained HTML explorer. Read-only.
+
+    `force` arrives as a keyword because main() lifts declared flags out
+    of argv before dispatch; the --force branch below stays for a direct
+    call that passes it positionally.
+    """
     from .viz import viz
-    out, prefix, force = "", "", False
+    out, prefix = "", ""
     rest = list(args)
     while rest:
         a = rest.pop(0)
@@ -858,6 +863,22 @@ def _usage_line(cmd: str) -> str:
     return f"usage: memway {cmd} <repo> ... (see: memway --help)"
 
 
+# Flags lifted out of argv before dispatch, each declaring which commands
+# may receive it. Module level so a test can read them - and one does:
+# test_every_documented_flag_is_receivable walks the usage text above and
+# checks every flag it advertises against this table and against the
+# command's own parser.
+#
+# A FLAG CAN BELONG TO MORE THAN ONE COMMAND. This mapped one owner each
+# for a year, and `memway viz --force` - a flag printed in viz's own usage
+# line - was rejected with "applies to 'pull' only", because pull happened
+# to claim --force first. The usage text and the parser disagreed, and the
+# usage text was right.
+VALUE_FLAGS = {"--author": ("meta",), "--source": ("pull",),
+               "--into": ("pull",)}
+BOOL_FLAGS = {"--force": ("pull", "viz"), "--replace-meta": ("pull",)}
+
+
 def main():
     import signal
     if hasattr(signal, "SIGPIPE"):          # D6
@@ -890,8 +911,6 @@ def main():
     # called with positional argv passthrough. Each flag declares which
     # command owns it; anywhere else it is a typo worth failing on rather
     # than silently ignoring.
-    VALUE_FLAGS = {"--author": "meta", "--source": "pull", "--into": "pull"}
-    BOOL_FLAGS = {"--force": "pull", "--replace-meta": "pull"}
     opts, owners = {}, {}
     changed = True
     while changed:
@@ -924,10 +943,11 @@ def main():
     if not args or args[0] not in COMMANDS:
         print(__doc__)
         sys.exit(1)
-    wrong = [f for f, owner in owners.items() if owner != args[0]]
+    wrong = [f for f, own in owners.items() if args[0] not in own]
     if wrong:
-        sys.stderr.write(f"{', '.join(sorted(wrong))} "
-                         f"applies to '{owners[wrong[0]]}' only\n")
+        who = owners[sorted(wrong)[0]]
+        sys.stderr.write(f"{', '.join(sorted(wrong))} applies to "
+                         f"{' or '.join(repr(c) for c in who)} only\n")
         sys.exit(1)
     fn = COMMANDS[args[0]]
     # Arity is checked BEFORE the call, with bind(), rather than by
