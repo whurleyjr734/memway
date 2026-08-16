@@ -222,3 +222,4 @@
 {"ts": "2026-08-06T05:28:38Z", "version": 14, "kind": "deleted", "old": ["C-22d3d0"], "new": [], "note": "coordsys.cli", "author": "auto"}
 {"ts": "2026-08-06T05:28:38Z", "version": 14, "kind": "deleted", "old": ["C-81adbf"], "new": [], "note": "coordsys.query", "author": "auto"}
 {"ts": "2026-08-06T05:28:38Z", "version": 14, "kind": "deleted", "old": ["C-9dd507"], "new": [], "note": "coordsys.mcp", "author": "auto"}
+{"ts": "2026-08-16T02:03:34Z", "version": 60, "kind": "renamed", "old": ["C-725270"], "new": ["C-124928"], "note": "memway.verify._is_test_entity -> memway.verify.is_test_entity (identical logic)", "author": "auto"}
