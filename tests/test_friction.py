@@ -356,3 +356,82 @@ def test_an_existing_install_is_UPGRADED_not_left_alone(tmp_path):
     again = _cli("hooks", "install", str(r))
     assert "already current" in again.stdout, again.stdout
     assert hook.read_text() == after, "a no-op run rewrote the file"
+
+
+# PARKED FOR THE 0.55.x COLLABORATION BOARD, deliberately not built here:
+# self-consistency across a CONFLICT-RESOLVED merge. Verified today on a
+# clean merge only - git composes the merge tree from both parents and
+# neither parent's .coord describes the result, so the map that lands is
+# whichever side won the merge, which may describe neither. A clean merge
+# happened to come out self-consistent because one parent's map already
+# fitted the merged code; a conflicted one has no such guarantee. Testing
+# it needs a fixture that resolves a real conflict, and the fix - if it
+# needs one - belongs with the rest of the multi-author story.
+
+
+# ------------------------------ the banner describes what is installed
+
+def test_the_install_banner_names_every_command_the_hooks_run(tmp_path):
+    """Derived, not restated - the wordmark pattern applied to a banner.
+
+    `hooks install` printed "each runs: memway index . --if-stale --quiet"
+    as a constant. That stopped being true in the same release that made
+    pre-commit report, index and stage: the command that installs the
+    hooks described behaviour they no longer had.
+
+    Third instance of this shape - a tab naming somebody else's project, a
+    wordmark drifted from its site, and this. Constants that describe
+    behaviour are invisible to tests that check behaviour, so the banner
+    is compared against the bodies of the hooks ACTUALLY WRITTEN TO DISK,
+    not against a literal.
+    """
+    from memway import hooks as h
+    r = tmp_path / "banner"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    out = _cli("hooks", "install", str(r))
+    assert out.returncode == 0, out.stderr
+    banner = out.stdout
+
+    lines = {l.strip().split(":")[0]: l for l in banner.splitlines()
+             if l.strip().split(":")[0] in h.HOOKS}
+    for name in h.HOOKS:
+        assert name in lines, f"{name} has no banner line:\n{banner}"
+        row = lines[name]
+        body = (r / ".git" / "hooks" / name).read_text()
+        installed = [l.strip() for l in
+                     body[body.index(h.BEGIN):body.index(h.END)].splitlines()
+                     if l.strip() and not l.lstrip().startswith("#")]
+        assert installed, f"{name} has no commands"
+        for cmd in installed:
+            # normalised HERE, independently of hooks.describe(), or this
+            # test would be comparing the derivation against itself.
+            # Checked against THAT HOOK'S line, not the whole banner - the
+            # first version matched `git` against the trailing sentence
+            # "a failure never blocks the git operation" and passed a
+            # sabotage that dropped two commands.
+            core = cmd.split(" 2>")[0].split(" || ")[0].strip()
+            if core.startswith('"'):
+                core = core.split('"', 2)[2].strip()      # drop the exe path
+            key = " ".join(core.split()[:2])
+            assert key in row, (
+                f"{name} runs {key!r} and its banner line does not say so:\n"
+                f"  line: {row}\n  full banner:\n{banner}")
+
+
+def test_the_banner_is_not_a_hardcoded_sentence():
+    """Guard the guard: a banner built from a literal would satisfy the
+    test above today and drift again tomorrow."""
+    import ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "memway" / "cli.py").read_text()
+    tree = ast.parse(src)
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "cmd_hooks")
+    dump = ast.dump(fn)
+    assert "describe" in dump, "the banner no longer derives from hooks.describe()"
+    for literal in ("--if-stale --quiet", "each runs"):
+        assert literal not in dump, \
+            f"cmd_hooks hardcodes {literal!r} instead of deriving it"

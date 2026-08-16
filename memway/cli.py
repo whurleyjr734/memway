@@ -701,8 +701,9 @@ def cmd_hooks(action, repo="."):
     for line in fn(Path(repo).resolve()):
         print(line)
     if action == "install":
-        print(f"\n  hooks: {', '.join(_h.HOOKS)}")
-        print("  each runs: memway index . --if-stale --quiet")
+        print()
+        for line in _h.describe():
+            print(line)
         print("  a failure never blocks the git operation")
 
 

@@ -131,6 +131,39 @@ BLOCK = block_for('"memway"')          # marker detection only; never written
 SHEBANG = "#!/bin/sh\n"
 
 
+def commands_for(name: str, exe: str = "memway") -> list:
+    """The commands a given hook actually runs, read out of its own body.
+
+    THE ONE SOURCE for anything that describes the hooks. `hooks install`
+    printed "each runs: memway index . --if-stale --quiet" as a constant,
+    which stopped being true in the same release that made pre-commit
+    report, index and stage - the banner described behaviour the code no
+    longer had, on the very command that installs it.
+
+    That is the third time this shape has bitten: a browser tab naming
+    somebody else's project, a wordmark drifted from the site it belongs
+    to, and now this. Constants that describe behaviour are not checked by
+    tests that check behaviour, so the fix is always the same - derive it,
+    and pin the derivation.
+    """
+    block = (pre_commit_block_for(exe) if name == PRE_COMMIT
+             else block_for(exe))
+    return [l.strip() for l in block.splitlines()
+            if l.strip() and not l.lstrip().startswith("#")
+            and l.strip() not in (BEGIN, END)]
+
+
+def describe() -> list:
+    """Human-readable lines for the install banner, derived not restated."""
+    out = []
+    for name in HOOKS:
+        cmds = commands_for(name)
+        shown = [c.split(" 2>")[0].split(" || ")[0].replace("memway ", "", 1)
+                 for c in cmds]
+        out.append(f"  {name}: " + "; ".join(shown))
+    return out
+
+
 def hooks_dir(repo) -> Path:
     """.git/hooks, resolving the .git FILE that worktrees use."""
     g = Path(repo) / ".git"

@@ -3477,7 +3477,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_summary",
     "path": "memway/cli.py",
-    "lineno": 823,
+    "lineno": 824,
     "body_hash": "43eeff2bd66c7a51",
     "parent": "C-642291",
     "signature": "cmd_summary(repo)",
@@ -3545,7 +3545,7 @@
       1718902650525
     ],
     "n_shingles": 202,
-    "end_lineno": 840,
+    "end_lineno": 841,
     "loc": 18,
     "complexity": 10
   },
@@ -6073,7 +6073,7 @@
     "kind": "function",
     "qualname": "memway.cli._is_editable",
     "path": "memway/cli.py",
-    "lineno": 1033,
+    "lineno": 1034,
     "body_hash": "df58ccc39e99ff4f",
     "parent": "C-642291",
     "signature": "_is_editable(dist)",
@@ -6141,7 +6141,7 @@
       3102826170752
     ],
     "n_shingles": 79,
-    "end_lineno": 1044,
+    "end_lineno": 1045,
     "loc": 12,
     "complexity": 4
   },
@@ -9074,7 +9074,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_viz",
     "path": "memway/cli.py",
-    "lineno": 930,
+    "lineno": 931,
     "body_hash": "f3d4d74ee6ff35eb",
     "parent": "C-642291",
     "signature": "cmd_viz(repo)",
@@ -9142,7 +9142,7 @@
       1133013133193
     ],
     "n_shingles": 290,
-    "end_lineno": 965,
+    "end_lineno": 966,
     "loc": 36,
     "complexity": 12
   },
@@ -17333,7 +17333,7 @@
     "kind": "function",
     "qualname": "memway.hooks.strip_block",
     "path": "memway/hooks.py",
-    "lineno": 213,
+    "lineno": 246,
     "body_hash": "f818b822cbace8db",
     "parent": "C-e46ca3",
     "signature": "strip_block(text)",
@@ -17423,7 +17423,7 @@
       128397927987
     ],
     "n_shingles": 161,
-    "end_lineno": 228,
+    "end_lineno": 261,
     "loc": 16,
     "complexity": 5
   },
@@ -19543,6 +19543,86 @@
     "end_lineno": 61,
     "loc": 3,
     "complexity": 1
+  },
+  "C-3bf89a": {
+    "coord_id": "C-3bf89a",
+    "kind": "function",
+    "qualname": "memway.hooks.commands_for",
+    "path": "memway/hooks.py",
+    "lineno": 134,
+    "body_hash": "a1b3994c1b8492b3",
+    "parent": "C-e46ca3",
+    "signature": "commands_for(name, exe)",
+    "shape_hash": "83a17a4e2ab91d5d",
+    "logic_hash": "a5bce7fd3ff6dd90",
+    "param_types": {
+      "name": "str",
+      "exe": "str"
+    },
+    "return_type": "list",
+    "comments": [
+      {
+        "line": 2,
+        "text": "The commands a given hook actually runs, read out of its own body. THE ONE SOURCE for anything that describes the hooks. `hooks install` printed \"each runs: memway index . --if-stale --quiet\" as a con",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "f69fbd3e38d3c516",
+    "comment_rot": false,
+    "sketch": [
+      2588449044877,
+      3074958086000,
+      504532501284,
+      2805118928634,
+      18647229648,
+      79229660377,
+      1205630486646,
+      2039150395555,
+      1986467318340,
+      1416278354404,
+      15066389981,
+      556206307862,
+      1268648213288,
+      1368998681257,
+      266149210283,
+      2748949140788,
+      245474250234,
+      31114191110,
+      550432561729,
+      1369075243998,
+      220299931456,
+      1506082830436,
+      2207183558049,
+      476331354050,
+      7432662864701,
+      238874848189,
+      374715776269,
+      1345298634607,
+      450276543660,
+      1613591290390,
+      1513191845027,
+      2687491351792,
+      400433392434,
+      263867635330,
+      165960607498,
+      826995727956,
+      1080087349571,
+      1601533979468,
+      160630731845,
+      3036344328382,
+      1289047274100,
+      200570226863,
+      297024516852,
+      324494358353,
+      3900178759914,
+      407785741502,
+      240351317379,
+      309820725521
+    ],
+    "n_shingles": 232,
+    "end_lineno": 153,
+    "loc": 20,
+    "complexity": 5
   },
   "C-3c5285": {
     "coord_id": "C-3c5285",
@@ -23490,7 +23570,7 @@
     "kind": "function",
     "qualname": "memway.hooks.uninstall",
     "path": "memway/hooks.py",
-    "lineno": 248,
+    "lineno": 281,
     "body_hash": "66f0175638d112e1",
     "parent": "C-e46ca3",
     "signature": "uninstall(repo)",
@@ -23563,7 +23643,7 @@
       2236188797536
     ],
     "n_shingles": 177,
-    "end_lineno": 271,
+    "end_lineno": 304,
     "loc": 24,
     "complexity": 8
   },
@@ -24094,11 +24174,11 @@
     "qualname": "memway.cli.cmd_hooks",
     "path": "memway/cli.py",
     "lineno": 689,
-    "body_hash": "27ae7690967bb3a9",
+    "body_hash": "d24afc7aca4daa52",
     "parent": "C-642291",
     "signature": "cmd_hooks(action, repo)",
-    "shape_hash": "4838f0548da94caa",
-    "logic_hash": "c51fc87fb3c78b28",
+    "shape_hash": "40e57b6b57e7033a",
+    "logic_hash": "cb7052763b99934c",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -24109,48 +24189,48 @@
       }
     ],
     "comment_hash": "80a8ff61ccfc204f",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       2808843585411,
       183642779196,
-      2107683531881,
+      517964877511,
       853124691800,
       1512723099736,
       1875323327289,
       646080451001,
       1491280161343,
-      765100273087,
+      2791914934696,
       496909160222,
       2463106688574,
       531852041694,
       1482442386844,
       344356427690,
-      266149210283,
+      700855706517,
       47661493848,
       2361094469612,
       348827755708,
-      550432561729,
+      136125907827,
       5546375731507,
       1653552482101,
       784295334395,
-      2371277546255,
+      61157178240,
       130322877960,
       446343110965,
       1525534057850,
-      374715776269,
+      1909673867082,
       3850622720427,
       111180881193,
       5783613538145,
       514003569427,
-      2687491351792,
+      8273014068542,
       964691423781,
       409107381791,
-      165960607498,
-      708821120328,
-      1005483500907,
+      232417020268,
+      530508216130,
+      3745612131189,
       2189142635856,
       1970033444027,
-      5260247696392,
+      4772360412474,
       446928826979,
       29337243007,
       1554541068445,
@@ -24158,12 +24238,12 @@
       1152991701007,
       32143394731,
       2282828935841,
-      309820725521
+      328326893587
     ],
-    "n_shingles": 195,
-    "end_lineno": 706,
-    "loc": 18,
-    "complexity": 5
+    "n_shingles": 171,
+    "end_lineno": 707,
+    "loc": 19,
+    "complexity": 6
   },
   "C-4ace80": {
     "coord_id": "C-4ace80",
@@ -27202,7 +27282,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_console",
     "path": "memway/cli.py",
-    "lineno": 968,
+    "lineno": 969,
     "body_hash": "e0a67c232120c096",
     "parent": "C-642291",
     "signature": "cmd_console(repo)",
@@ -27300,7 +27380,7 @@
       23032821634
     ],
     "n_shingles": 327,
-    "end_lineno": 1001,
+    "end_lineno": 1002,
     "loc": 34,
     "complexity": 7
   },
@@ -28169,7 +28249,7 @@
     "kind": "function",
     "qualname": "memway.hooks.install",
     "path": "memway/hooks.py",
-    "lineno": 231,
+    "lineno": 264,
     "body_hash": "f66d5fe8be194705",
     "parent": "C-e46ca3",
     "signature": "install(repo)",
@@ -28231,7 +28311,7 @@
       1970277456728
     ],
     "n_shingles": 123,
-    "end_lineno": 245,
+    "end_lineno": 278,
     "loc": 15,
     "complexity": 4
   },
@@ -33875,11 +33955,11 @@
     "qualname": "memway.cli",
     "path": "memway/cli.py",
     "lineno": 1,
-    "body_hash": "cbfe91990fedd9f7",
+    "body_hash": "a9e7e54718f33998",
     "parent": null,
     "signature": "",
-    "shape_hash": "a2c6a6f80a05a15a",
-    "logic_hash": "c6d52f6be9e86328",
+    "shape_hash": "9b8d056a2a10005e",
+    "logic_hash": "0d43ebcff6e782d8",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -34264,198 +34344,198 @@
         "kind": "comment"
       },
       {
-        "line": 793,
+        "line": 794,
         "text": "a bare sha/PR ref: search every coordinate's evidence for it",
         "kind": "comment"
       },
       {
-        "line": 914,
+        "line": 915,
         "text": "These lists carry plain qualname strings, not dicts. Written as",
         "kind": "comment"
       },
       {
-        "line": 915,
+        "line": 916,
         "text": "dicts first, which printed a traceback on the very first run - the",
         "kind": "comment"
       },
       {
-        "line": 916,
+        "line": 917,
         "text": "shape is worth reading rather than assuming.",
         "kind": "comment"
       },
       {
-        "line": 983,
+        "line": 984,
         "text": "flush=True, and it matters. Python block-buffers stdout when it is",
         "kind": "comment"
       },
       {
-        "line": 984,
+        "line": 985,
         "text": "not a TTY, and this process then blocks in serve_forever() without",
         "kind": "comment"
       },
       {
-        "line": 985,
+        "line": 986,
         "text": "ever flushing - so `memway console > log` produced ZERO bytes while",
         "kind": "comment"
       },
       {
-        "line": 986,
+        "line": 987,
         "text": "the server was up and listening, and the single-session token, which",
         "kind": "comment"
       },
       {
-        "line": 987,
+        "line": 988,
         "text": "exists nowhere else, was unobtainable. Measured in the 0.54.0",
         "kind": "comment"
       },
       {
-        "line": 988,
+        "line": 989,
         "text": "acceptance: the banner only appeared under `python -u`.",
         "kind": "comment"
       },
       {
-        "line": 1011,
+        "line": 1012,
         "text": "The three read doors that existed over MCP and --json but not here.",
         "kind": "comment"
       },
       {
-        "line": 1012,
+        "line": 1013,
         "text": "verify-change is the one that mattered: the pre-commit hook had",
         "kind": "comment"
       },
       {
-        "line": 1013,
+        "line": 1014,
         "text": "nothing readable to call.",
         "kind": "comment"
       },
       {
-        "line": 1087,
+        "line": 1088,
         "text": "Flags lifted out of argv before dispatch, each declaring which commands",
         "kind": "comment"
       },
       {
-        "line": 1088,
+        "line": 1089,
         "text": "may receive it. Module level so a test can read them - and one does:",
         "kind": "comment"
       },
       {
-        "line": 1089,
+        "line": 1090,
         "text": "test_every_documented_flag_is_receivable walks the usage text above and",
         "kind": "comment"
       },
       {
-        "line": 1090,
+        "line": 1091,
         "text": "checks every flag it advertises against this table and against the",
         "kind": "comment"
       },
       {
-        "line": 1091,
+        "line": 1092,
         "text": "command's own parser.",
         "kind": "comment"
       },
       {
-        "line": 1093,
+        "line": 1094,
         "text": "A FLAG CAN BELONG TO MORE THAN ONE COMMAND. This mapped one owner each",
         "kind": "comment"
       },
       {
-        "line": 1094,
+        "line": 1095,
         "text": "for a year, and `memway viz --force` - a flag printed in viz's own usage",
         "kind": "comment"
       },
       {
-        "line": 1095,
+        "line": 1096,
         "text": "line - was rejected with \"applies to 'pull' only\", because pull happened",
         "kind": "comment"
       },
       {
-        "line": 1096,
+        "line": 1097,
         "text": "to claim --force first. The usage text and the parser disagreed, and the",
         "kind": "comment"
       },
       {
-        "line": 1097,
+        "line": 1098,
         "text": "usage text was right.",
         "kind": "comment"
       },
       {
-        "line": 1105,
+        "line": 1106,
         "text": "D6",
         "kind": "comment"
       },
       {
-        "line": 1108,
+        "line": 1109,
         "text": "Before anything else: --version is the first thing a person types",
         "kind": "comment"
       },
       {
-        "line": 1109,
+        "line": 1110,
         "text": "after installing, and it must not fall through to the usage path",
         "kind": "comment"
       },
       {
-        "line": 1110,
+        "line": 1111,
         "text": "and exit non-zero.",
         "kind": "comment"
       },
       {
-        "line": 1131,
+        "line": 1132,
         "text": "Flags are pulled out before dispatch because COMMANDS entries are",
         "kind": "comment"
       },
       {
-        "line": 1132,
+        "line": 1133,
         "text": "called with positional argv passthrough. Each flag declares which",
         "kind": "comment"
       },
       {
-        "line": 1133,
+        "line": 1134,
         "text": "command owns it; anywhere else it is a typo worth failing on rather",
         "kind": "comment"
       },
       {
-        "line": 1134,
+        "line": 1135,
         "text": "than silently ignoring.",
         "kind": "comment"
       },
       {
-        "line": 1142,
+        "line": 1143,
         "text": "same dash->underscore normalization the bool branch does:",
         "kind": "comment"
       },
       {
-        "line": 1143,
+        "line": 1144,
         "text": "no value flag has a dash today, but --max-age would map to",
         "kind": "comment"
       },
       {
-        "line": 1144,
+        "line": 1145,
         "text": "the kwarg 'max-age' and TypeError at bind() if it did not.",
         "kind": "comment"
       },
       {
-        "line": 1174,
+        "line": 1175,
         "text": "Arity is checked BEFORE the call, with bind(), rather than by",
         "kind": "comment"
       },
       {
-        "line": 1175,
+        "line": 1176,
         "text": "catching TypeError around it - catching would also swallow a",
         "kind": "comment"
       },
       {
-        "line": 1176,
+        "line": 1177,
         "text": "TypeError raised deep inside a working command and report it as a",
         "kind": "comment"
       },
       {
-        "line": 1177,
+        "line": 1178,
         "text": "usage error, which is a worse lie than the traceback was.",
         "kind": "comment"
       }
     ],
     "comment_hash": "a621dfceb463829d",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       2060588701,
       14687977135,
@@ -34506,10 +34586,10 @@
       23915666012,
       16122711391
     ],
-    "n_shingles": 8469,
-    "end_lineno": 1188,
-    "loc": 1189,
-    "complexity": 219
+    "n_shingles": 8459,
+    "end_lineno": 1189,
+    "loc": 1190,
+    "complexity": 220
   },
   "C-6428bb": {
     "coord_id": "C-6428bb",
@@ -36816,7 +36896,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_verify_change",
     "path": "memway/cli.py",
-    "lineno": 869,
+    "lineno": 870,
     "body_hash": "440a492b1f00cf7b",
     "parent": "C-642291",
     "signature": "cmd_verify_change(repo)",
@@ -36884,7 +36964,7 @@
       548186942219
     ],
     "n_shingles": 288,
-    "end_lineno": 893,
+    "end_lineno": 894,
     "loc": 25,
     "complexity": 7
   },
@@ -38864,7 +38944,7 @@
     "kind": "function",
     "qualname": "memway.cli._version",
     "path": "memway/cli.py",
-    "lineno": 1047,
+    "lineno": 1048,
     "body_hash": "8b964fef5e3a37c5",
     "parent": "C-642291",
     "signature": "_version()",
@@ -38932,7 +39012,7 @@
       151469736571
     ],
     "n_shingles": 215,
-    "end_lineno": 1074,
+    "end_lineno": 1075,
     "loc": 28,
     "complexity": 7
   },
@@ -40323,7 +40403,7 @@
     "kind": "function",
     "qualname": "memway.hooks.plan",
     "path": "memway/hooks.py",
-    "lineno": 149,
+    "lineno": 182,
     "body_hash": "9dd5ce614b22a444",
     "parent": "C-e46ca3",
     "signature": "plan(path, exe)",
@@ -40519,7 +40599,7 @@
       128397927987
     ],
     "n_shingles": 774,
-    "end_lineno": 210,
+    "end_lineno": 243,
     "loc": 62,
     "complexity": 17
   },
@@ -44477,11 +44557,11 @@
     "qualname": "tests.test_friction",
     "path": "tests/test_friction.py",
     "lineno": 1,
-    "body_hash": "46991069e41734e4",
+    "body_hash": "c83ccc90d775aa0c",
     "parent": null,
     "signature": "",
-    "shape_hash": "a84226566d5b7ac3",
-    "logic_hash": "6345edd37d4030ae",
+    "shape_hash": "828f69d53082937b",
+    "logic_hash": "970d1b8018a8314e",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -44539,64 +44619,149 @@
         "line": 355,
         "text": "and it must be idempotent - a second run changes nothing",
         "kind": "comment"
+      },
+      {
+        "line": 361,
+        "text": "PARKED FOR THE 0.55.x COLLABORATION BOARD, deliberately not built here:",
+        "kind": "comment"
+      },
+      {
+        "line": 362,
+        "text": "self-consistency across a CONFLICT-RESOLVED merge. Verified today on a",
+        "kind": "comment"
+      },
+      {
+        "line": 363,
+        "text": "clean merge only - git composes the merge tree from both parents and",
+        "kind": "comment"
+      },
+      {
+        "line": 364,
+        "text": "neither parent's .coord describes the result, so the map that lands is",
+        "kind": "comment"
+      },
+      {
+        "line": 365,
+        "text": "whichever side won the merge, which may describe neither. A clean merge",
+        "kind": "comment"
+      },
+      {
+        "line": 366,
+        "text": "happened to come out self-consistent because one parent's map already",
+        "kind": "comment"
+      },
+      {
+        "line": 367,
+        "text": "fitted the merged code; a conflicted one has no such guarantee. Testing",
+        "kind": "comment"
+      },
+      {
+        "line": 368,
+        "text": "it needs a fixture that resolves a real conflict, and the fix - if it",
+        "kind": "comment"
+      },
+      {
+        "line": 369,
+        "text": "needs one - belongs with the rest of the multi-author story.",
+        "kind": "comment"
+      },
+      {
+        "line": 372,
+        "text": "------------------------------ the banner describes what is installed",
+        "kind": "comment"
+      },
+      {
+        "line": 409,
+        "text": "normalised HERE, independently of hooks.describe(), or this",
+        "kind": "comment"
+      },
+      {
+        "line": 410,
+        "text": "test would be comparing the derivation against itself.",
+        "kind": "comment"
+      },
+      {
+        "line": 411,
+        "text": "Checked against THAT HOOK'S line, not the whole banner - the",
+        "kind": "comment"
+      },
+      {
+        "line": 412,
+        "text": "first version matched `git` against the trailing sentence",
+        "kind": "comment"
+      },
+      {
+        "line": 413,
+        "text": "\"a failure never blocks the git operation\" and passed a",
+        "kind": "comment"
+      },
+      {
+        "line": 414,
+        "text": "sabotage that dropped two commands.",
+        "kind": "comment"
+      },
+      {
+        "line": 417,
+        "text": "drop the exe path",
+        "kind": "comment"
       }
     ],
-    "comment_hash": "64ece1a4c286be7b",
+    "comment_hash": "391326dbf45f8187",
     "comment_rot": false,
     "sketch": [
       106675248038,
       46740823018,
       95075222282,
       103131243050,
-      52638979209,
+      18647229648,
       35451422436,
       3844150875,
       66616221530,
       8424773659,
       43036129364,
-      283577017957,
+      15066389981,
       381872763503,
       96378559781,
-      220649718241,
-      91297799012,
+      215548336788,
+      16050170664,
       61526160700,
-      286139568016,
+      120926969988,
       58081567490,
-      328787074876,
+      87056483932,
       81024877103,
       56352632308,
       50336393654,
       30439451807,
-      98329133334,
+      22852766486,
       10205419280,
       145880108249,
-      585275605135,
+      374715776269,
       38530786445,
       28342838444,
       212519781522,
-      314489335433,
+      245667551825,
       416642084130,
-      25524566502,
+      18133354015,
       45925213544,
-      117997010410,
+      71839418971,
       15527288738,
       86088968914,
       140509433557,
       12661867145,
       21753549849,
       56520112840,
-      148261622243,
+      29337243007,
       61361489861,
       10723953768,
       233552063761,
       32143394731,
       341994293885,
-      98811152863
+      69385941431
     ],
-    "n_shingles": 2365,
-    "end_lineno": 358,
-    "loc": 359,
-    "complexity": 53
+    "n_shingles": 3038,
+    "end_lineno": 437,
+    "loc": 438,
+    "complexity": 68
   },
   "C-84a08d": {
     "coord_id": "C-84a08d",
@@ -49594,7 +49759,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_evidence",
     "path": "memway/cli.py",
-    "lineno": 773,
+    "lineno": 774,
     "body_hash": "ac4976e730471ab9",
     "parent": "C-642291",
     "signature": "cmd_evidence(repo, ref, which)",
@@ -49667,7 +49832,7 @@
       1054940835387
     ],
     "n_shingles": 477,
-    "end_lineno": 822,
+    "end_lineno": 823,
     "loc": 50,
     "complexity": 16
   },
@@ -54940,6 +55105,83 @@
     "loc": 10,
     "complexity": 2
   },
+  "C-a5d07e": {
+    "coord_id": "C-a5d07e",
+    "kind": "function",
+    "qualname": "memway.hooks.describe",
+    "path": "memway/hooks.py",
+    "lineno": 156,
+    "body_hash": "111944e7288a76e4",
+    "parent": "C-e46ca3",
+    "signature": "describe()",
+    "shape_hash": "975e5d2ddff16d79",
+    "logic_hash": "9facf0cc7d1e719d",
+    "param_types": {},
+    "return_type": "list",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Human-readable lines for the install banner, derived not restated.",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "f731dc865900440b",
+    "comment_rot": false,
+    "sketch": [
+      10124353759130,
+      1750452659351,
+      5882747056198,
+      9800782194480,
+      1886711119680,
+      446255889073,
+      2728323551996,
+      3375892143828,
+      8567495759584,
+      2211139511045,
+      4655168487135,
+      531852041694,
+      496621264625,
+      6264443934168,
+      3037212931538,
+      179925589605,
+      368141436167,
+      9686655985851,
+      281727938147,
+      1635233191091,
+      233853731571,
+      6346869229714,
+      234243347819,
+      6209416011479,
+      8810063820162,
+      3225697837837,
+      619849582684,
+      429706722813,
+      1716793562999,
+      10060658729,
+      1935603921712,
+      1528385351761,
+      11162081518436,
+      1241505736662,
+      1628276564483,
+      104759970789,
+      3898961766186,
+      1717526074761,
+      8979988308059,
+      3058152570679,
+      9226285881165,
+      1977191255737,
+      1770294525529,
+      5976916139245,
+      2122543622312,
+      407785741502,
+      8208087068996,
+      5810601481637
+    ],
+    "n_shingles": 99,
+    "end_lineno": 164,
+    "loc": 9,
+    "complexity": 3
+  },
   "C-a64c4b": {
     "coord_id": "C-a64c4b",
     "kind": "function",
@@ -56505,6 +56747,118 @@
     "end_lineno": 671,
     "loc": 28,
     "complexity": 5
+  },
+  "C-aa0915": {
+    "coord_id": "C-aa0915",
+    "kind": "function",
+    "qualname": "tests.test_friction.test_the_install_banner_names_every_command_the_hooks_run",
+    "path": "tests/test_friction.py",
+    "lineno": 374,
+    "body_hash": "1f8cf839ed4608a5",
+    "parent": "C-848366",
+    "signature": "test_the_install_banner_names_every_command_the_hooks_run(tmp_path)",
+    "shape_hash": "e6dfa4ee9e451a25",
+    "logic_hash": "c7dc400e6f4552b8",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Derived, not restated - the wordmark pattern applied to a banner. `hooks install` printed \"each runs: memway index . --if-stale --quiet\" as a constant. That stopped being true in the same release that",
+        "kind": "docstring"
+      },
+      {
+        "line": 36,
+        "text": "normalised HERE, independently of hooks.describe(), or this",
+        "kind": "comment"
+      },
+      {
+        "line": 37,
+        "text": "test would be comparing the derivation against itself.",
+        "kind": "comment"
+      },
+      {
+        "line": 38,
+        "text": "Checked against THAT HOOK'S line, not the whole banner - the",
+        "kind": "comment"
+      },
+      {
+        "line": 39,
+        "text": "first version matched `git` against the trailing sentence",
+        "kind": "comment"
+      },
+      {
+        "line": 40,
+        "text": "\"a failure never blocks the git operation\" and passed a",
+        "kind": "comment"
+      },
+      {
+        "line": 41,
+        "text": "sabotage that dropped two commands.",
+        "kind": "comment"
+      },
+      {
+        "line": 44,
+        "text": "drop the exe path",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "fc9c8a7894c8be86",
+    "comment_rot": false,
+    "sketch": [
+      694698425157,
+      114949568067,
+      504532501284,
+      515529156036,
+      18647229648,
+      482420262846,
+      308893444346,
+      739340614636,
+      338604309160,
+      60268122756,
+      15066389981,
+      531852041694,
+      98168924594,
+      215548336788,
+      266149210283,
+      72092983897,
+      368141436167,
+      561515785489,
+      550432561729,
+      435675414036,
+      220299931456,
+      1336192567042,
+      705399705431,
+      98329133334,
+      159252086165,
+      238874848189,
+      374715776269,
+      577640978153,
+      532805248716,
+      285348253555,
+      245667551825,
+      1568754990789,
+      400433392434,
+      263867635330,
+      134551573149,
+      818879936098,
+      1538999397246,
+      496422323620,
+      160630731845,
+      1203768750735,
+      1480162585122,
+      29337243007,
+      298727682103,
+      324494358353,
+      678308013525,
+      32143394731,
+      353138618634,
+      173609650658
+    ],
+    "n_shingles": 524,
+    "end_lineno": 421,
+    "loc": 48,
+    "complexity": 11
   },
   "C-aa5391": {
     "coord_id": "C-aa5391",
@@ -62164,7 +62518,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_mcp",
     "path": "memway/cli.py",
-    "lineno": 709,
+    "lineno": 710,
     "body_hash": "5e4c3eafe9d2d86c",
     "parent": "C-642291",
     "signature": "cmd_mcp(repo)",
@@ -62232,7 +62586,7 @@
       1718902650525
     ],
     "n_shingles": 93,
-    "end_lineno": 716,
+    "end_lineno": 717,
     "loc": 8,
     "complexity": 2
   },
@@ -65312,7 +65666,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_before_edit",
     "path": "memway/cli.py",
-    "lineno": 843,
+    "lineno": 844,
     "body_hash": "dcd6759705149249",
     "parent": "C-642291",
     "signature": "cmd_before_edit(repo, ref)",
@@ -65380,7 +65734,7 @@
       1718902650525
     ],
     "n_shingles": 257,
-    "end_lineno": 866,
+    "end_lineno": 867,
     "loc": 24,
     "complexity": 9
   },
@@ -68417,6 +68771,83 @@
     "end_lineno": 275,
     "loc": 11,
     "complexity": 4
+  },
+  "C-c9108f": {
+    "coord_id": "C-c9108f",
+    "kind": "function",
+    "qualname": "tests.test_friction.test_the_banner_is_not_a_hardcoded_sentence",
+    "path": "tests/test_friction.py",
+    "lineno": 424,
+    "body_hash": "abc1851cdae223ac",
+    "parent": "C-848366",
+    "signature": "test_the_banner_is_not_a_hardcoded_sentence()",
+    "shape_hash": "f9afab95720698d8",
+    "logic_hash": "b51fc10ef546130b",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Guard the guard: a banner built from a literal would satisfy the test above today and drift again tomorrow.",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "b6f538c5e39b14cf",
+    "comment_rot": false,
+    "sketch": [
+      2962187188767,
+      1325110082372,
+      504532501284,
+      853124691800,
+      139994726726,
+      1875323327289,
+      1205630486646,
+      3375892143828,
+      1434116222341,
+      1344543684867,
+      144633737539,
+      689217112690,
+      615708622185,
+      5330739838336,
+      16050170664,
+      897480605051,
+      120926969988,
+      791785122884,
+      87056483932,
+      308576707066,
+      73627941483,
+      7612848427936,
+      61157178240,
+      1139089790600,
+      1398400060735,
+      624368129948,
+      628323397654,
+      1243613815704,
+      2010306038709,
+      583878409337,
+      757529753683,
+      2463606829360,
+      18133354015,
+      605627249740,
+      71839418971,
+      160339897429,
+      1469026351759,
+      995814821953,
+      150161360647,
+      2440735851267,
+      572782496475,
+      2663088335080,
+      2976714597739,
+      793307883858,
+      1386342553814,
+      407785741502,
+      1310228669251,
+      309820725521
+    ],
+    "n_shingles": 174,
+    "end_lineno": 437,
+    "loc": 14,
+    "complexity": 6
   },
   "C-c96c84": {
     "coord_id": "C-c96c84",
@@ -72293,7 +72724,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_attention._label",
     "path": "memway/cli.py",
-    "lineno": 917,
+    "lineno": 918,
     "body_hash": "914602007ecaab21",
     "parent": "C-fa20be",
     "signature": "_label(x)",
@@ -72355,7 +72786,7 @@
       3102826170752
     ],
     "n_shingles": 36,
-    "end_lineno": 919,
+    "end_lineno": 920,
     "loc": 3,
     "complexity": 5
   },
@@ -73058,7 +73489,7 @@
     "kind": "function",
     "qualname": "memway.cli._usage_line",
     "path": "memway/cli.py",
-    "lineno": 1077,
+    "lineno": 1078,
     "body_hash": "0743dfacbcb89e76",
     "parent": "C-642291",
     "signature": "_usage_line(cmd)",
@@ -73128,7 +73559,7 @@
       4435027593531
     ],
     "n_shingles": 108,
-    "end_lineno": 1084,
+    "end_lineno": 1085,
     "loc": 8,
     "complexity": 5
   },
@@ -78336,7 +78767,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_dig",
     "path": "memway/cli.py",
-    "lineno": 719,
+    "lineno": 720,
     "body_hash": "7dd607d81c7298d9",
     "parent": "C-642291",
     "signature": "cmd_dig(repo, ref)",
@@ -78404,7 +78835,7 @@
       974953638603
     ],
     "n_shingles": 503,
-    "end_lineno": 770,
+    "end_lineno": 771,
     "loc": 52,
     "complexity": 18
   },
@@ -78414,11 +78845,11 @@
     "qualname": "memway.hooks",
     "path": "memway/hooks.py",
     "lineno": 1,
-    "body_hash": "4d1eade635ff4d7f",
+    "body_hash": "5cc3f699720ae667",
     "parent": null,
     "signature": "",
-    "shape_hash": "f12cc0f3a411479d",
-    "logic_hash": "fff9f4fd47996504",
+    "shape_hash": "1bcc7dedc1e26670",
+    "logic_hash": "08285a8cd7cd437e",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -78543,175 +78974,175 @@
         "kind": "comment"
       },
       {
-        "line": 137,
+        "line": 170,
         "text": "linked worktree: .git is a file",
         "kind": "comment"
       },
       {
-        "line": 159,
+        "line": 192,
         "text": "UPGRADE IN PLACE, the marker-block pattern the rules files use.",
         "kind": "comment"
       },
       {
-        "line": 160,
+        "line": 193,
         "text": "This used to return \"leaving it\" unconditionally, which meant an",
         "kind": "comment"
       },
       {
-        "line": 161,
+        "line": 194,
         "text": "existing install NEVER received a changed hook body: 0.55.0's",
         "kind": "comment"
       },
       {
-        "line": 162,
+        "line": 195,
         "text": "pre-commit stages the map, and every repo that had installed",
         "kind": "comment"
       },
       {
-        "line": 163,
+        "line": 196,
         "text": "hooks before would have upgraded memway and silently kept the",
         "kind": "comment"
       },
       {
-        "line": 164,
+        "line": 197,
         "text": "old behaviour. The markers exist precisely so the managed region",
         "kind": "comment"
       },
       {
-        "line": 165,
+        "line": 198,
         "text": "can be replaced without touching anything around it.",
         "kind": "comment"
       },
       {
-        "line": 175,
+        "line": 208,
         "text": "AN APPEND AFTER `exit` IS DEAD CODE. Git's own sample hooks end in",
         "kind": "comment"
       },
       {
-        "line": 176,
+        "line": 209,
         "text": "`exit 0`, and appending past one installs cleanly, reports success,",
         "kind": "comment"
       },
       {
-        "line": 177,
+        "line": 210,
         "text": "and never runs - the worst failure available here, because nothing",
         "kind": "comment"
       },
       {
-        "line": 178,
+        "line": 211,
         "text": "says so. Measured on a fixture: the block landed below `exit 0` and",
         "kind": "comment"
       },
       {
-        "line": 179,
+        "line": 212,
         "text": "the map silently stopped tracking.",
         "kind": "comment"
       },
       {
-        "line": 181,
+        "line": 214,
         "text": "HEURISTIC, AND ITS LIMIT: this sees `exit` only where it STARTS a",
         "kind": "comment"
       },
       {
-        "line": 182,
+        "line": 215,
         "text": "line. `if [ -n \"$SKIP\" ]; then exit 0; fi` is invisible to it, and",
         "kind": "comment"
       },
       {
-        "line": 183,
+        "line": 216,
         "text": "such a hook gets the block inserted above its final exit - which is",
         "kind": "comment"
       },
       {
-        "line": 184,
+        "line": 217,
         "text": "the right outcome anyway, since an early conditional exit is the",
         "kind": "comment"
       },
       {
-        "line": 185,
+        "line": 218,
         "text": "author asking to skip everything after it.",
         "kind": "comment"
       },
       {
-        "line": 187,
+        "line": 220,
         "text": "So: find top-level `exit` lines (unindented, outside comments). None",
         "kind": "comment"
       },
       {
-        "line": 188,
+        "line": 221,
         "text": "means a plain append is safe. Exactly one, as the final statement,",
         "kind": "comment"
       },
       {
-        "line": 189,
+        "line": 222,
         "text": "means insert above it. Anything else is control flow this has no",
         "kind": "comment"
       },
       {
-        "line": 190,
+        "line": 223,
         "text": "business guessing at, and is refused.",
         "kind": "comment"
       },
       {
-        "line": 196,
+        "line": 229,
         "text": "Safe to append last: git ignores the exit status of post-commit,",
         "kind": "comment"
       },
       {
-        "line": 197,
+        "line": 230,
         "text": "post-checkout and post-merge, so `|| true` becoming the script's",
         "kind": "comment"
       },
       {
-        "line": 198,
+        "line": 231,
         "text": "final status changes nothing git acts on. No `exit 0` is added -",
         "kind": "comment"
       },
       {
-        "line": 199,
+        "line": 232,
         "text": "it would survive uninstall as residue in somebody else's file.",
         "kind": "comment"
       },
       {
-        "line": 220,
+        "line": 253,
         "text": "tidy the blank lines the block was sitting in, nothing more. The",
         "kind": "comment"
       },
       {
-        "line": 221,
+        "line": 254,
         "text": "trailing collapse matters: without it an uninstall left one extra",
         "kind": "comment"
       },
       {
-        "line": 222,
+        "line": 255,
         "text": "newline in somebody else's file, so the round-trip was very nearly",
         "kind": "comment"
       },
       {
-        "line": 223,
+        "line": 256,
         "text": "byte-identical, which is not the same thing.",
         "kind": "comment"
       },
       {
-        "line": 261,
+        "line": 294,
         "text": "If nothing but our own scaffolding is left, remove the file we",
         "kind": "comment"
       },
       {
-        "line": 262,
+        "line": 295,
         "text": "created rather than leaving an empty hook behind.",
         "kind": "comment"
       }
     ],
     "comment_hash": "af357d407b1b69eb",
-    "comment_rot": false,
+    "comment_rot": true,
     "sketch": [
       316741992846,
       105880129981,
       130281135025,
       141800987177,
       18647229648,
-      307761651752,
+      79229660377,
       120590899103,
       42069570762,
       8424773659,
@@ -78723,7 +79154,7 @@
       41683264533,
       11385882184,
       18834984055,
-      128979271371,
+      31114191110,
       98851235111,
       32624777345,
       22002948180,
@@ -78732,10 +79163,10 @@
       97761276723,
       69641850228,
       124327819881,
-      506362588266,
+      374715776269,
       9167576676,
       114440404058,
-      814454144208,
+      10060658729,
       187973155644,
       84887472557,
       382618630682,
@@ -78752,13 +79183,13 @@
       6184920507,
       23154614138,
       407785741502,
-      404908723789,
+      240351317379,
       128397927987
     ],
-    "n_shingles": 2397,
-    "end_lineno": 271,
-    "loc": 272,
-    "complexity": 39
+    "n_shingles": 2622,
+    "end_lineno": 304,
+    "loc": 305,
+    "complexity": 45
   },
   "C-e4de00": {
     "coord_id": "C-e4de00",
@@ -79516,7 +79947,7 @@
     "kind": "function",
     "qualname": "memway.cli._running_from_source",
     "path": "memway/cli.py",
-    "lineno": 1020,
+    "lineno": 1021,
     "body_hash": "0f5b67890601126d",
     "parent": "C-642291",
     "signature": "_running_from_source()",
@@ -79584,7 +80015,7 @@
       997121299321
     ],
     "n_shingles": 130,
-    "end_lineno": 1030,
+    "end_lineno": 1031,
     "loc": 11,
     "complexity": 2
   },
@@ -79818,7 +80249,7 @@
     "kind": "function",
     "qualname": "memway.cli.main",
     "path": "memway/cli.py",
-    "lineno": 1103,
+    "lineno": 1104,
     "body_hash": "72d289f63246c1a6",
     "parent": "C-642291",
     "signature": "main()",
@@ -79956,7 +80387,7 @@
       35708603481
     ],
     "n_shingles": 672,
-    "end_lineno": 1184,
+    "end_lineno": 1185,
     "loc": 82,
     "complexity": 22
   },
@@ -82385,7 +82816,7 @@
     "kind": "function",
     "qualname": "memway.hooks.hooks_dir",
     "path": "memway/hooks.py",
-    "lineno": 134,
+    "lineno": 167,
     "body_hash": "840654f286652995",
     "parent": "C-e46ca3",
     "signature": "hooks_dir(repo)",
@@ -82458,7 +82889,7 @@
       2048145059363
     ],
     "n_shingles": 119,
-    "end_lineno": 146,
+    "end_lineno": 179,
     "loc": 13,
     "complexity": 5
   },
@@ -87506,7 +87937,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_attention",
     "path": "memway/cli.py",
-    "lineno": 896,
+    "lineno": 897,
     "body_hash": "af44125e0a9a561d",
     "parent": "C-642291",
     "signature": "cmd_attention(repo)",
@@ -87589,7 +88020,7 @@
       1432634545079
     ],
     "n_shingles": 317,
-    "end_lineno": 927,
+    "end_lineno": 928,
     "loc": 32,
     "complexity": 13
   },
