@@ -76,17 +76,15 @@ def _entity_dict(e, meta=None) -> dict:
         "signature": e.signature,
     }
     if meta is not None:
-        md = meta.read_all(e.coord_id,
-                       current_hash=accepted_for(e))
-        knowledge = []
-        for channel, entries in md.items():
-            for en in entries:
-                knowledge.append({
-                    "channel": channel,
-                    "text": en["text"],
-                    "stale": bool(en.get("stale")),
-                    "author": en.get("author", ""),
-                })
+        from .metadata import for_display
+        md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
+        knowledge = [{
+            "channel": r["channel"],
+            "text": r["text"],
+            "stale": bool(r.get("stale")),
+            "superseded": r["superseded"],
+            "author": r.get("author", ""),
+        } for r in for_display(md)]
         d["knowledge"] = knowledge
         _attach_evidence(d, e, meta)
     return d
@@ -321,14 +319,11 @@ def _knowledge_lag(ix, meta) -> dict:
     Read-only by construction: entities already in memory, plus the meta
     files. Nothing here writes, which is what keeps it inside the fence.
     """
-    from .metadata import unsuperseded_stale
+    from .metadata import for_display, unsuperseded_stale
     try:
         coords = []
         for cid, e in ix.entities.items():
-            rows = []
-            for ch, entries in meta.read_all(cid, accepted_for(e)).items():
-                for en in entries:
-                    rows.append({**en, "channel": ch})
+            rows = for_display(meta.read_all(cid, accepted_for(e)))
             if unsuperseded_stale(rows):
                 coords.append(cid)
         if not coords:
@@ -659,13 +654,13 @@ def before_edit(repo: str, ref: str) -> dict:
 
     md = meta.read_all(e.coord_id,
                        current_hash=accepted_for(e))
+    from .metadata import for_display
     knowledge, has_stale = [], False
-    for channel, entries in md.items():
-        for en in entries:
-            stale = bool(en.get("stale"))
-            has_stale = has_stale or stale
-            knowledge.append({"channel": channel, "text": en["text"],
-                              "stale": stale})
+    for r in for_display(md):
+        stale = bool(r.get("stale"))
+        has_stale = has_stale or (stale and not r["superseded"])
+        knowledge.append({"channel": r["channel"], "text": r["text"],
+                          "stale": stale, "superseded": r["superseded"]})
     # knowledge flows DOWN the hierarchy: a note on the ancestor method
     # this one overrides (or inherits from) describes behavior this
     # entity shares - surface it with provenance, staleness checked
@@ -857,7 +852,8 @@ def verify_change(repo_root, run=False):
     from pathlib import Path
     from .indexer import Indexer
     from .edges import EdgeBuilder
-    from .metadata import MetaStore, accepted_for, unsuperseded_stale
+    from .metadata import (MetaStore, accepted_for, for_display,
+                           unsuperseded_stale)
     from .verify import verify_change as _vc
     repo_root = Path(repo_root)
     coord = repo_root / ".coord"
@@ -889,10 +885,7 @@ def verify_change(repo_root, run=False):
         ent = ix.entities.get(cid)
         if not ent:
             continue
-        rows = []
-        for ch, entries in meta.read_all(cid, accepted_for(ent)).items():
-            for en in entries:
-                rows.append({**en, "channel": ch})
+        rows = for_display(meta.read_all(cid, accepted_for(ent)))
         for row in unsuperseded_stale(rows):
             staled.append({
                 "coordinate": cid,

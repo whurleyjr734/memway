@@ -365,7 +365,14 @@ def test_supersede_without_reindexing_produces_a_FRESH_note(repo):
     assert _cli("index", str(repo)).returncode == 0
 
     shown = json.loads(_cli("--json", "show", str(repo), "widget").stdout)
-    newest = [k for k in shown["knowledge"] if k["channel"] == "notes"][-1]
+    # [0], not [-1]: the payload leads with the NEWEST entry as of 0.54.2.
+    # This took [-1] and passed until the reorder landed, at which point it
+    # was reading the superseded entry and calling it the new one.
+    notes = [k for k in shown["knowledge"] if k["channel"] == "notes"]
+    newest = notes[0]
+    assert newest["superseded"] is False, ("the panel does not lead with the "
+                                           f"deciding entry: {notes}")
+    assert newest["text"].startswith("Re-checked"), newest
     assert newest["stale"] is False, (
         f"the superseding note was born stale - superseding as instructed "
         f"healed nothing: {newest}")
@@ -453,3 +460,105 @@ def test_init_ignores_the_regenerable_tiers_but_not_the_authored_ones(tmp_path):
     gi.write_text(body + "my-own-line/\n")
     assert _cli("init", str(r)).returncode == 0
     assert "my-own-line/" in gi.read_text(), "re-init clobbered the user's edit"
+
+
+# ------------------------------- what a human reads, in what order
+
+def test_the_panel_leads_with_the_entry_that_decides(repo):
+    """Newest first, and the older one labelled history rather than warning.
+
+    The panel ran oldest-first because entries are append-only and nothing
+    reordered them. So on a coordinate whose ring said FRESH, the first
+    thing a reader saw was an entry marked STALE - the very one the ring
+    rule had discarded. The ring and the panel contradicted each other on
+    screen, and the reader had to scroll to reach the truth.
+
+    THE FIXTURE IS ORDERED SO ONLY THE CORRECT RULE PASSES, both ways:
+    the older entry is the STALE one and the newer is FRESH, so a payload
+    that forgot to reverse leads with stale=True, and one that labelled
+    the DECIDING entry as superseded would mark the fresh one. Neither
+    mistake can slip through by symmetry.
+    """
+    (repo / "m.py").write_text(EDIT)
+    _cli("index", str(repo))                      # the note is now stale
+    _cli("meta", str(repo), "widget", "notes", "Re-checked: still +1.")
+
+    d = json.loads(_cli("--json", "show", str(repo), "widget").stdout)
+    kn = [k for k in d["knowledge"] if k["channel"] == "notes"]
+    assert len(kn) == 2, kn
+
+    first, second = kn
+    assert first["stale"] is False, f"panel leads with a stale entry: {first}"
+    assert first["superseded"] is False, "the deciding entry was labelled superseded"
+    assert first["text"].startswith("Re-checked"), first
+
+    assert second["superseded"] is True, "the older entry is not labelled history"
+    assert second["stale"] is True, "fixture no longer discriminates: the " \
+        "older entry must be stale, or 'leads with fresh' proves nothing"
+
+    # the ring still says fresh - panel and ring now agree
+    assert json.loads(_cli("--json", "summary", str(repo)).stdout)["knowledge_lag"] == {}
+
+
+def test_superseded_is_carried_into_the_rendered_page(tmp_path):
+    """Executed, not asserted on the payload.
+
+    A key added to the payload and not to normalize() is a silent no-op -
+    that is exactly how is_test arrived undefined on every node in 0.53.0
+    while every presence test stayed green. So this lifts the shipped
+    normalize() out of the emitted bytes and runs it.
+    """
+    from memway.viz import export, render
+    r = tmp_path / "panel"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    _cli("meta", str(r), "widget", "notes", "first")
+    (r / "m.py").write_text(EDIT)
+    _cli("index", str(r))
+    _cli("meta", str(r), "widget", "notes", "second")
+
+    html = render(export(str(r)))
+    src = html[html.index("function normalize("):]
+    depth, i = 0, src.index("{")
+    while True:
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+        if depth == 0:
+            break
+        i += 1
+    fn_src = src[:i + 1]
+
+    # EXECUTED, not grepped. The first version of this asserted
+    # `"superseded" in fn_src` and passed against a sabotage that removed
+    # the flag from the object branch, because the word still appeared in
+    # the string branch. Presence is not behaviour - the same mistake that
+    # let is_test ship undefined.
+    import shutil
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node unavailable; the executed check is the real one")
+    payload = html[html.index("const SAMPLE = ") + len("const SAMPLE = "):]
+    payload = payload[:payload.index("\n")].rstrip().rstrip(";")
+    prog = (fn_src + "\nconst out = normalize(" + payload + ");\n"
+            "const kn = out.entities.flatMap(e => e.knowledge);\n"
+            "console.log(JSON.stringify({\n"
+            "  undef: kn.filter(k => k.superseded === undefined).length,\n"
+            "  sup: kn.filter(k => k.superseded === true).length,\n"
+            "  total: kn.length}));")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-400:]
+    got = json.loads(r.stdout)
+    assert got["total"] >= 2, got
+    assert got["undef"] == 0, \
+        f"normalize() dropped the flag on {got['undef']} entries - the panel " \
+        f"renders history as a warning"
+    assert got["sup"] >= 1, \
+        f"no entry survived as superseded, so this cannot discriminate: {got}"
+
+    import re
+    assert re.search(r'class="note \$\{k\.superseded\?"superseded"', html), \
+        "the template does not style superseded entries distinctly"

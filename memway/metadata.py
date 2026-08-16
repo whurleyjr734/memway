@@ -105,8 +105,37 @@ def accepted_for(entity) -> set:
     return {getattr(entity, "logic_hash", ""), entity.body_hash} - {""}
 
 
+def for_display(md: dict) -> list:
+    """Channel entries flattened for a HUMAN to read: newest first.
+
+    THE READING ORDER, and it is not the file order. Entries are
+    append-only, so the file runs oldest -> newest; rendering it straight
+    through put the entry the ring rule DISCARDED at the top and the one
+    that decides at the bottom. On a coordinate whose ring says fresh, the
+    first thing a reader saw was a note marked STALE describing a bug that
+    no longer existed. The ring and the panel disagreed on screen.
+
+    The tell that this is the right way round: six superseding notes
+    written on this repo said "supersedes the note BELOW it" - true of the
+    file, false of the screen, until this. Newest first makes the sentence
+    true, because what you superseded is now genuinely underneath.
+
+    SUPERSEDED IS NOT STALE. Stale means "the code moved under this and
+    nobody has answered"; superseded means "somebody answered, and this is
+    the older answer". The first is a warning, the second is history, and
+    a panel that renders them identically teaches people to ignore both.
+    Only the newest entry per channel can be a warning; everything behind
+    it is marked superseded regardless of its own stale flag.
+    """
+    out = []
+    for channel, entries in md.items():
+        for i, en in enumerate(reversed(list(entries))):
+            out.append({**en, "channel": channel, "superseded": i > 0})
+    return out
+
+
 def unsuperseded_stale(knowledge: list) -> list:
-    """THE ONE RING RULE, as rows. Per channel, only the NEWEST entry counts.
+    """THE ONE RING RULE, as rows: the entries that are stale AND decisive.
 
     Entries are append-only and never deleted, so a coordinate accumulates
     its own history: re-reading the code and writing a fresh entry leaves
@@ -115,19 +144,25 @@ def unsuperseded_stale(knowledge: list) -> list:
     times somebody answers it - measured on memway's own map, 12 rings
     that no amount of fresh confirmation could clear.
 
-    Callers want this in two shapes and there is ONE implementation:
-    viz.has_unsuperseded_stale asks whether to draw a ring, verify_change
-    asks WHICH entries a change just invalidated. A second copy of a rule
-    is how the behind-count shipped without the exclusion the dirty check
-    already had.
+    ORDER-INDEPENDENT BY CONSTRUCTION. This took the LAST row per channel
+    until 0.54.2, which was correct only while every caller passed file
+    order - and 0.54.2 made the human-facing order newest-FIRST. A
+    positional rule would have inverted silently, calling a coordinate
+    fresh on the strength of a note somebody had already replaced. Flags
+    survive reordering; positions do not.
 
-    Input rows are dicts with 'channel' and 'stale'. Order is file order,
-    which is append order.
+    Callers pass for_display() output. A row with no flag counts as
+    decisive, which is the safe direction: it can raise a warning a human
+    dismisses, never suppress one they needed.
+
+    Two shapes, ONE implementation: viz.has_unsuperseded_stale asks
+    whether to draw a ring, verify_change asks WHICH entries a change
+    invalidated, _knowledge_lag asks how many coordinates are affected. A
+    second copy is how the behind-count shipped without the exclusion the
+    dirty check already had.
     """
-    newest = {}
-    for row in knowledge:
-        newest[row.get("channel", "")] = row
-    return [r for r in newest.values() if r.get("stale")]
+    return [r for r in knowledge
+            if r.get("stale") and not r.get("superseded")]
 
 
 class MetaStore:

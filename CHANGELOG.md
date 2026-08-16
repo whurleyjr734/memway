@@ -52,6 +52,31 @@ is the failure this project exists to fix.
 
 ### Changed
 
+- **The knowledge panel reads newest first, and marks history as history.**
+  Entries are append-only, so the file runs oldest -> newest and the panel
+  rendered it straight through: on a coordinate whose ring said FRESH, the
+  first thing a reader saw was an entry marked STALE - the very one the
+  ring rule had discarded. Ring and panel contradicted each other on
+  screen, and the truth was below the fold.
+
+  `metadata.for_display` is now the one reading order, used by `show`,
+  `before_edit` and the map/console payload. Non-deciding entries carry
+  `superseded` and render quieter: **superseded is not stale.** Stale is a
+  warning - the code moved and nobody answered. Superseded is history -
+  somebody answered, and this is the older answer. Rendering them alike
+  taught readers to ignore both.
+
+  `unsuperseded_stale` no longer derives "newest" from list position; it
+  reads the flag. A positional rule would have inverted silently the
+  moment the display order flipped, calling a coordinate fresh on the
+  strength of a note somebody had already replaced.
+
+  Found by a human looking at the panel and asking which end was which.
+  The tell that newest-first is right: six superseding notes on this repo
+  said "supersedes the note BELOW it" - true of the file, false of the
+  screen. The reorder made all six true without editing a word.
+
+
 - **Project name is derived, not assumed** - `pyproject.toml
   [project].name` -> `package.json name` -> git remote basename ->
   directory last. First in chain wins even when they disagree:

@@ -177,6 +177,18 @@
     font-size:12.5px; line-height:1.55;
   }
   .note.stale{border-left-color:var(--coral); background:rgba(224,101,82,.06)}
+  /* SUPERSEDED IS NOT STALE. Stale is a warning: the code moved and nobody
+     answered. Superseded is history: somebody answered, and this is the
+     older answer. Rendering them alike taught readers to ignore both - and
+     while the panel ran oldest-first, the entry the ring rule had DISCARDED
+     was the first thing anyone read, on a coordinate the ring called fresh.
+     Quieter, not hidden: the history is why the current answer is trusted. */
+  .note.superseded{
+    border-left-color:var(--dim); background:transparent;
+    opacity:.55; font-size:11.5px;
+  }
+  .note.superseded .seal{color:var(--dim)}
+  .note.superseded .seal .dot{border-style:dotted}
   .note .seal{
     display:inline-flex; align-items:center; gap:5px;
     font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em;
@@ -331,7 +343,7 @@ function normalize(raw){
        silent no-op. */
     is_test:e.is_test===true,
     knowledge_stale:e.knowledge_stale,
-    knowledge:(e.knowledge||e.notes||[]).map(n=> typeof n==="string" ? {text:n,stale:false} : {text:n.text||"",stale:!!(n.stale||n.any_stale),channel:n.channel||"",author:n.author||""})
+    knowledge:(e.knowledge||e.notes||[]).map(n=> typeof n==="string" ? {text:n,stale:false,superseded:false} : {text:n.text||"",stale:!!(n.stale||n.any_stale),superseded:n.superseded===true,channel:n.channel||"",author:n.author||""})
   })).filter(e=>e.id);
   const ids=new Set(ents.map(e=>e.id));
   const eds=(raw.edges||[]).map(ed=>Array.isArray(ed)?{source:ed[0],target:ed[1],kind:"calls"}:{source:ed.source||ed.caller,target:ed.target||ed.callee,kind:(ed.kind||"calls")}).filter(ed=>ids.has(ed.source)&&ids.has(ed.target));
@@ -460,8 +472,8 @@ function select(d, link, node){
     </div>
     <div class="kn-head">stamped knowledge</div>
     ${d.knowledge.length ? d.knowledge.map(k=>`
-      <div class="note ${k.stale?"stale":""}">
-        <div class="seal"><span class="dot"></span>${k.channel?`<b>${escapeHtml(k.channel)}</b> · `:""}${k.stale?"stale — logic changed since stamp":"fresh at current logic hash"}</div>
+      <div class="note ${k.superseded?"superseded":(k.stale?"stale":"")}">
+        <div class="seal"><span class="dot"></span>${k.channel?`<b>${escapeHtml(k.channel)}</b> · `:""}${k.superseded?"superseded — kept as history":(k.stale?"stale — logic changed since stamp":"fresh at current logic hash")}</div>
         ${escapeHtml(k.text)}
       </div>`).join("") : `<div class="empty-k">Nothing recorded here yet. The next session that learns something durable about this entity writes it — and it lands on this card.</div>`}
   `;

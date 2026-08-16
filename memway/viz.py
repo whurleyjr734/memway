@@ -108,12 +108,14 @@ def _knowledge_for(meta, e) -> list:
     either the logic hash or the body hash is current.
     """
     from .metadata import accepted_for
+    from .metadata import for_display
     md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
     out = []
-    for channel, entries in md.items():
-        for en in entries:
+    for en in for_display(md):
+        if True:
             row = {
-                "channel": channel,
+                "channel": en["channel"],
+                "superseded": en["superseded"],
                 "text": en.get("text", ""),
                 "stale": bool(en.get("stale")),
                 "author": en.get("author", ""),

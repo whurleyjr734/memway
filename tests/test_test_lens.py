@@ -425,19 +425,33 @@ def test_the_console_page_filters_too(mapped, tmp_path):
 # helper, not by grepping for it.
 
 from memway.viz import has_unsuperseded_stale
+from memway.metadata import for_display
+
+
+def _rows(**channels):
+    """Channel entries in FILE order (oldest first), as the store holds
+    them, put through the one function that decides display order and
+    marks what is superseded.
+
+    These tests passed hand-built positional lists until 0.54.2, when the
+    human-facing order became newest-first and the rule stopped reading
+    position at all. Hand-building rows here would have let the test keep
+    asserting a contract the product no longer has.
+    """
+    return for_display({ch: entries for ch, entries in channels.items()})
 
 
 def test_a_fresh_entry_supersedes_a_stale_one_in_its_channel():
     """The regression: re-reading the code must be able to clear the ring."""
-    assert has_unsuperseded_stale([
-        {"channel": "confirm", "stale": True},      # older
-        {"channel": "confirm", "stale": False},     # newer, supersedes
-    ]) is False
+    assert has_unsuperseded_stale(_rows(confirm=[
+        {"stale": True},      # older
+        {"stale": False},     # newer, supersedes
+    ])) is False
 
 
 def test_a_stale_entry_with_nothing_newer_still_shows():
     """The mirror. Without it, 'never coral' would pass the test above."""
-    assert has_unsuperseded_stale([{"channel": "confirm", "stale": True}]) is True
+    assert has_unsuperseded_stale(_rows(confirm=[{"stale": True}])) is True
 
 
 def test_channels_are_judged_separately():
@@ -449,15 +463,14 @@ def test_channels_are_judged_separately():
     The stale note goes FIRST, followed by a newer entry in a different
     channel - the only arrangement where merging gives the wrong answer.
     """
-    assert has_unsuperseded_stale([
-        {"channel": "notes", "stale": True},        # unanswered
-        {"channel": "confirm", "stale": False},     # newer, DIFFERENT channel
-    ]) is True
-    # and the same two in one channel really is superseded
-    assert has_unsuperseded_stale([
-        {"channel": "notes", "stale": True},
-        {"channel": "notes", "stale": False},
-    ]) is False
+    assert has_unsuperseded_stale(_rows(
+        notes=[{"stale": True}],                    # unanswered
+        confirm=[{"stale": False}],                 # newer, DIFFERENT channel
+    )) is True
+    # and the same two in ONE channel really is superseded
+    assert has_unsuperseded_stale(_rows(
+        notes=[{"stale": True}, {"stale": False}],
+    )) is False
 
 
 def test_no_knowledge_is_not_stale():
