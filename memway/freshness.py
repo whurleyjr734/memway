@@ -76,6 +76,28 @@ def is_dirty(repo) -> bool:
     return not ok
 
 
+def code_commits_between(repo, was: str, sha: str) -> tuple:
+    """(count, known) commits between two shas that touch anything but .coord.
+
+    THE ONE COUNTING RULE. The lag warning, `--if-stale` and the hooks all
+    reach it through lag(); there is no second copy, because a second copy
+    is exactly how this bug happened - is_dirty() learned to exclude .coord
+    and the behind-count shipped without the same exclusion.
+
+    `known` is False when git cannot walk from `was` to `sha` at all: a
+    rebase, a force-push or a shallow clone can leave the recorded sha
+    unreachable. That is NOT the same as "no code changed", and collapsing
+    the two would let a rewritten history read as current. Unknown reports.
+    """
+    if was == sha:
+        return 0, True
+    out, ok = _git(repo, "rev-list", "--count", f"{was}..{sha}",
+                   "--", ".", ":(exclude).coord")
+    if ok and out.isdigit():
+        return int(out), True
+    return 0, False
+
+
 def read_manifest(coord) -> dict:
     try:
         d = json.loads((Path(coord) / "manifest.json").read_text())
@@ -109,6 +131,19 @@ def lag(repo, coord) -> dict:
     unavailable: no git, no manifest, no recorded sha. Silence is correct
     there; a warning that fires when it cannot know is noise, and noise
     is how a real warning gets ignored.
+
+    THE INCIDENT THAT PROVED IT. This shipped gating on `was == sha`, so
+    committing the map - the workflow memway explicitly recommends - left
+    every repo permanently one commit behind itself and warning about it
+    forever. A warning that always fires is not a warning; it had become
+    exactly the noise the paragraph above was written to avoid.
+
+    is_dirty() had already learned to exclude .coord, for the same reason,
+    weeks earlier. The behind-count shipped without the exclusion because
+    it was a SECOND COPY of one rule and only the first copy got fixed.
+    The cure is not remembering harder next time; it is
+    code_commits_between being the only place that counts, so there is
+    nowhere for a second answer to live.
     """
     sha = head_sha(repo)
     if not sha:
@@ -118,20 +153,27 @@ def lag(repo, coord) -> dict:
     if not was:
         return {}                                # map predates the stamp
     dirty = is_dirty(repo)
-    if was == sha and not dirty:
-        return {}                                # current
-    behind = 0
-    if was != sha:
-        out, ok = _git(repo, "rev-list", "--count", f"{was}..{sha}")
-        if ok and out.isdigit():
-            behind = int(out)
+    behind, known = code_commits_between(repo, was, sha)
+    # COMMITTING THE MAP MOVES HEAD. memway tells you to commit .coord, so
+    # `was != sha` the instant you do - while the map still describes the
+    # code exactly. Gating on sha equality made the warning fire forever
+    # after any map commit, on the very workflow this project recommends.
+    # What matters is whether any CODE moved, not whether HEAD did.
+    if known and behind == 0 and not dirty:
+        return {}                                # the map still fits the code
     return {"indexed_at": was, "head": sha, "behind": behind,
-            "dirty": dirty, "message": message(was, sha, behind, dirty)}
+            "dirty": dirty, "known": known,
+            "message": message(was, sha, behind, dirty, known)}
 
 
-def message(was: str, sha: str, behind: int, dirty: bool) -> str:
+def message(was: str, sha: str, behind: int, dirty: bool,
+            known: bool = True) -> str:
     """The one line a read tool prints. Says what, and what to do."""
-    if was == sha:
+    if not known:
+        return (f"map indexed at {was[:7]}, which this repo cannot reach from "
+                f"HEAD {sha[:7]} (rebased, force-pushed or shallow) "
+                f"- run memway index")
+    if behind == 0 and dirty:
         return (f"map indexed at {was[:7]}, working tree has uncommitted "
                 f"changes - run memway index")
     n = (f" ({behind} commit{'s' if behind != 1 else ''} ahead)"

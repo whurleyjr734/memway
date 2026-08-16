@@ -7,6 +7,27 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.53.2] - 2026-08-16
+
+### Fixed
+
+- **Committing the map no longer triggers a permanent false lag warning.**
+  The behind-count now excludes `.coord`, matching the dirty check. memway
+  tells you to commit the map, so committing it moves HEAD; `lag()` gated on
+  sha equality, so from that moment every read reported the map as one
+  commit stale while it described the code exactly. Every repo following the
+  documented workflow got a warning that could never be cleared, which is
+  precisely the noise the module's own comment warns against.
+
+  `is_dirty()` learned this exclusion weeks earlier. The behind-count was a
+  second copy of the same rule and only the first copy was fixed, so there
+  is now one implementation, `code_commits_between`, reached by the lag
+  warning, `--if-stale` and the hooks alike.
+
+  An unreachable recorded sha (rebase, force-push, shallow clone) now
+  reports instead of going quiet: "cannot tell" is not "nothing changed",
+  and collapsing them would let a rewritten history read as current.
+
 ## [0.53.1] - 2026-08-16
 
 ### Fixed

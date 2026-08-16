@@ -379,3 +379,84 @@ def test_an_index_that_raises_is_logged_and_exits_zero(repo):
     log = repo / ".coord" / "log" / "hooks.log"
     assert log.exists(), "the failure was not logged"
     assert "index --if-stale failed" in log.read_text()
+
+
+# ------------------------------------- committing the map is not a change
+#
+# THE BUG THESE EXIST FOR. memway tells you to commit .coord, so committing
+# the map moves HEAD - and lag() gated on `was == sha`, so the warning fired
+# permanently the moment anyone followed the advice. It shipped in 0.53.0
+# and 0.53.1 and was found by looking at the tool's own repo.
+#
+# is_dirty() had already learned to exclude .coord. The behind-count had
+# not. Two copies of one rule, one of them fixed. There is now a single
+# counting implementation, code_commits_between, and these tests pin the
+# workflow rather than the mechanism.
+
+def test_committing_the_map_leaves_it_current(repo):
+    """THE regression. Commit .coord and nothing else: still current."""
+    _commit(repo, "commit the map")
+    assert freshness.lag(repo, repo / ".coord") == {}, \
+        "committing the map reported the map as stale"
+
+
+def test_committing_the_map_keeps_every_surface_silent(repo):
+    from memway import query
+    _commit(repo, "commit the map")
+    assert query.summary(str(repo))["map_lag"] == {}
+    assert query.show(str(repo), "m.alpha")["map_lag"] == {}
+    r = _cli("show", str(repo), "m.alpha")
+    assert "note: map indexed at" not in r.stdout, r.stdout
+    r = _cli("index", str(repo), "--if-stale")
+    assert "map current" in r.stdout, r.stdout
+
+
+def test_a_source_commit_still_counts(repo):
+    """The mirror. Without it, 'never warn' would pass the test above."""
+    _commit(repo, "commit the map")
+    (repo / "m.py").write_text("def alpha(x):\n    return x + 99\n")
+    _commit(repo, "change the code")
+    gap = freshness.lag(repo, repo / ".coord")
+    assert gap, "a real source change went unreported"
+    assert gap["behind"] == 1, f"counted map commits too: {gap}"
+
+
+def test_a_mixed_commit_counts(repo):
+    """Source and map in one commit still moved the code."""
+    (repo / "m.py").write_text("def alpha(x):\n    return x + 5\n")
+    _commit(repo, "source and map together")
+    gap = freshness.lag(repo, repo / ".coord")
+    assert gap and gap["behind"] == 1, gap
+
+
+def test_many_map_commits_never_accumulate(repo):
+    """Three map commits in a row must not read as three behind."""
+    for i in range(3):
+        (repo / ".coord" / "log").mkdir(parents=True, exist_ok=True)
+        (repo / ".coord" / "log" / f"n{i}.txt").write_text("x")
+        _commit(repo, f"map churn {i}")
+    assert freshness.lag(repo, repo / ".coord") == {}
+
+
+def test_an_unreachable_sha_reports_rather_than_going_silent(repo):
+    """Rebase, force-push and shallow clones can orphan the recorded sha.
+    'Cannot tell' is not 'nothing changed', and collapsing them would let a
+    rewritten history read as current."""
+    p = repo / ".coord" / "manifest.json"
+    man = json.loads(p.read_text())
+    man[freshness.SHA_KEY] = "0" * 40
+    p.write_text(json.dumps(man))
+    gap = freshness.lag(repo, repo / ".coord")
+    assert gap, "an unreachable sha went silent"
+    assert gap["known"] is False
+    assert "cannot reach" in gap["message"]
+
+
+def test_one_counting_implementation():
+    """Structural: the rule that broke was a second copy of a first rule."""
+    import ast
+    src = (HERE / "memway" / "freshness.py").read_text()
+    assert src.count('"rev-list"') == 1, \
+        "a second rev-list appeared; unify it into code_commits_between"
+    assert src.count(':(exclude).coord') == 2, \
+        "both the dirty check and the behind count must exclude .coord"
