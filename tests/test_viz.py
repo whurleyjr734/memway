@@ -697,3 +697,61 @@ def _swatch(html: str, kind: str) -> str:
     i = html.index(f'data-ekind="{kind}"')
     j = html.index("</span>", i)
     return html[i:j]
+
+
+# ------------------------------ the map wears the site's logo
+
+WORDMARK_PROPS = ("font-weight", "letter-spacing", "font-size", "color")
+
+
+def _decl(css_rule: str) -> dict:
+    out = {}
+    for part in css_rule[css_rule.index("{") + 1:css_rule.rindex("}")].split(";"):
+        if ":" in part:
+            k, v = part.split(":", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def _rule_text(html: str, selector: str) -> str:
+    i = html.index(selector)
+    return html[i:html.index("}", i) + 1]
+
+
+def test_the_map_wordmark_matches_the_site():
+    """The map carries memway.io's logo, to the value.
+
+    docs/index.html is canonical - the template says so in its own token
+    block - and the map's wordmark had drifted on FOUR properties at once:
+    weight 650 vs 800, letter-spacing +.2px vs -.02em, size 21 vs 20, and
+    no gradient on the second half. Nothing caught it because a wordmark
+    is a constant, and every test here checks behaviour.
+
+    Compared property by property against the site rather than pinned to
+    literals, so restyling memway.io moves both or fails loudly.
+    """
+    from memway.viz import load_template
+    site = (HERE / "docs" / "index.html").read_text()
+    mapp = load_template()
+
+    want = _decl(_rule_text(site, ".wordmark{"))
+    got = _decl(_rule_text(mapp, ".wordmark h1{"))
+    for prop in WORDMARK_PROPS:
+        assert prop in want, f"the site's wordmark no longer sets {prop}"
+        assert got.get(prop) == want[prop], (
+            f"{prop}: map has {got.get(prop)!r}, site has {want[prop]!r}")
+
+
+def test_the_second_half_of_the_wordmark_carries_the_gradient():
+    """`way` is gradient-filled on the site; plain text on the map was the
+    most visible half of the drift."""
+    from memway.viz import load_template
+    site = (HERE / "docs" / "index.html").read_text()
+    mapp = load_template()
+    site_grad = _decl(_rule_text(site, ".wordmark b{"))
+    map_grad = _decl(_rule_text(mapp, ".wordmark h1 b{"))
+    for prop in ("background", "background-clip", "color"):
+        assert map_grad.get(prop) == site_grad.get(prop), (
+            f"{prop}: map {map_grad.get(prop)!r} vs site {site_grad.get(prop)!r}")
+    assert "<h1>mem<b>way</b></h1>" in mapp, \
+        "the wordmark is not split, so the gradient has nothing to fill"

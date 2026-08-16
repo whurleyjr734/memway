@@ -87,7 +87,17 @@
     background:linear-gradient(180deg, rgba(14,22,38,.96), rgba(14,22,38,.72) 80%, transparent);
   }
   .wordmark{display:flex; align-items:baseline; gap:10px; white-space:nowrap}
-  .wordmark h1{font-family:var(--font-sans); font-weight:650; font-size:21px; letter-spacing:.2px}
+  /* THE WORDMARK IS memway.io's, to the value. docs/index.html is
+     canonical (see the token block above), and this had drifted on three
+     properties at once: weight 650 vs 800, letter-spacing +.2px vs
+     -.02em, and no gradient on the second half. A map carrying a
+     different logo from the site that publishes it reads as a different
+     product. Retheme by value, never by rename. */
+  .wordmark h1{font-family:var(--font-sans); font-weight:800; font-size:20px;
+               letter-spacing:-.02em; color:var(--star)}
+  .wordmark h1 b{background:linear-gradient(90deg,var(--nebula1),var(--nebula2));
+                 -webkit-background-clip:text; background-clip:text;
+                 color:transparent}
   .wordmark .sub{font-family:var(--font-mono); font-size:11px; color:var(--dim)}
   .repo-chip{
     font-family:var(--font-mono); font-size:11.5px; color:var(--amber);
@@ -281,7 +291,7 @@
 
 <header>
   <div class="wordmark">
-    <h1>memway</h1><span class="sub">map explorer</span>
+    <h1>mem<b>way</b></h1><span class="sub">map explorer</span>
   </div>
   <span class="repo-chip" id="repoChip">encode/httpx · timeout &amp; pooling survey</span>
   <div class="spacer"></div>
