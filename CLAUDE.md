@@ -69,6 +69,15 @@ read-side hash rules; a test asserts no module reimplements them. Three
 surfaces had drifted apart before this existed — the same note decayed
 at different rates depending on which one wrote it.
 
+**10. Turn on your own automation.** memway shipped hooks that keep the
+map in step with the tree, and its OWN repo had none of them installed -
+found on 2026-08-16 when the map was two commits behind while the
+rendered page had just been republished from it. Every stale map this
+session traces to that: the index was updated by hand, by memory, at the
+end of long sessions. `memway hooks install .` is now done here. A tool
+whose flagship repo does not use its own automation is reporting on a
+configuration nobody actually runs.
+
 **9. The release ceremony must ask what it invalidated.** The workflow
 rules tell an agent to supersede staled knowledge before finishing, and
 0.54.1 shipped that rule and then broke it within the hour: nine modules

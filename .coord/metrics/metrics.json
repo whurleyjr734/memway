@@ -5037,6 +5037,20 @@
     "path": "memway/edges.py",
     "provenance": "computed"
   },
+  "C-5fe319": {
+    "body_hash": "0ad131b39827ad74",
+    "churn": 0,
+    "complexity": 3,
+    "fan_in": 0,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 713,
+    "line_start": 707,
+    "loc": 7,
+    "logic_hash": "5928df9db4b82ad4",
+    "path": "tests/test_viz.py",
+    "provenance": "computed"
+  },
   "C-5ffc08": {
     "body_hash": "25f64b4d011d2377",
     "churn": 0,
@@ -6659,6 +6673,20 @@
     "loc": 18,
     "logic_hash": "7084eeeb39c339b3",
     "path": "tests/test_console.py",
+    "provenance": "computed"
+  },
+  "C-7d4215": {
+    "body_hash": "7f4cdf59f5e5eb5f",
+    "churn": 0,
+    "complexity": 1,
+    "fan_in": 0,
+    "fan_out": 0,
+    "kind": "function",
+    "line_end": 718,
+    "line_start": 716,
+    "loc": 3,
+    "logic_hash": "ce052ab43771fabb",
+    "path": "tests/test_viz.py",
     "provenance": "computed"
   },
   "C-7d63f9": {
@@ -10001,18 +10029,18 @@
     "provenance": "computed"
   },
   "C-bba297": {
-    "agg_complexity": 238,
-    "body_hash": "228c55a5ad137f91",
+    "agg_complexity": 250,
+    "body_hash": "36e3458c652a72a5",
     "churn": 0,
-    "complexity": 197,
+    "complexity": 205,
     "fan_in": 0,
     "fan_out": 14,
     "kind": "module",
-    "line_end": 699,
+    "line_end": 757,
     "line_start": 1,
-    "loc": 700,
-    "logic_hash": "2b23f4478cbd110f",
-    "n_children": 42,
+    "loc": 758,
+    "logic_hash": "7cb75fd9f78855a9",
+    "n_children": 46,
     "path": "tests/test_viz.py",
     "provenance": "computed"
   },
@@ -10257,6 +10285,20 @@
     "loc": 1,
     "logic_hash": "9cc960722da34438",
     "path": "memway/indexer.py",
+    "provenance": "computed"
+  },
+  "C-c12719": {
+    "body_hash": "538b4f6a21b98ba1",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 742,
+    "line_start": 721,
+    "loc": 22,
+    "logic_hash": "01520a0c3445a802",
+    "path": "tests/test_viz.py",
     "provenance": "computed"
   },
   "C-c13ea6": {
@@ -12118,6 +12160,20 @@
     "path": "tests/test_viz.py",
     "provenance": "computed"
   },
+  "C-e37e95": {
+    "body_hash": "a4de47f0f788ad09",
+    "churn": 0,
+    "complexity": 4,
+    "fan_in": 0,
+    "fan_out": 3,
+    "kind": "function",
+    "line_end": 757,
+    "line_start": 745,
+    "loc": 13,
+    "logic_hash": "493dc9392a8800b1",
+    "path": "tests/test_viz.py",
+    "provenance": "computed"
+  },
   "C-e3c8b8": {
     "body_hash": "8427089750cd986d",
     "churn": 0,
@@ -13912,6 +13968,6 @@
     "provenance": "computed"
   },
   "_meta": {
-    "dirty_tree": true
+    "dirty_tree": false
   }
 }
