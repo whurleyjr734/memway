@@ -702,6 +702,20 @@ QUERIES = {
     # UNCAPPED on purpose: a file on disk has no context window, and the
     # MCP path is the only one that needs a byte ceiling (see dig.py).
     "dig": lambda repo, a: _dig(repo, a[0]),
+    # Same function the MCP tool calls, never a second implementation -
+    # two answers to "what did I just break" is worse than none.
+    #
+    # `run` is pinned False and takes no argument on this surface. Reporting
+    # which tests reach a change is a read; executing them is not, and a
+    # query that shells out to pytest is a different tool than this one.
+    #
+    # THE ODD ONE OUT: every other query leaves .coord untouched, and this
+    # one does not - it re-indexes and rewrites the edge cache so the map
+    # reflects the tree it just measured (see verify_change below). That is
+    # the MCP tool's long-standing behaviour and is shared deliberately, but
+    # it means `--json verify-change` is a WRITE. test_verify_query records
+    # that so nobody infers inertness from the company it keeps.
+    "verify-change": lambda repo, a: verify_change(repo),
 }
 
 

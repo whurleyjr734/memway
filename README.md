@@ -52,8 +52,10 @@ named in parentheses. Use whichever your client supports.
   any attached knowledge. If the call returns an error, do NOT edit -
   resolve the ref first with `memway_at` (CLI: `memway at . <file:line>`),
   or try a bare function name or module.qualname, then retry.
-- After completing changes, call `memway_verify_change` to confirm impact.
-  This one is MCP only; there is no CLI equivalent yet.
+- After completing changes, call `memway_verify_change`
+  (CLI: `memway --json verify-change .`) to confirm impact. It reports
+  which tests reach your change through the graph; running them is your
+  job, not its.
 - When a task, design doc, or conversation supplies a REASON a piece of
   code is the way it is (constraints, incidents, tuning rationale), record
   that reason with `memway_meta` (CLI: `memway meta . <ref> notes "<text>"`)

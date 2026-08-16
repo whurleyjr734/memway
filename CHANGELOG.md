@@ -7,6 +7,35 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.52.1] - 2026-08-15
+
+### Added
+
+- **`memway --json verify-change <repo>` is the seventh query.** It answers
+  "given the working tree against the saved map, what changed and what
+  guards it": changed entities, the impacted radius, and the tests that
+  reach the change through the edge graph, tiered into `grounded` (a real
+  edge got there) and `name_hit` (a labelled guess).
+
+  It **reports, it does not run**. `run` is pinned False and takes no
+  argument on this surface: selecting tests is a read, executing them is
+  not, and a query that shells out to pytest is a different tool. Same
+  function the MCP tool calls, never a second implementation, asserted.
+
+  **It is the one query that writes.** Every other entry in `QUERIES`
+  leaves `.coord` byte-identical; this one re-indexes and rewrites the edge
+  cache so the map reflects the tree it just measured. That is the MCP
+  tool's long-standing behaviour, shared deliberately rather than forked,
+  and a test records it so nobody infers inertness from the company it
+  keeps.
+
+  With the CLI equivalent existing, rule 2 of the emitted rules files drops
+  its "MCP only" apology and names the command. All three files regenerate
+  byte-identical.
+
+- **The `--json` usage text lists every query.** It had silently omitted
+  `dig` since 0.50.0, and is now pinned to `QUERIES` by a test.
+
 ### Changed
 
 - **Aggregate views distinguish tests from source. Presentation only.** No

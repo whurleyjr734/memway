@@ -170,11 +170,14 @@ def test_rules_name_tools_exactly_and_give_cli_equivalents():
     assert "memway --json before-edit" in doc
     assert "memway at ." in doc
     assert "memway meta ." in doc
-    # verify_change is MCP-only today; the rules must say so rather than
-    # invent a command that does not exist.
-    from memway import cli, query
-    assert "verify" not in cli.COMMANDS and "verify-change" not in query.QUERIES
-    assert "MCP only" in doc
+    # verify-change became the seventh --json query, so rule 2 lost its
+    # "MCP only" apology. This assertion is inverted from what it was, on
+    # purpose: the rules must name a command that EXISTS, and must stop
+    # claiming one does not once it does.
+    from memway import query
+    assert "verify-change" in query.QUERIES
+    assert "memway --json verify-change" in doc
+    assert "MCP only" not in doc, "rule 2 still apologises for a gap that closed"
 
 
 def test_rules_document_is_marker_wrapped():
@@ -214,3 +217,14 @@ def test_readme_names_all_three_rule_files():
     readme = (HERE / "README.md").read_text()
     for name in RULE_FILES:
         assert name in readme, f"README does not mention {name}"
+
+
+def test_usage_text_lists_every_json_query():
+    """The usage line drifted silently once: `dig` became a query in 0.50.0
+    and the line still advertised five. Pinned to QUERIES so the help text
+    cannot lie about what the tool accepts."""
+    from memway import cli, query
+    doc = cli.__doc__ or ""
+    line = doc[doc.index("--json <q>"):doc.index("--json <q>") + 400]
+    for q in query.QUERIES:
+        assert q in line, f"usage text omits the '{q}' query"
