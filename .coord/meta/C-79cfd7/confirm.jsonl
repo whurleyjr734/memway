@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:19:13Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "d72af396aa7167d4"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed: the one comment ('schema well-formed') sits on the assert that checks inputSchema type, and the asserted tool set matches the live 10 in mcp.TOOLS.", "body_hash": "1f984a369338f9c1"}

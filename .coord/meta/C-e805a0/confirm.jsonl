@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:18:45Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "f0226ce127be21b0"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed all 23 comments. The grounding block says 'provenance' where the code says edge['resolution'] - a synonym, not rot; the <0.7 low-confidence threshold, the inheritance walk, confirm-suppressed rot and the design-doc section all exist as described.", "body_hash": "1eadca9127ec1ec6"}

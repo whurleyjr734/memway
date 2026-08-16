@@ -7,6 +7,38 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.53.3] - 2026-08-16
+
+### Fixed
+
+- **A coordinate can return to amber once someone re-reads the code.** The
+  map's ring was `knowledge.some(k => k.stale)`, and entries are append-only
+  and never deleted, so a coordinate that went coral once stayed coral
+  forever no matter how many fresh confirmations were written. Meanwhile
+  `attention` used a different rule, suppressing rot whenever ANY confirm is
+  fresh, so the map and the queue disagreed about the same coordinate.
+
+  Per channel, the newest entry now decides, in one function
+  (`viz.has_unsuperseded_stale`) reached by one JS helper (`ringStale`) that
+  both ring sites call. The rule was previously inlined at two sites, which
+  is the shape that let 0.53.2's behind-count ship without the exclusion the
+  dirty check already had.
+
+  Measured on memway's own map: 12 coral rings became 3, and the three that
+  remain are exactly the three coordinates nobody has reviewed.
+
+### Changed
+
+- **Comment rot fixed in three places, found by reading rather than by
+  tooling.** `query.agent_meta` told every MCP caller its note was
+  "body-hash-stamped" - false since stamping was unified on `stamp_for` in
+  aa77673, and the inline comment beside it said so correctly the whole
+  time. `Indexer` cited "lines 284-295" for the schema-version check, by
+  then occupied by `_new_id()` and a class header; it now names
+  `PARSE_SCHEMA_VERSION` instead, which cannot drift. `tests/test_cli_units`
+  claimed the command layer was 322 lines (947) and carried 11 section
+  headers advertising sections that held no tests at all.
+
 ## [0.53.2] - 2026-08-16
 
 ### Fixed

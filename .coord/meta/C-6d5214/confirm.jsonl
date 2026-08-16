@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:18:44Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "413bdda77a4037a1"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed: all four comments track the code. Confirm-suppression verified in the body - it reads the confirm channel with accepted_for(e) and skips entities holding a non-stale confirm.", "body_hash": "ecf26433274fef93"}

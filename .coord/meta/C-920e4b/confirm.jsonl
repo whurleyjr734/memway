@@ -1,1 +1,2 @@
 {"ts": "2026-08-03T15:05:49Z", "author": "agent", "text": "comments reviewed, still accurate after _structure_hash rename", "body_hash": "e51dcbf626b68e91"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed AND corrected: the parse-cache comment cited 'lines 284-295' for the schema-version check; those lines are now _new_id() and the class header. Replaced with the symbol name, PARSE_SCHEMA_VERSION, so it cannot drift again.", "body_hash": "b42ef455abab6c10"}

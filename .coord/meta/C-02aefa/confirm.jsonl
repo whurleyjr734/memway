@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:18:40Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "439b7f8acfcddf7c"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed AND corrected: the docstring and the caller-facing return note both claimed body-hash stamping, false since aa77673 unified stamping on stamp_for (logic hash first). Both now say what the code does.", "body_hash": "61871e71e7adc4a7"}

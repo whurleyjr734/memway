@@ -1,5 +1,5 @@
 """CLI UNITS: every command's function called in-process, so the
-command layer - 322 lines, the system's entire user surface - is
+command layer, the system's entire user surface, is
 unit-covered like everything beneath it. No subprocess excuses:
 each cmd_* runs in this interpreter, output asserted via capsys,
 error contracts asserted via SystemExit.
@@ -159,28 +159,6 @@ def test_lineage_full_log_and_single(repo, capsys):
     cli.cmd_lineage(str(repo), "cost_copy")
     assert "price_copy" in out(capsys)               # ancestry shows old
 
-
-# ------------------------------------------------------------- events
-
-# -------------------------------------------------------------- blast
-
-# ----------------------------------------------------------- incident
-
-# ------------------------------------------------------------- clones
-
-# ------------------------------------------------------------ orphans
-
-# ------------------------------------------------------------- triage
-
-# --------------------------------------------------------------- lens
-
-# ----------------------------------------------------- agents and ask
-
-# ---------------------------------------------------- trace-demo
-
-# ------------------------------------------------------- metrics
-
-# ------------------------------------------------------ diagnose
 
 # -------------------------------------------- small branch closure
 

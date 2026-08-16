@@ -791,9 +791,16 @@ def probe(repo_root, ref, args=None, kwargs=None, setup="", record=False):
 def agent_meta(repo_root, ref, channel, text, author="agent"):
     """MCP entry: agent write-back. Attach an observation to a coordinate.
 
-    The entry is body-hash-stamped at write time (D10), so if the code
-    later changes, the note is flagged stale rather than silently lying.
-    Author attribution keeps agent notes distinguishable from human ones.
+    The entry is stamped at write time by stamp_for() - the LOGIC hash
+    where the language has one, falling back to the body hash - so the
+    note survives comment and docstring edits and is flagged stale only
+    when behaviour moves. Author attribution keeps agent notes
+    distinguishable from human ones.
+
+    Said "body-hash-stamped" here until 2026-08-16, which stopped being
+    true when stamping was unified in aa77673. The inline comment at the
+    stamp site was right the whole time; this docstring and the returned
+    note were not, and the returned note is what every caller reads.
     """
     ctx = _ctx(repo_root)
     if not ctx:
@@ -813,8 +820,8 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     return {
         "attached": {"coord": e.coord_id, "qualname": e.qualname,
                      "channel": channel, "author": author},
-        "note": "entry is body-hash-stamped; it will be flagged stale if "
-                "the entity's body changes",
+        "note": "entry is stamped with the entity's logic hash; it will be "
+                "flagged stale when behaviour changes, not when comments do",
     }
 
 

@@ -142,6 +142,31 @@ def _subtree(entities, prefix: str):
     return inside
 
 
+def has_unsuperseded_stale(knowledge: list) -> bool:
+    """Does this coordinate hold stale knowledge nobody has answered yet?
+
+    THE ONE RING RULE. Per channel, only the NEWEST entry decides. Entries
+    are append-only and never deleted, so a coordinate accumulates its own
+    history: re-reading the code and writing a fresh confirm leaves the
+    superseded one on disk forever.
+
+    The ring used to be `knowledge.some(k => k.stale)`, which meant a
+    coordinate that went coral once could NEVER return to amber, however
+    many times a human re-read it. `attention` already used a different
+    rule - suppress rot when ANY confirm is fresh - so the map and the
+    queue disagreed about the same coordinate. This is the shape that
+    `comment_rot` has too: a flag with no path back.
+
+    Computed here rather than in the template because the template had
+    TWO copies of the expression, which is how the behind-count shipped
+    without the exclusion the dirty check already had.
+    """
+    newest = {}
+    for row in knowledge:                 # read_all is append-ordered
+        newest[row.get("channel", "")] = row
+    return any(bool(r.get("stale")) for r in newest.values())
+
+
 def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
     """Build the render payload. Reads only; writes nothing."""
     from .indexer import Indexer
@@ -195,6 +220,7 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
     for cid, e in sorted(ents.items(), key=lambda kv: kv[1].qualname):
         row = _entity_row(e)
         kn = _knowledge_for(meta, e)
+        row["knowledge_stale"] = has_unsuperseded_stale(kn)
         row["knowledge"] = kn
         kn_n += len(kn)
         stale_n += sum(1 for k in kn if k["stale"])

@@ -365,3 +365,104 @@ def test_the_console_page_filters_too(mapped, tmp_path):
     html = build_page(str(mapped), token="t")
     assert "is_test:e.is_test===true" in html, \
         "the served console page carries a normalize() that drops is_test"
+
+
+# ==================================================== THE RING RULE
+#
+# Entries are append-only and never deleted, so a coordinate accumulates
+# its own history. The ring was `knowledge.some(k => k.stale)`, which meant
+# a coordinate that went coral once could NEVER return to amber, however
+# many times a human re-read the code and wrote a fresh confirm. Meanwhile
+# `attention` used a different rule - suppress when ANY confirm is fresh -
+# so the map and the queue disagreed about the same coordinate.
+#
+# Per channel, the NEWEST entry decides. Verified by executing the shipped
+# helper, not by grepping for it.
+
+from memway.viz import has_unsuperseded_stale
+
+
+def test_a_fresh_entry_supersedes_a_stale_one_in_its_channel():
+    """The regression: re-reading the code must be able to clear the ring."""
+    assert has_unsuperseded_stale([
+        {"channel": "confirm", "stale": True},      # older
+        {"channel": "confirm", "stale": False},     # newer, supersedes
+    ]) is False
+
+
+def test_a_stale_entry_with_nothing_newer_still_shows():
+    """The mirror. Without it, 'never coral' would pass the test above."""
+    assert has_unsuperseded_stale([{"channel": "confirm", "stale": True}]) is True
+
+
+def test_channels_are_judged_separately():
+    """A fresh confirm does not vouch for a stale note.
+
+    ORDER MATTERS IN THIS FIXTURE, and the first version got it wrong: with
+    the stale note LAST, collapsing every channel into one bucket still
+    yields True, so the test passed against a sabotage that merged them.
+    The stale note goes FIRST, followed by a newer entry in a different
+    channel - the only arrangement where merging gives the wrong answer.
+    """
+    assert has_unsuperseded_stale([
+        {"channel": "notes", "stale": True},        # unanswered
+        {"channel": "confirm", "stale": False},     # newer, DIFFERENT channel
+    ]) is True
+    # and the same two in one channel really is superseded
+    assert has_unsuperseded_stale([
+        {"channel": "notes", "stale": True},
+        {"channel": "notes", "stale": False},
+    ]) is False
+
+
+def test_no_knowledge_is_not_stale():
+    assert has_unsuperseded_stale([]) is False
+
+
+def test_the_payload_carries_the_flag(mapped, tmp_path):
+    out = tmp_path / "m.html"
+    viz(str(mapped), str(out))
+    assert '"knowledge_stale"' in out.read_text()
+
+
+def test_the_template_has_ONE_ring_rule():
+    """Two inline copies is how the behind-count shipped without the
+    exclusion the dirty check already had."""
+    tpl = (HERE / "memway" / "viz_template.html").read_text()
+    assert "function ringStale(d)" in tpl
+    assert tpl.count("ringStale(d)") >= 3, "both ring sites must call the helper"
+    assert 'stamp-ring"+(d.knowledge.some(k=>k.stale)' not in tpl, \
+        "an inline copy of the ring rule came back"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no JS runtime")
+def test_the_shipped_ring_rule_clears_on_re_confirmation(mapped, tmp_path):
+    """Executes normalize() and ringStale() from the emitted page against a
+    payload where a stale entry has been superseded."""
+    out = tmp_path / "m.html"
+    viz(str(mapped), str(out))
+    payload = {"repo": "t", "edges": [], "entities": [
+        {"id": "C-1", "qualname": "a", "kind": "function", "file": "a.py",
+         "lines": "1-2", "complexity": 1, "knowledge_stale": False,
+         "knowledge": [{"channel": "confirm", "stale": True, "text": "old"},
+                       {"channel": "confirm", "stale": False, "text": "new"}]},
+        {"id": "C-2", "qualname": "b", "kind": "function", "file": "b.py",
+         "lines": "1-2", "complexity": 1, "knowledge_stale": True,
+         "knowledge": [{"channel": "confirm", "stale": True, "text": "old"}]}]}
+    (tmp_path / "p.json").write_text(json.dumps(payload))
+    probe = tmp_path / "r.js"
+    probe.write_text(r"""
+const fs=require("fs");
+const tpl=fs.readFileSync(process.argv[2],"utf8");
+const p=JSON.parse(fs.readFileSync(process.argv[3],"utf8"));
+eval(tpl.match(/function normalize\(raw\)\{[\s\S]*?\n\}/)[0]);
+eval(tpl.match(/function ringStale\(d\)\{[\s\S]*?\n\}/)[0]);
+const d=normalize(p);
+console.log(JSON.stringify(d.entities.map(e=>[e.qualname, ringStale(e)])));
+""")
+    r = subprocess.run(["node", str(probe), str(out), str(tmp_path / "p.json")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-300:]
+    got = dict(json.loads(r.stdout))
+    assert got["a"] is False, "a re-confirmed coordinate stayed coral"
+    assert got["b"] is True, "an unanswered stale entry lost its ring"

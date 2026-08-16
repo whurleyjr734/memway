@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:19:16Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "53beb522dafbf2f1"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed AND corrected: the header claimed the command layer was 322 lines (it is 947), and 11 section headers advertised sections holding zero tests. Count claim removed rather than updated, dead headers deleted.", "body_hash": "d3e016bfb0f5afdd"}

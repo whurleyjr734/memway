@@ -330,11 +330,22 @@ function normalize(raw){
        the same reason. Adding a payload key without adding it here is a
        silent no-op. */
     is_test:e.is_test===true,
+    knowledge_stale:e.knowledge_stale,
     knowledge:(e.knowledge||e.notes||[]).map(n=> typeof n==="string" ? {text:n,stale:false} : {text:n.text||"",stale:!!(n.stale||n.any_stale),channel:n.channel||"",author:n.author||""})
   })).filter(e=>e.id);
   const ids=new Set(ents.map(e=>e.id));
   const eds=(raw.edges||[]).map(ed=>Array.isArray(ed)?{source:ed[0],target:ed[1],kind:"calls"}:{source:ed.source||ed.caller,target:ed.target||ed.callee,kind:(ed.kind||"calls")}).filter(ed=>ids.has(ed.source)&&ids.has(ed.target));
   return {repo:raw.repo||"custom map", entities:ents, edges:eds};
+}
+
+/* THE ring rule, in one place. Both the initial render and the live
+   refresh call this; the expression used to be inlined at both sites,
+   which is how a rule gets fixed in one copy and not the other. Falls
+   back to the old any-stale test for payloads that predate the flag. */
+function ringStale(d){
+  return d.knowledge_stale===undefined
+    ? d.knowledge.some(k=>k.stale)
+    : d.knowledge_stale===true;
 }
 
 function render(data){
@@ -392,7 +403,7 @@ function render(data){
   node.append("circle").attr("class","core")
     .attr("r",d=>r(d)).attr("fill",d=>KIND_COLOR[d.kind]||"var(--func)");
   node.filter(d=>d.knowledge.length).append("circle")
-    .attr("class",d=>"stamp-ring"+(d.knowledge.some(k=>k.stale)?" stale":""))
+    .attr("class",d=>"stamp-ring"+(ringStale(d)?" stale":""))
     .attr("r",d=>r(d)+4.5);
   node.append("text").attr("dy",d=>-(r(d)+9)).attr("text-anchor","middle")
     .text(d=>d.qualname.split(".").slice(-1)[0]);
@@ -416,7 +427,7 @@ function render(data){
       if(has && ring.empty()){
         sel.insert("circle",":first-child").attr("class","stamp-ring").attr("r",13);
       }else if(has){
-        ring.attr("class","stamp-ring"+(d.knowledge.some(k=>k.stale)?" stale":""));
+        ring.attr("class","stamp-ring"+(ringStale(d)?" stale":""));
       }else if(!ring.empty()){ ring.remove(); }
     });
     if(selected){ const d=nodes.find(n=>n.id===selected); if(d) select(d,link,node); }

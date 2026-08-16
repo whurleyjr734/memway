@@ -357,7 +357,9 @@ class Indexer:
         # schema version, so unchanged files skip parsing entirely (only changed
         # coordinates get recomputed - the memoization invariant extended upstream
         # from metrics to parsing itself). Cache is versioned to invalidate when
-        # the parser logic changes (lines 284-295).
+        # the parser logic changes - see PARSE_SCHEMA_VERSION. Named, not
+        # line-numbered: this said "lines 284-295" until 2026-08-16, by
+        # which point those lines were _new_id() and a class header.
         cache_file = self.coord_dir / "index" / "parse_cache.json"
         cache = {}
         if cache_file.exists():

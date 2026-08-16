@@ -1,1 +1,2 @@
 {"ts": "2026-08-06T06:18:57Z", "author": "agent", "text": "post-rename review: comment accurate; hash moved due to package rename only", "body_hash": "51c816007a5f3108"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed all 12: each comment describes the step immediately below it, verified line by line. before_edit does still trigger harvest_docs as the trailing comment claims.", "body_hash": "52179958d7ba3f83"}

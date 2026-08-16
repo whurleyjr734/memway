@@ -1,1 +1,2 @@
 {"ts": "2026-08-03T15:06:29Z", "author": "agent", "text": "comments reviewed, still accurate after adding confirm channel", "body_hash": "fabf3b152c38fca0"}
+{"ts": "2026-08-16T06:56:26Z", "author": "agent-review-2026-08-16", "text": "reviewed all nine. accepted_for() returns a set and MetaStore.read accepts it, so the 'ANY accepted hash' claim holds; rename re-stamping is present as described.", "body_hash": "ef2bb23f8b6b2181"}
