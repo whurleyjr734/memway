@@ -1867,11 +1867,11 @@
     "qualname": "tests.test_never_silent.test_supersede_without_reindexing_produces_a_FRESH_note",
     "path": "tests/test_never_silent.py",
     "lineno": 334,
-    "body_hash": "ef204d8d8937a340",
+    "body_hash": "532bddb71eef8ae3",
     "parent": "C-066b24",
     "signature": "test_supersede_without_reindexing_produces_a_FRESH_note(repo)",
-    "shape_hash": "9067a74e7e45ed43",
-    "logic_hash": "001327e4e406b999",
+    "shape_hash": "e5a2b8ac6c27c462",
+    "logic_hash": "7e9554b1df27bf56",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -1896,16 +1896,31 @@
         "kind": "comment"
       },
       {
-        "line": 40,
+        "line": 35,
+        "text": "[0], not [-1]: the payload leads with the NEWEST entry as of 0.54.2.",
+        "kind": "comment"
+      },
+      {
+        "line": 36,
+        "text": "This took [-1] and passed until the reorder landed, at which point it",
+        "kind": "comment"
+      },
+      {
+        "line": 37,
+        "text": "was reading the superseded entry and calling it the new one.",
+        "kind": "comment"
+      },
+      {
+        "line": 47,
         "text": "and the ring is clear, which is the user-visible half",
         "kind": "comment"
       }
     ],
-    "comment_hash": "a54f6999f4b7bca7",
+    "comment_hash": "db86f6eba34dd4e2",
     "comment_rot": false,
     "sketch": [
       435967152452,
-      767712489138,
+      476861278394,
       386351160035,
       424155547226,
       1319948006972,
@@ -1914,7 +1929,7 @@
       1622545252929,
       124306692171,
       227314443501,
-      692190299795,
+      497996625717,
       91476763838,
       9234983938,
       314286560801,
@@ -1922,7 +1937,7 @@
       1264979799963,
       877535412293,
       380914407192,
-      43817803120,
+      156499504484,
       433078966456,
       89071750579,
       904533401191,
@@ -1935,28 +1950,28 @@
       264210058572,
       441551441512,
       1098573739499,
-      980566157692,
-      1075654395782,
+      342243392194,
+      367390943146,
       108811651738,
       873985133378,
       703353845942,
       125665513657,
       581794434495,
-      1856077645828,
+      45607578550,
       49162041190,
       173103735352,
       149588001867,
-      476854735933,
-      434448442612,
-      692060395458,
+      298727682103,
+      87620669012,
+      666258105534,
       371240307268,
       1319185978356,
       128397927987
     ],
-    "n_shingles": 427,
-    "end_lineno": 375,
-    "loc": 42,
-    "complexity": 8
+    "n_shingles": 513,
+    "end_lineno": 382,
+    "loc": 49,
+    "complexity": 10
   },
   "C-0576ba": {
     "coord_id": "C-0576ba",
@@ -2127,11 +2142,11 @@
     "qualname": "tests.test_never_silent",
     "path": "tests/test_never_silent.py",
     "lineno": 1,
-    "body_hash": "911bbae334ba0787",
+    "body_hash": "7b7556c2ca944f47",
     "parent": null,
     "signature": "",
-    "shape_hash": "d3e56e4d4e2f3969",
-    "logic_hash": "b2568dbc43a71c49",
+    "shape_hash": "f2c80c4aecbd9371",
+    "logic_hash": "157ce4ff83e9d3af",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -2241,57 +2256,72 @@
         "kind": "comment"
       },
       {
-        "line": 373,
+        "line": 368,
+        "text": "[0], not [-1]: the payload leads with the NEWEST entry as of 0.54.2.",
+        "kind": "comment"
+      },
+      {
+        "line": 369,
+        "text": "This took [-1] and passed until the reorder landed, at which point it",
+        "kind": "comment"
+      },
+      {
+        "line": 370,
+        "text": "was reading the superseded entry and calling it the new one.",
+        "kind": "comment"
+      },
+      {
+        "line": 380,
         "text": "and the ring is clear, which is the user-visible half",
         "kind": "comment"
       },
       {
-        "line": 452,
+        "line": 459,
         "text": "a re-init must not clobber an edited copy",
         "kind": "comment"
       },
       {
-        "line": 458,
+        "line": 465,
         "text": "------------------------------- what a human reads, in what order",
         "kind": "comment"
       },
       {
-        "line": 476,
+        "line": 483,
         "text": "the note is now stale",
         "kind": "comment"
       },
       {
-        "line": 492,
+        "line": 499,
         "text": "the ring still says fresh - panel and ring now agree",
         "kind": "comment"
       },
       {
-        "line": 528,
+        "line": 535,
         "text": "EXECUTED, not grepped. The first version of this asserted",
         "kind": "comment"
       },
       {
-        "line": 529,
+        "line": 536,
         "text": "`\"superseded\" in fn_src` and passed against a sabotage that removed",
         "kind": "comment"
       },
       {
-        "line": 530,
+        "line": 537,
         "text": "the flag from the object branch, because the word still appeared in",
         "kind": "comment"
       },
       {
-        "line": 531,
+        "line": 538,
         "text": "the string branch. Presence is not behaviour - the same mistake that",
         "kind": "comment"
       },
       {
-        "line": 532,
+        "line": 539,
         "text": "let is_test ship undefined.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "ed99071197dd8829",
+    "comment_hash": "905d8f96505a8db2",
     "comment_rot": false,
     "sketch": [
       132966491177,
@@ -2337,16 +2367,16 @@
       21589420881,
       135768708161,
       61361489861,
-      201304131511,
+      87620669012,
       221491234435,
       28808485227,
       33555148738,
       128397927987
     ],
-    "n_shingles": 3887,
-    "end_lineno": 557,
-    "loc": 558,
-    "complexity": 101
+    "n_shingles": 3957,
+    "end_lineno": 564,
+    "loc": 565,
+    "complexity": 103
   },
   "C-070b31": {
     "coord_id": "C-070b31",
@@ -23734,7 +23764,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_a_meta_write_still_touches_exactly_one_file.fp",
     "path": "tests/test_never_silent.py",
-    "lineno": 384,
+    "lineno": 391,
     "body_hash": "d1b705853b45a928",
     "parent": "C-bd4354",
     "signature": "fp()",
@@ -23796,7 +23826,7 @@
       3883944739735
     ],
     "n_shingles": 49,
-    "end_lineno": 386,
+    "end_lineno": 393,
     "loc": 3,
     "complexity": 2
   },
@@ -26091,7 +26121,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_the_panel_leads_with_the_entry_that_decides",
     "path": "tests/test_never_silent.py",
-    "lineno": 460,
+    "lineno": 467,
     "body_hash": "a96384f91434d1d8",
     "parent": "C-066b24",
     "signature": "test_the_panel_leads_with_the_entry_that_decides(repo)",
@@ -26169,7 +26199,7 @@
       436696368634
     ],
     "n_shingles": 379,
-    "end_lineno": 493,
+    "end_lineno": 500,
     "loc": 34,
     "complexity": 9
   },
@@ -36228,7 +36258,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_superseded_is_carried_into_the_rendered_page",
     "path": "tests/test_never_silent.py",
-    "lineno": 496,
+    "lineno": 503,
     "body_hash": "f7317adef79b6657",
     "parent": "C-066b24",
     "signature": "test_superseded_is_carried_into_the_rendered_page(tmp_path)",
@@ -36321,7 +36351,7 @@
       1145423411480
     ],
     "n_shingles": 622,
-    "end_lineno": 557,
+    "end_lineno": 564,
     "loc": 62,
     "complexity": 11
   },
@@ -61168,7 +61198,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_a_meta_write_still_touches_exactly_one_file",
     "path": "tests/test_never_silent.py",
-    "lineno": 378,
+    "lineno": 385,
     "body_hash": "abf5cbbe7e38807b",
     "parent": "C-066b24",
     "signature": "test_a_meta_write_still_touches_exactly_one_file(repo)",
@@ -61236,7 +61266,7 @@
       2236188797536
     ],
     "n_shingles": 216,
-    "end_lineno": 396,
+    "end_lineno": 403,
     "loc": 19,
     "complexity": 6
   },
@@ -64665,7 +64695,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_init_ignores_the_regenerable_tiers_but_not_the_authored_ones",
     "path": "tests/test_never_silent.py",
-    "lineno": 420,
+    "lineno": 427,
     "body_hash": "5e1b1bb631575b1d",
     "parent": "C-066b24",
     "signature": "test_init_ignores_the_regenerable_tiers_but_not_the_authored_ones(tmp_path)",
@@ -64738,7 +64768,7 @@
       283629020483
     ],
     "n_shingles": 368,
-    "end_lineno": 455,
+    "end_lineno": 462,
     "loc": 36,
     "complexity": 11
   },
@@ -73533,7 +73563,7 @@
     "kind": "function",
     "qualname": "tests.test_never_silent.test_a_ref_that_vanished_from_the_tree_is_refused_not_guessed",
     "path": "tests/test_never_silent.py",
-    "lineno": 399,
+    "lineno": 406,
     "body_hash": "9083926be57769eb",
     "parent": "C-066b24",
     "signature": "test_a_ref_that_vanished_from_the_tree_is_refused_not_guessed(repo)",
@@ -73601,7 +73631,7 @@
       1338303218005
     ],
     "n_shingles": 230,
-    "end_lineno": 417,
+    "end_lineno": 424,
     "loc": 19,
     "complexity": 7
   },
