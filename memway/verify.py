@@ -41,8 +41,15 @@ _RUNNER = {".go": "go test", ".js": "node", ".jsx": "node", ".ts": "node",
            ".tsx": "node", ".java": "junit"}
 
 
-def _is_test_entity(e) -> bool:
+def is_test_entity(e) -> bool:
     """Is this entity part of a test source, in ANY supported language?
+
+    THE one test/source rule. Aggregate views (summary, viz, console) join
+    here rather than each deciding for itself; a second rule somewhere else
+    is how two views start disagreeing about the same repo.
+
+    PATH AND FILENAME ONLY, never the qualname. A function called
+    `test_connection` in production code is production code.
 
     This was path-only ("tests"/"test" dir, or a test_ prefix), which are
     Python conventions: Go's foo_test.go and TS's foo.spec.ts never
@@ -60,14 +67,14 @@ def _is_test_entity(e) -> bool:
 def _is_runnable_test(e, repo_root: Path) -> bool:
     """Would pytest actually COLLECT this entity, not merely contain it?
 
-    _is_test_entity is path-based, so it is also true for fixtures and
+    is_test_entity is path-based, so it is also true for fixtures and
     module-level helpers that live in tests/. Handing pytest one of those as
     a node id is a usage error (exit 4) and pytest aborts the whole run
     before executing a single test - one bad id silently zeroes out an
     otherwise correct selection. So mirror pytest's own default collection
     rules here rather than trusting the path alone.
     """
-    if e.kind not in ("function", "method") or not _is_test_entity(e):
+    if e.kind not in ("function", "method") or not is_test_entity(e):
         return False
     p = Path(e.path)
     if p.suffix != ".py":
@@ -139,7 +146,7 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
     for cid in seen:
         e = ents.get(cid)
         if not e or e.kind not in ("function", "method") \
-                or not _is_test_entity(e):
+                or not is_test_entity(e):
             continue
         if _is_runnable_test(e, repo_root):
             grounded.append(_pytest_node(e, repo_root))
@@ -162,7 +169,7 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
     # .py only: name_hit files are handed to pytest verbatim below, and a
     # non-Python path there is the same exit-4 abort that fixture ids caused.
     test_files = {e.path for e in ents.values()
-                  if _is_test_entity(e) and Path(e.path).suffix == ".py"}
+                  if is_test_entity(e) and Path(e.path).suffix == ".py"}
     for tf in test_files:
         if tf in grounded_files:
             continue

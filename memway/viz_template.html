@@ -124,6 +124,9 @@
   .node{cursor:pointer}
   .node circle.core{stroke:var(--ink); stroke-width:1.5px}
   .node.dimmed{opacity:.14}
+  /* tests read as hollow: same kind colour, drained fill. A colour of
+     their own would imply a sixth kind, which they are not. */
+  .node.is-test circle.core{fill-opacity:.22; stroke:var(--dim)}
   .node text{
     font-family:var(--font-mono); font-size:10px; fill:var(--dim);
     pointer-events:none; opacity:0; transition:opacity .15s;
@@ -260,6 +263,9 @@
   <label class="kind-row"><input type="checkbox" data-kind="attribute" checked><span class="swatch" style="background:var(--attribute)"></span>attribute</label>
   <label class="slider-lab">min complexity <span id="cxVal">0</span></label>
   <input type="range" id="cxSlider" min="0" max="18" value="0" step="1">
+  <div class="rail-title" style="margin-top:8px">Origin</div>
+  <label class="kind-row"><input type="checkbox" data-origin="source" checked><span class="swatch" style="background:var(--func)"></span>source</label>
+  <label class="kind-row"><input type="checkbox" data-origin="tests" checked><span class="swatch" style="background:var(--func);opacity:.35"></span>tests</label>
   <label class="kind-row kn-toggle"><input type="checkbox" id="knOnly"><span class="swatch" style="background:var(--amber)"></span>knowledge only</label>
   <div class="rail-title" style="margin-top:8px">Edges</div>
   <label class="kind-row"><input type="checkbox" data-ekind="calls" checked><span class="swatch" style="background:#33445F;border-radius:1px;height:3px"></span>calls</label>
@@ -367,7 +373,7 @@ function render(data){
   const link = zoomLayer.append("g").selectAll("line").data(links).join("line").attr("class",d=>"link "+(d.kind||"calls"));
 
   const node = zoomLayer.append("g").selectAll("g").data(nodes).join("g")
-    .attr("class","node")
+    .attr("class",d=>"node"+(d.is_test===true?" is-test":""))
     .call(d3.drag()
       .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(.25).restart();d.fx=d.x;d.fy=d.y;})
       .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
@@ -455,15 +461,19 @@ function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;","
 
 /* filters + search */
 const kindBoxes=[...document.querySelectorAll("[data-kind]")];
+const originBoxes=[...document.querySelectorAll("[data-origin]")];
 const edgeBoxes=[...document.querySelectorAll("[data-ekind]")];
 const cxSlider=document.getElementById("cxSlider"), cxVal=document.getElementById("cxVal");
 const knOnly=document.getElementById("knOnly"), searchIn=document.getElementById("search");
 function applyFilters(){
   if(!window._refs) return;
   const kinds=new Set(kindBoxes.filter(b=>b.checked).map(b=>b.dataset.kind));
+  // undefined is_test (hand-made JSON, the bundled sample) counts as
+  // source: a map that predates the flag must not vanish.
+  const origins=new Set(originBoxes.filter(b=>b.checked).map(b=>b.dataset.origin));
   const minCx=+cxSlider.value, kOnly=knOnly.checked, q=searchIn.value.trim().toLowerCase();
   cxVal.textContent=minCx;
-  const visible=d=>kinds.has(d.kind)&&d.complexity>=minCx&&(!kOnly||d.knowledge.length);
+  const visible=d=>kinds.has(d.kind)&&origins.has(d.is_test===true?"tests":"source")&&d.complexity>=minCx&&(!kOnly||d.knowledge.length);
   window._refs.node
     .style("display",d=>visible(d)?null:"none")
     .classed("hit",d=>q&&(d.qualname.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)));
@@ -471,6 +481,7 @@ function applyFilters(){
   window._refs.link.style("display",l=>visible(l.source)&&visible(l.target)&&ekinds.has(l.kind||"calls")?null:"none");
 }
 kindBoxes.forEach(b=>b.addEventListener("change",applyFilters));
+originBoxes.forEach(b=>b.addEventListener("change",applyFilters));
 edgeBoxes.forEach(b=>b.addEventListener("change",applyFilters));
 cxSlider.addEventListener("input",applyFilters);
 knOnly.addEventListener("change",applyFilters);

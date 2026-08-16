@@ -271,12 +271,26 @@ def summary(repo: str) -> dict:
     kinds = Counter(e.kind for e in ix.entities.values())
     ms = MetricsStore(coord)
     ms.load()
-    prod = [(ms.data.get(cid, {}).get("complexity", 0),
-             e.qualname)
-            for cid, e in ix.entities.items()
-            if e.kind in ("function", "method")
-            and "test" not in e.path.lower()]
-    prod.sort(reverse=True)
+    # THE test/source split is verify.is_test_entity - path and filename,
+    # never the qualname. This was `"test" not in e.path.lower()`, a
+    # substring match that would have dropped any source file whose path
+    # merely contains the letters (memway/latest.py, contest/, protest/)
+    # from the hardest list, silently and forever.
+    #
+    # PRESENTATION ONLY. Nothing here reads or writes a metric; the same
+    # numbers are partitioned two ways, and a test asserts the metrics
+    # store is byte-identical across a summary call.
+    from .verify import is_test_entity
+    ranked = [(ms.data.get(cid, {}).get("complexity", 0), e.qualname,
+               is_test_entity(e))
+              for cid, e in ix.entities.items()
+              if e.kind in ("function", "method")]
+    ranked.sort(key=lambda r: (-r[0], r[1]))
+    # the flag is CARRIED, never hardcoded: a literal False here made
+    # `hardest` unable to report a test even if the filter let one in,
+    # which made the test asserting it vacuous. Falsification caught it.
+    prod = [(c, q, t) for c, q, t in ranked if not t]
+    n_src = sum(1 for e in ix.entities.values() if not is_test_entity(e))
 
     # ---- knowledge census: what does the map remember? ----
     # Repo-wide answer to "what has been learned here", so orientation
@@ -349,8 +363,16 @@ def summary(repo: str) -> dict:
         "edges": len(edges),
         "languages": dict(langs),
         "kinds": dict(kinds),
-        "hardest": [{"qualname": q, "complexity": c}
-                    for c, q in prod[:5]],
+        # `hardest` keeps its meaning exactly - source only - because
+        # consumers already depend on it. is_test rides along so every
+        # entry in both lists has the same shape. `hardest_overall` is
+        # the new, additive view: the same numbers, nothing excluded.
+        "hardest": [{"qualname": q, "complexity": c, "is_test": t}
+                    for c, q, t in prod[:5]],
+        "hardest_overall": [{"qualname": q, "complexity": c, "is_test": t}
+                            for c, q, t in ranked[:5]],
+        "entities_by_origin": {"source": n_src,
+                               "tests": len(ix.entities) - n_src},
         "knowledge": {
             "total_entries": total_entries,
             "coordinates_with_knowledge": len(know),

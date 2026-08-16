@@ -7,6 +7,36 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Aggregate views distinguish tests from source. Presentation only.** No
+  metric, edge, or stored byte changes; the same numbers are partitioned two
+  ways for reading, and a test asserts `.coord` is byte-identical across a
+  summary call.
+
+  `verify.is_test_entity` is now the one rule, shared by the summary and the
+  map, and it reads PATH AND FILENAME only, never the qualname: a function
+  called `test_connection` in production code is production code. It also
+  matches `foo_test.go` and `foo.spec.ts`, which sit beside source rather
+  than under `tests/`, so a path-prefix rule alone would misclassify every
+  Go and TypeScript repo.
+
+  `--json summary` gains `hardest_overall` (top-N across everything, each
+  entry flagged) and `entities_by_origin`; every `hardest` entry gains
+  `is_test`. Existing keys are untouched and `hardest` keeps its exact
+  meaning, source only, because consumers already depend on it.
+
+  `viz` and `console` gain a source/tests toggle in the filter rail, both on
+  by default, using the same machinery as the kind filters. Test entities
+  render with a drained fill rather than a colour of their own, which would
+  imply a sixth kind they are not.
+
+- **Fixed a latent bug while doing it.** The hardest list excluded tests with
+  `"test" not in e.path.lower()`, a substring match that would have silently
+  dropped any source file whose path merely contains those letters
+  (`memway/latest.py`, `contest/`, `protest/`). No file in this repo hits it
+  today, so the swap changes nothing here and closes it before it bites.
+
 ## [0.52.0] - 2026-08-15
 
 ### Changed

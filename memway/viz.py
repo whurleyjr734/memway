@@ -34,6 +34,8 @@ import json
 import re
 from pathlib import Path
 
+from .verify import is_test_entity
+
 VIZ_WARN_ENTITIES = 1500
 TEMPLATE = Path(__file__).with_name("viz_template.html")
 PLACEHOLDER = "__MEMWAY_DATA__"
@@ -88,6 +90,11 @@ def _entity_row(e) -> dict:
         "file": e.path,
         "lines": f"{start}-{end}",
         "complexity": int(getattr(e, "complexity", 1) or 1),
+        # Presentation only. The same test/source rule the summary uses
+        # (verify.is_test_entity: path and filename, never the qualname),
+        # so the two views cannot disagree about the same repo. No metric
+        # is read or written here.
+        "is_test": is_test_entity(e),
         "knowledge": [],
     }
 
