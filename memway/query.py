@@ -239,6 +239,7 @@ def show(repo: str, ref: str) -> dict:
             "confidence": edge.get("confidence", 1.0),
         })
     out["edges"] = rel
+    out["map_lag"] = _map_lag(repo, coord)
     return out
 
 
@@ -253,6 +254,25 @@ def lineage(repo: str, ref: str) -> dict:
     return {"coord_id": cid,
             "history": [{"version": r["version"], "kind": r["kind"],
                          "note": r.get("note", "")} for r in chain]}
+
+
+def _map_lag(repo, coord) -> dict:
+    """The freshness gap, for read surfaces. {} when there is none.
+
+    THE GUARANTEE. Hooks cover commit, checkout and merge; they cannot
+    fire during a bisect, in a fresh worktree, on a hand-edited tree, or
+    anywhere nobody ran `memway hooks install`. So every read tool asks
+    this, and a lagging map says so on the way past. The map may lag; it
+    must never lag SILENTLY.
+
+    Read-only by construction: reads the manifest, asks git two questions.
+    Nothing here writes, which is what keeps it inside the read fence.
+    """
+    from .freshness import lag
+    try:
+        return lag(repo, coord)
+    except Exception:
+        return {}          # a broken freshness check must not break a read
 
 
 def summary(repo: str) -> dict:
@@ -359,6 +379,7 @@ def summary(repo: str) -> dict:
     know.sort(key=lambda k: (not k["any_stale"], k["qualname"] or ""))
 
     return {
+        "map_lag": _map_lag(repo, coord),
         "entities": len(ix.entities),
         "edges": len(edges),
         "languages": dict(langs),
@@ -636,7 +657,14 @@ def before_edit(repo: str, ref: str) -> dict:
                         "recent versions - grep for old names may "
                         "mislead teammates")
 
+    _lag = _map_lag(repo, coord)
+    if _lag:
+        # before_edit is the briefing an agent reads before touching code.
+        # A stale map here is not trivia, it is the difference between
+        # "no callers" and "no callers as of seven commits ago".
+        warnings = list(warnings) + [_lag["message"]]
     return {
+        "map_lag": _lag,
         "entity": _entity_dict(e),
         "grounding": grounding,
         "inheritance": inheritance,

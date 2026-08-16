@@ -138,6 +138,35 @@ Every bundle carries a manifest recording `upstream_repo`, `upstream_sha`, the m
 
 Maps hold coordinates and commentary, never upstream source, and each carries its upstream project's own license. **Pull requests are welcome** — new maps, and especially better knowledge on existing ones.
 
+## Keeping the map fresh
+
+A map that silently describes last week's code is worse than no map. Three
+layers, and only the last one is a guarantee:
+
+```bash
+memway hooks install          # post-commit, post-checkout, post-merge
+memway index . --if-stale     # the same check, for scripts and CI
+```
+
+`--if-stale` compares the sha the map was built from against `HEAD` and a
+dirty check, and does nothing when they agree (50-100ms, no writes). Hooks
+are **opt-in**: `setup` mentions them and never installs them, and an
+existing hook is appended to inside a marked block that `uninstall` removes
+exactly.
+
+Neither covers a bisect, a fresh worktree, a hand-edited tree, or a
+colleague who never installed anything. So **every read tool says when the
+map lags**:
+
+```
+note: map indexed at 652f58d, HEAD is f2e6bc3 (7 commits ahead) - run memway index
+```
+
+That line is the promise. The map may lag; it will not lag quietly. It was
+written because memway's own map sat seven commits behind, with the
+re-index rule written down and followed by nobody, and the only symptom was
+comment-rot warnings that looked like drifted comments.
+
 ## Honest limits
 
 This is a young tool that has been tested hard in a narrow way. Known limits, from our own findings ledger:

@@ -7,6 +7,56 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — 0.53.0 material (new commands)
+
+- **`memway index --if-stale`** reindexes only when the tree has moved past
+  what the map describes, comparing a newly recorded `indexed_at_sha` in the
+  manifest against `git rev-parse HEAD` plus a dirty check. The current path
+  is a read: measured at 50-100ms and asserted byte-identical against
+  `.coord`, so it belongs under the read fence. Outside a git repo, or with
+  no map, it says so and exits 0 — this runs from hooks, and a freshness
+  check must never be the reason a commit fails.
+
+  The dirty check excludes `.coord` itself. memway tells you to commit the
+  map, so an index modifies a tracked path by definition; counting that made
+  `--if-stale` see a dirty tree immediately after a successful index and
+  reindex forever. Caught on a fixture, and now a test.
+
+- **`memway hooks install` / `uninstall`** writes `post-commit`,
+  `post-checkout` and `post-merge` hooks that run
+  `memway index . --if-stale --quiet`. Opt-in only: `setup` advertises it in
+  one line and never installs it, because a tool that writes into
+  `.git/hooks` uninvited has taken something it was not offered.
+
+  Existing hooks get the memway line inside a marked block, the same
+  discipline the rules files use, and `uninstall` removes exactly that block
+  leaving the rest byte-identical. A hook whose control flow cannot be read
+  safely is refused with instructions rather than modified. **A block is
+  never appended after an `exit`**: git's own sample hooks end in `exit 0`,
+  and appending past one installs cleanly, reports success, and never runs.
+
+  A hook failure never blocks the git operation. Shell-level failures are
+  swallowed by `|| true`; an exception inside memway is logged to
+  `.coord/log/hooks.log` and reported in one line. Both paths tested.
+
+- **Every read tool reports a lagging map.** `summary`, `show` and
+  `before_edit` gain a `map_lag` key, `before_edit` also appends it to
+  `warnings`, and the CLI prints one note line:
+
+      note: map indexed at 652f58d, HEAD is f2e6bc3 (7 commits ahead) - run memway index
+
+  **This is the actual guarantee, not the hooks.** Hooks cannot fire during
+  a bisect, in a fresh worktree, on a hand-edited tree, or anywhere nobody
+  ran `hooks install`. The map may lag; it must never lag silently. A map
+  with no recorded sha reports nothing rather than guessing, so maps written
+  by older versions are not called stale.
+
+  Written because memway's own map sat seven commits behind across three
+  commits that changed parsing, hashing and entity extraction, with the
+  re-index rule written down and followed by nobody. The symptom presented
+  as stale comment-rot, because a reader cannot tell "your comment drifted"
+  from "your map is old".
+
 ## [0.52.1] - 2026-08-15
 
 ### Added

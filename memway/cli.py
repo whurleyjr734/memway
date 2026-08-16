@@ -7,7 +7,11 @@ Workflow: grep finds it; memway explains it and remembers it.
 
   memway setup [repo]                 one-command onboarding (see above)
   memway init <repo>                  build/refresh the map
-  memway index <repo>                 re-index (incremental)
+  memway index <repo> [--if-stale]    re-index; --if-stale skips the work
+                                        unless the tree moved [--quiet]
+  memway hooks install [repo]         keep the map synced on commit,
+                                        checkout and merge (uninstall to
+                                        remove; never blocks a commit)
   memway harvest <repo>               mine docstrings + git history
   memway at <repo> <file:line>        grep hit -> entity (the handoff)
   memway show <repo> <ref>            entity dossier: edges + knowledge
@@ -89,7 +93,67 @@ def cmd_init(repo):
     cmd_index(repo)
 
 
-def cmd_index(repo):
+def cmd_index(repo, *flags):
+    """Rebuild the map. `--if-stale` reindexes only when the tree moved.
+
+    --if-stale runs on every commit once hooks are installed, so the
+    CURRENT path must be fast and must not write: it reads the recorded
+    sha, asks git for HEAD, and returns. Only the reindex writes, which is
+    what keeps this under the read fence.
+    """
+    from . import freshness
+    if_stale = "--if-stale" in flags
+    quiet = "--quiet" in flags
+    for f in flags:
+        if f not in ("--if-stale", "--quiet"):
+            raise SystemExit(f"memway index: unknown flag {f}\n\n"
+                             f"{_usage_line('index')}")
+    repo_p = Path(repo).resolve()
+    if if_stale:
+        coord_p = repo_p / ".coord"
+        if not coord_p.exists():
+            if not quiet:
+                print(f"no map at {repo_p} - run memway init")
+            return
+        if not freshness.head_sha(repo_p):
+            # hooks must never break a commit, and "not a git repo" is not
+            # an error condition - it is just a place where we cannot tell.
+            if not quiet:
+                print("not a git repository - cannot tell if the map is stale")
+            return
+        gap = freshness.lag(repo_p, coord_p)
+        if not gap:
+            if not quiet:
+                man = freshness.read_manifest(coord_p)
+                at = man.get(freshness.SHA_KEY, "")
+                print(f"map current at {at[:7]}" if at else "map current")
+            return
+        if not quiet:
+            print(gap["message"].replace(" - run memway index",
+                                         " - reindexing"))
+        if quiet:
+            # A hook that prints six lines on every commit gets uninstalled.
+            # Silent when there was nothing to do, one line when there was.
+            #
+            # AND IT NEVER RAISES. This runs from post-commit; an exception
+            # escaping here would print a traceback over somebody's commit
+            # output and teach them to remove the hook. The failure goes to
+            # .coord/log/hooks.log and the commit proceeds untouched.
+            import io as _io
+            import contextlib as _ctx
+            import traceback as _tb
+            _buf = _io.StringIO()
+            try:
+                with _ctx.redirect_stdout(_buf):
+                    cmd_index(repo)
+            except BaseException as exc:
+                _log_hook_failure(coord_p, exc, _tb.format_exc())
+                print(f"memway: reindex failed, see "
+                      f"{coord_p / 'log' / 'hooks.log'} (commit unaffected)")
+                return
+            head = freshness.head_sha(Path(repo).resolve())
+            print(f"memway: map reindexed at {head[:7]}")
+            return
     repo, coord, ix, _, meta, _ = _load(repo, must_exist=False)
     report = ix.index()
     if report.get("parser_errors"):
@@ -152,10 +216,30 @@ def cmd_index(repo):
         print(f"  changed: {len(report['changed'])}")
     for l in lineage:
         print(f"  lineage: {l['kind']:8s} {l['note']}")
+    # last, so an index that died halfway does not claim a sha it never
+    # finished describing.
+    freshness.record(coord, repo)
+
+
+def _warn_if_lagged(repo, coord):
+    """One line when the map trails the tree. The always-on backstop.
+
+    Hooks cover commit/checkout/merge. This covers bisect, worktrees,
+    hand-edited trees and every repo where nobody installed anything. The
+    map may lag; it must not lag silently.
+    """
+    from . import freshness
+    try:
+        gap = freshness.lag(repo, coord)
+    except Exception:
+        return
+    if gap:
+        print(f"  note: {gap['message']}")
 
 
 def cmd_show(repo, ref):
     repo, coord, ix, edges, meta, reg = _load(repo)
+    _warn_if_lagged(repo, coord)
     e = ix.resolve(ref)
     if not e:
         print(f"no entity matches {ref!r}")
@@ -478,10 +562,47 @@ def cmd_setup(repo="."):
         if content is not None:
             (repo_p / name).write_text(content)
         print(msg)
+    print("\ntip: memway hooks install keeps the map synced on "
+          "commit/checkout/merge")
     print("\nnext steps:")
     print("  1. restart your agent in this directory "
           "(it will pick up .mcp.json)")
     print('  2. ask it: "what does this repo know?"')
+
+
+def _log_hook_failure(coord, exc, tb: str) -> None:
+    """One line to .coord/log/hooks.log. Best effort, never raises."""
+    import time
+    try:
+        d = Path(coord) / "log"
+        d.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        with open(d / "hooks.log", "a") as fh:
+            fh.write(f"{stamp} index --if-stale failed: "
+                     f"{type(exc).__name__}: {exc}\n")
+            fh.write("".join(f"    {l}\n" for l in tb.strip().splitlines()[-3:]))
+    except Exception:
+        pass
+
+
+def cmd_hooks(action, repo="."):
+    """Install or remove git hooks that keep the map in step.
+
+    Opt-in by design: `setup` advertises this and never runs it. A tool
+    that writes into .git/hooks uninvited has taken something it was not
+    offered.
+    """
+    from . import hooks as _h
+    if action not in ("install", "uninstall"):
+        raise SystemExit(f"memway hooks: unknown action {action!r}\n\n"
+                         f"{_usage_line('hooks')}")
+    fn = _h.install if action == "install" else _h.uninstall
+    for line in fn(Path(repo).resolve()):
+        print(line)
+    if action == "install":
+        print(f"\n  hooks: {', '.join(_h.HOOKS)}")
+        print("  each runs: memway index . --if-stale --quiet")
+        print("  a failure never blocks the git operation")
 
 
 def cmd_mcp(repo="."):
@@ -664,7 +785,7 @@ COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
-    "dig": cmd_dig, "evidence": cmd_evidence,
+    "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
     "viz": cmd_viz, "console": cmd_console,
     "pull": cmd_pull,
 }
