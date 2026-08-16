@@ -7,7 +7,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added — 0.53.0 material (new commands)
+## [0.53.0] - 2026-08-16
+
+### Added
 
 - **`memway index --if-stale`** reindexes only when the tree has moved past
   what the map describes, comparing a newly recorded `indexed_at_sha` in the
@@ -56,6 +58,16 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   re-index rule written down and followed by nobody. The symptom presented
   as stale comment-rot, because a reader cannot tell "your comment drifted"
   from "your map is old".
+
+### Fixed
+
+- **The corrected language-support prose reaches PyPI.** The README is the
+  project description, so the claims fixed in this cycle - method signatures
+  extracted for Go, JavaScript and TypeScript but not Java; leading doc
+  comments lifted for Go and JavaScript; no field declarations as entities -
+  were right on GitHub and memway.io while PyPI still served the old, false
+  wording frozen into 0.51.1's metadata. A release is the only way to move
+  it, and this one carries it.
 
 ## [0.52.1] - 2026-08-15
 
