@@ -7,6 +7,111 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.54.2] - 2026-08-16
+
+Theme: **the map never misleads silently.**
+
+`freshness.py` wrote the principle down for maps - *"the map may lag; it
+must never lag SILENTLY"* - and enforced it by making every read say so
+on the way past. Knowledge got the detection and none of the telling.
+0.54.1 shipped a workflow rule saying "supersede what your change
+staled" and its own author broke it within the hour, twice in one
+evening, with the tool installed and the rule loaded, because nothing
+ever said which coordinates had gone stale. A rule that depends on recall
+is the failure this project exists to fix.
+
+### Added
+
+- **Stale knowledge warns like map lag does.** Every read carries
+  `knowledge_lag` - `"N coordinates hold stale knowledge - memway
+  attention"` - on the same three JSON surfaces as `map_lag`, and as one
+  printed line on the CLI. Ambient, unasked-for.
+
+  It uses the RING RULE, so superseded history never counts: a repo that
+  has answered every stale note reads silent even though the old rows are
+  still on disk. memway's own map holds 23 such rows and reports nothing.
+  A warning that fires forever is not a warning.
+
+- **A `pre-commit` hook, the fourth.** Prints the knowledge your staged
+  work invalidated, and **exits 0 always** - by `|| true` and by
+  construction. This is the one that fires with zero memory required.
+
+- **CLI doors for `summary`, `before-edit` and `verify-change`**, which
+  existed over MCP and `--json` only. `verify-change` is the one that
+  mattered: the pre-commit hook had nothing readable to call.
+
+- **A surface-parity test.** Every MCP tool must have all three doors or
+  sit on an exemption list *with a reason* (`meta` is a write; `probe`
+  executes user code). Fixed instance-by-instance this recurs - the day
+  `attention` was fixed, three other tools were still missing a door.
+
+- **A flagship-identity test** asserting title, header and label against
+  the derivation. Honest scope, stated in its docstring: it closes
+  constant-drift permanently and cheaply, and will **not** catch the next
+  dead toggle.
+
+### Changed
+
+- **Project name is derived, not assumed** - `pyproject.toml
+  [project].name` -> `package.json name` -> git remote basename ->
+  directory last. First in chain wins even when they disagree:
+  deterministic beats clever. memway's flagship map read `coordsys-v49`,
+  its pre-rename directory; it now reads `memway`. Required **zero**
+  template changes, which is the check that 0.54.1's title/header
+  unification was done right.
+
+- **Workflow rule 4 reworded**: you are now told without asking, so the
+  rule says what to do rather than what to remember.
+
+- `verify_change` runs under `read_only()`. Inert today - the loader
+  suppression already makes it a pure read - but it protects the whole
+  path rather than the two loaders that happen to be on it.
+
+- **Superseding heals on the first try.** `meta` stamped from the STORED
+  index, so a note written after an edit but before a re-index carried the
+  pre-edit hash and was **born stale** - it healed nothing, and the
+  coordinate stayed coral. That is the exact sequence the pre-commit hook
+  puts you in, and nothing tells you to re-index first. `stamp_for` now
+  derives the hash from the WORKING TREE, through the same in-memory index
+  path 0.54.1 added, on all three write paths (CLI, MCP, console) via the
+  one function they already shared.
+
+  The two "corals -> 0" runs on memway's own map earlier that day worked
+  only because their author happened to re-index first, out of habit
+  rather than instruction. `tests/test_never_silent.py` pins the sequence
+  end to end: edit -> hook names it -> supersede -> index -> `stale: False`.
+
+  A ref that no longer resolves in the working tree is REFUSED with a
+  message, not stamped against a ghost: such a note could never be fresh
+  and could never be superseded. Write scope is unchanged and asserted -
+  a meta call still touches exactly one file.
+
+- **`init` writes `.coord/.gitignore`.** A fresh `memway init` plus
+  `git add -A` staged `.coord/cache/*.pkl` - binary blobs that change on
+  every index and conflict on every merge. It encodes the derived-tier
+  taxonomy where git can act on it: `cache/`, `evidence/`, `log/` and
+  `versions/` ignored; `meta/`, `lineage/` and `docbindings.json` stay
+  tracked. Inside `.coord`, never the user's root .gitignore - editing
+  that would be the same trespass as rewriting their CLAUDE.md.
+
+### Upgrading
+
+**Restart your MCP server after upgrading.** It is a long-running process
+and holds the code it started with, so an agent session keeps the OLD
+stamping behaviour until it restarts - notes written through
+`memway_meta` will still be born stale even though the installed memway
+is fixed. Found the honest way: two superseding notes written through a
+session-old server came back stale, and the same notes written through
+the CLI landed fresh. Nothing in the tool says this yet.
+
+The CLI, the console and a freshly started MCP server are unaffected.
+
+### Not built
+
+- **The CI gate** (fail a PR when `staled_knowledge` is non-empty) stays
+  on the 0.55 collaboration board, where the rest of the multi-author
+  story lives.
+
 ## [0.54.1] - 2026-08-16
 
 Theme: **close the loop.** The tool detected staleness perfectly and never

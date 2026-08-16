@@ -233,6 +233,70 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
     }
 
 
+def project_name(repo_p) -> str:
+    """What this project is CALLED, in precedence order.
+
+    THE DECISION, recorded here rather than in a commit message:
+
+      1. pyproject.toml [project].name
+      2. package.json   name
+      3. git remote origin basename
+      4. the directory name
+
+    Rationale, in that order: a declared package name is the project's own
+    statement of identity and the only one it maintains deliberately. A
+    remote basename is next because it is chosen but can be renamed
+    underneath you. The directory is LAST because it is an accident of
+    whoever cloned it - memway's own checkout is called "coordsys-v49",
+    the pre-rename name, and so the flagship map published under it for
+    weeks while every other surface said memway.
+
+    FIRST IN CHAIN WINS, including when pyproject and package.json
+    disagree - a polyglot repo with both is not a tie to be resolved by
+    cleverness, it is a repo whose Python packaging is authoritative here
+    because that is what memway is distributed as. Deterministic beats
+    clever; a rule you can predict is worth more than one that is right
+    slightly more often.
+
+    Never raises. Every tier is best-effort and falls through on any
+    error - a malformed pyproject must not stop a map from rendering.
+    """
+    from pathlib import Path as _P
+    repo_p = _P(repo_p)
+    try:
+        import tomllib
+        f = repo_p / "pyproject.toml"
+        if f.is_file():
+            name = tomllib.loads(f.read_text()).get("project", {}).get("name")
+            if name:
+                return str(name)
+    except Exception:
+        pass
+    try:
+        import json as _json
+        f = repo_p / "package.json"
+        if f.is_file():
+            name = _json.loads(f.read_text()).get("name")
+            if name:
+                return str(name)
+    except Exception:
+        pass
+    try:
+        import subprocess
+        r = subprocess.run(["git", "-C", str(repo_p), "remote", "get-url", "origin"],
+                           capture_output=True, text=True, timeout=5)
+        url = r.stdout.strip()
+        if r.returncode == 0 and url:
+            base = url.rstrip("/").rsplit("/", 1)[-1]
+            if base.endswith(".git"):
+                base = base[:-4]
+            if base:
+                return base
+    except Exception:
+        pass
+    return repo_p.name
+
+
 def map_label(repo_p, filter_prefix: str, n_entities: int,
               n_edges: int) -> str:
     """THE label for a rendered map. Header and browser tab both use it.
@@ -253,7 +317,7 @@ def map_label(repo_p, filter_prefix: str, n_entities: int,
     rather than papered over here.
     """
     scope = f" · {filter_prefix} subtree" if filter_prefix else ""
-    return (f"{repo_p.name}{scope} · {n_entities} entities / "
+    return (f"{project_name(repo_p)}{scope} · {n_entities} entities / "
             f"{n_edges} edges")
 
 

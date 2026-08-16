@@ -279,8 +279,13 @@ def test_the_installed_hook_names_an_absolute_memway(repo):
     _cli("hooks", "install", str(repo))
     for name in HOOKS:
         body = (repo / ".git" / "hooks" / name).read_text()
-        line = [l for l in body.splitlines()
-                if "--if-stale" in l and not l.lstrip().startswith("#")]
+        # Any COMMAND line inside our block, whatever it runs. This looked
+        # for "--if-stale" until 0.54.2 added a pre-commit hook that runs
+        # verify-change instead - the property under test is "no bare
+        # memway", not "every hook indexes".
+        blk = body[body.index(BEGIN):body.index(END)]
+        line = [l for l in blk.splitlines()
+                if l.strip() and not l.lstrip().startswith("#")]
         assert len(line) == 1, body
         assert line[0].lstrip().startswith('"'), (
             f"{name} invokes a bare name, which needs the right PATH: {line[0]}")

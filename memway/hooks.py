@@ -28,7 +28,14 @@ from pathlib import Path
 # post-checkout: branch switches and `git checkout <sha>`, which a
 #                post-commit hook never sees
 # post-merge   : pull and merge, same reason
-HOOKS = ("post-commit", "post-checkout", "post-merge")
+# post-commit  : the common case, a commit moved HEAD
+# post-checkout: branch switches and `git checkout <sha>`
+# post-merge   : pull and merge
+# pre-commit   : the ONLY one that fires BEFORE the work is sealed, and
+#                the only one that can tell you what you are about to
+#                commit having invalidated. It reports and never blocks.
+HOOKS = ("post-commit", "post-checkout", "post-merge", "pre-commit")
+PRE_COMMIT = "pre-commit"
 
 BEGIN = "# >>> memway >>>"
 END = "# <<< memway <<<"
@@ -53,6 +60,29 @@ def block_for(exe: str) -> str:
 # path pinned at install time; if it stops resolving (venv moved or gone)
 # the hook goes quiet, and the map-lag warning on reads is the backstop.
 {exe} index . --if-stale --quiet || true
+{END}"""
+
+
+def pre_commit_block_for(exe: str) -> str:
+    """The staleness report, printed before a commit is sealed.
+
+    EXITS 0 ALWAYS, unconditionally, by construction: the report is
+    followed by `|| true` AND the block ends in `exit 0` reached whatever
+    happens. A hook that blocks a commit gets removed, correctly - see
+    the module docstring - and this one has less right to block than any
+    other, because "you did not update a note" is advice, not an error.
+
+    Why it exists at all: memway shipped a workflow rule saying supersede
+    what your change staled, and the rule's own author broke it twice in
+    one evening with the tool installed. Nothing told them. A rule that
+    depends on recall is the failure this project exists to fix, so the
+    telling moved into the one place that fires with zero memory
+    required - the commit itself.
+    """
+    return f"""{BEGIN}
+# reports knowledge your staged work invalidated. NEVER blocks a commit.
+# remove with: memway hooks uninstall
+{exe} verify-change . 2>/dev/null | grep -A 99 "STALED KNOWLEDGE" || true
 {END}"""
 
 
@@ -105,7 +135,9 @@ def hooks_dir(repo) -> Path:
 def plan(path: Path, exe: str = "") -> tuple:
     """(content_or_None, message) for one hook file. Never clobbers."""
     name = path.name
-    BLOCK = block_for(exe or memway_exe())
+    exe = exe or memway_exe()
+    BLOCK = (pre_commit_block_for(exe) if name == PRE_COMMIT
+             else block_for(exe))
     if not path.exists():
         return SHEBANG + "\n" + BLOCK + "\n\nexit 0\n", f"wrote {name}"
     cur = path.read_text()

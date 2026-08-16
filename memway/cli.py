@@ -41,6 +41,9 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         CANDIDATES - judging rationale vs
                                         restatement is the caller's job.
                                         Never gates, scores, or writes.
+  memway summary <repo>               repo shape at a glance
+  memway before-edit <repo> <ref>     the pre-change briefing
+  memway verify-change [repo]         impact + what you staled
   memway attention <repo>             the queue: stale knowledge, comment
                                         rot, drifted design docs, markers
   memway mcp [repo]                   run the MCP server (agent wiring)
@@ -87,9 +90,40 @@ def _load(repo, must_exist=True):
     return repo, coord, ix, edges, meta, None
 
 
+# .coord/.gitignore, written once by init. The DERIVED TIER TAXONOMY,
+# expressed where git can act on it:
+#
+#   authored          meta/, lineage/   -> tracked, precious, never bulk-deleted
+#   snapshot baseline docbindings.json  -> tracked; it is the ruler drift is
+#                                          measured against
+#   regenerable       cache/, evidence/ -> ignored; rebuilt from source
+#   personal          log/, versions/   -> ignored; this machine's, not the team's
+#
+# Without it a user's repo tracks the pickle caches - measured on a fresh
+# `memway init` + commit, which staged .coord/cache/*.pkl. Binary blobs
+# that change on every index, conflict on every merge, and teach people
+# that a dirty map is normal.
+#
+# It lives INSIDE .coord because that directory is memway's to manage.
+# Editing the repo's root .gitignore would be the same trespass as
+# rewriting somebody's CLAUDE.md or their git hook.
+_COORD_GITIGNORE = """\
+# written by memway init. Regenerable and personal tiers only - meta/,
+# lineage/ and docbindings.json are TRACKED on purpose: clone the repo,
+# inherit the knowledge.
+cache/
+evidence/
+log/
+versions/
+"""
+
+
 def cmd_init(repo):
     repo, coord, _ = _paths(repo)
     (coord / "index").mkdir(parents=True, exist_ok=True)
+    gi = coord / ".gitignore"
+    if not gi.exists():          # never clobber: it may have been edited
+        gi.write_text(_COORD_GITIGNORE)
     (coord / "manifest.json").write_text(json.dumps({
         "format": "memway/0.1", "language": "python",
     }, indent=2))
@@ -241,12 +275,24 @@ def cmd_index(repo, *flags):
     freshness.record(coord, repo)
 
 
-def _warn_if_lagged(repo, coord):
-    """One line when the map trails the tree. The always-on backstop.
+def _warn_if_lagged(repo, coord, ix=None, meta=None):
+    """One line when the map trails the tree, and one when knowledge has
+    rotted. The always-on backstop for BOTH things that go stale.
 
     Hooks cover commit/checkout/merge. This covers bisect, worktrees,
     hand-edited trees and every repo where nobody installed anything. The
     map may lag; it must not lag silently.
+
+    The knowledge line exists because the same promise was never made for
+    the other half. `show <ref>` flagged a stale entry only if you already
+    suspected that coordinate; nothing said anything repo-wide. 0.54.1
+    shipped a rule telling people to supersede what they staled, and the
+    author broke it twice in one evening with the tool installed, because
+    nothing ever told them which coordinates had gone stale. Ambient
+    beats a rule you have to remember.
+
+    ix/meta optional: callers that already loaded them pass them, and
+    nobody pays for a second load just to be warned.
     """
     from . import freshness
     try:
@@ -255,6 +301,11 @@ def _warn_if_lagged(repo, coord):
         return
     if gap:
         print(f"  note: {gap['message']}")
+    if ix is not None and meta is not None:
+        from . import query
+        kn = query._knowledge_lag(ix, meta)
+        if kn:
+            print(f"  note: {kn['message']}")
 
 
 def _unresolved(ref, ix) -> None:
@@ -280,7 +331,7 @@ def _unresolved(ref, ix) -> None:
 
 def cmd_show(repo, ref):
     repo, coord, ix, edges, meta, reg = _load(repo)
-    _warn_if_lagged(repo, coord)
+    _warn_if_lagged(repo, coord, ix, meta)
     e = ix.resolve(ref)
     if not e:
         _unresolved(ref, ix)
@@ -327,8 +378,12 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
     e = ix.resolve(ref)
     if not e:
         _unresolved(ref, ix)
-    meta.add(e.coord_id, channel, text, author=author,
-             body_hash=stamp_for(e))
+    from .metadata import GhostEntity
+    try:
+        stamp = stamp_for(e, repo)
+    except GhostEntity as exc:
+        print(str(exc)); sys.exit(1)
+    meta.add(e.coord_id, channel, text, author=author, body_hash=stamp)
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
 
@@ -501,10 +556,13 @@ named in parentheses. Use whichever your client supports.
   record - a constraint strong enough to stop work is exactly what the next
   session needs and exactly what the code cannot say on its own. Capture it
   before you reply.
-- If your change staled knowledge, supersede it before you finish.
-  `memway_verify_change` names what you invalidated; write a fresh entry in
-  the same channel. Superseding never deletes - the old entry stays as
-  history.
+- When you are told knowledge has gone stale, supersede it before you
+  finish. You will be told without asking: every read reports
+  "N coordinates hold stale knowledge", and `memway_verify_change`
+  (CLI: `memway verify-change .`) names exactly which ones your change
+  invalidated. Write a fresh entry in the SAME channel - a confirm does
+  not answer a stale note. Superseding never deletes; the old entry stays
+  as history, and only the newest entry per channel decides.
 """
 
 
@@ -762,6 +820,79 @@ def cmd_evidence(repo, ref="", which=""):
             for line in body.splitlines()[:4]:
                 print(f"      {line[:76]}")
         print()
+def cmd_summary(repo):
+    """Repo shape at a glance. The CLI door for the summary query."""
+    from . import query
+    r = query.summary(repo)
+    if "error" in r:
+        print(r["error"]); sys.exit(1)
+    for k in ("map_lag", "knowledge_lag"):
+        if r.get(k):
+            print(f"  note: {r[k]['message']}")
+    ents = r.get("entities") or r.get("entity_count")
+    print(f"{r.get('repo', repo)}")
+    for key in ("languages", "entities", "edges", "knowledge", "hardest"):
+        if key in r and not isinstance(r[key], (dict, list)):
+            print(f"  {key}: {r[key]}")
+    kn = r.get("knowledge") or {}
+    if isinstance(kn, dict):
+        print(f"  knowledge: {kn.get('total_entries', 0)} entries across "
+              f"{kn.get('coordinates_with_knowledge', 0)} coordinates")
+
+
+def cmd_before_edit(repo, ref):
+    """The pre-change briefing. The CLI door for before_edit."""
+    from . import query
+    r = query.before_edit(repo, ref)
+    if "error" in r:
+        print(r["error"])
+        for c in r.get("closest", []) or r.get("matches", []):
+            print(f"  {c}")
+        sys.exit(1)
+    for k in ("map_lag", "knowledge_lag"):
+        if r.get(k):
+            print(f"  note: {r[k]['message']}")
+    e = r.get("entity", {})
+    print(f"{e.get('coord_id')}  {e.get('qualname')}")
+    print(f"  at {e.get('path')}:{e.get('line')}")
+    m = r.get("metrics", {})
+    print(f"  complexity {m.get('complexity')}  callers "
+          f"{len(r.get('direct_callers', []))}  blast "
+          f"{r.get('downstream', {}).get('downstream_count')}")
+    for k in r.get("knowledge", []):
+        flag = " [STALE]" if k.get("stale") else ""
+        print(f"  [{k['channel']}]{flag} {k['text'][:100]}")
+    for w in r.get("warnings", []):
+        print(f"  ! {w}")
+
+
+def cmd_verify_change(repo="."):
+    """Post-change impact AND the knowledge this change staled.
+
+    The CLI door. It existed over MCP and --json only, which is why the
+    pre-commit hook had nothing readable to call - and why the author of
+    the supersede-before-you-finish rule broke it twice in one evening.
+    """
+    from . import query
+    r = query.verify_change(repo)
+    if "error" in r:
+        print(r["error"]); sys.exit(1)
+    changed = r.get("changed") or []
+    print(f"changed: {len(changed)}" + (f" - {', '.join(changed[:6])}" if changed else ""))
+    print(f"  impacted: {r.get('impacted', 0)}")
+    t = r.get("tests", {})
+    print(f"  tests reached: {len(t.get('grounded', []))} grounded, "
+          f"{len(t.get('name_hit', []))} by name")
+    staled = r.get("staled_knowledge") or []
+    if staled:
+        print(f"  STALED KNOWLEDGE ({len(staled)}) - supersede in the SAME channel:")
+        for e in staled:
+            print(f"    {e['coordinate']}  {e['qualname']}  [{e['channel']}]")
+            print(f"      {e['text'][:120]}")
+    else:
+        print("  staled knowledge: none")
+
+
 def cmd_attention(repo):
     """The repo's attention queue: everything flagged as needing eyes.
 
@@ -877,7 +1008,13 @@ COMMANDS = {
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
     "viz": cmd_viz, "console": cmd_console,
     "pull": cmd_pull, "attention": cmd_attention,
+    # The three read doors that existed over MCP and --json but not here.
+    # verify-change is the one that mattered: the pre-commit hook had
+    # nothing readable to call.
+    "summary": cmd_summary, "before-edit": cmd_before_edit,
+    "verify-change": cmd_verify_change,
 }
+
 
 
 def _running_from_source() -> bool:

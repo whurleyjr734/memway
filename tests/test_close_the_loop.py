@@ -233,8 +233,13 @@ def test_the_fourth_rule_is_emitted_to_all_three_files(tmp_path):
         p = r / name
         assert p.exists(), f"{name} not written"
         bodies[name] = p.read_text()
-        assert "supersede it before you finish" in bodies[name], name
-        assert "same channel" in bodies[name], name
+        # Substance, not prose: the rule was reworded in 0.54.2 when the
+        # ambient warning made "remember to ask" obsolete, and a test
+        # pinned to a sentence blocks its own improvement.
+        low = bodies[name].lower()
+        assert "supersede" in low, name
+        assert "same channel" in low, name
+        assert "verify_change" in low or "verify-change" in low, name
     assert len(set(bodies.values())) == 1, "the three files are not identical"
 
 
@@ -251,14 +256,16 @@ def test_the_fourth_rule_arrives_by_upgrade_not_clobber(tmp_path):
 
     p = r / "AGENTS.md"
     doc = p.read_text()
-    i = doc.index("- If your change staled knowledge")
-    j = doc.index("history.", i) + len("history.\n")
+    # Anchored on the rule's stable words, not its prose: 0.54.2 reworded
+    # it when the ambient warning made "remember to ask" obsolete.
+    i = doc.index("- When you are told knowledge has gone stale")
+    j = doc.index("decides.", i) + len("decides.\n")
     p.write_text(doc[:i] + doc[j:] + "\n## My own notes\n\nKeep this line.\n")
-    assert "supersede it before you finish" not in p.read_text()
+    assert "supersede" not in p.read_text(), "forge failed - rule still there"
 
     assert _cli("setup", str(r)).returncode == 0
     after = p.read_text()
-    assert "supersede it before you finish" in after, "rule not restored"
+    assert "supersede" in after, "rule not restored"
     assert "Keep this line." in after, "the user's own text was clobbered"
     # the managed region matches the other files even though this one has a tail
     assert managed_block(after) == managed_block((r / "GEMINI.md").read_text())

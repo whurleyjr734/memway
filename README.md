@@ -66,10 +66,13 @@ named in parentheses. Use whichever your client supports.
   record - a constraint strong enough to stop work is exactly what the next
   session needs and exactly what the code cannot say on its own. Capture it
   before you reply.
-- If your change staled knowledge, supersede it before you finish.
-  `memway_verify_change` names what you invalidated; write a fresh entry in
-  the same channel. Superseding never deletes - the old entry stays as
-  history.
+- When you are told knowledge has gone stale, supersede it before you
+  finish. You will be told without asking: every read reports
+  "N coordinates hold stale knowledge", and `memway_verify_change`
+  (CLI: `memway verify-change .`) names exactly which ones your change
+  invalidated. Write a fresh entry in the SAME channel - a confirm does
+  not answer a stale note. Superseding never deletes; the old entry stays
+  as history, and only the newest entry per channel decides.
 ```
 
 Three properties matter. Tool names are **exact** — agents that have to

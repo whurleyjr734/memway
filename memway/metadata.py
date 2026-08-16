@@ -21,7 +21,11 @@ from pathlib import Path
 CHANNELS = ("history", "design", "notes", "docs", "traces", "confirm")
 
 
-def stamp_for(entity) -> str:
+class GhostEntity(LookupError):
+    """The ref resolved in the stored map but not in the working tree."""
+
+
+def stamp_for(entity, repo_root=None) -> str:
     """The hash a new entry is stamped with. THE one write-side rule.
 
     LOGIC HASH FIRST. A note describes behaviour, so it should survive a
@@ -30,6 +34,26 @@ def stamp_for(entity) -> str:
     language has no logic tier (see indexer._logic_hash's honest
     degradation).
 
+    STAMPED AGAINST THE WORKING TREE, not the stored index, whenever
+    repo_root is given. The entity handed in came from the map, which is
+    by definition a snapshot of the last index - so stamping from it
+    produced notes that were BORN STALE. Measured end to end: edit a
+    function, let the pre-commit hook name the note it staled, supersede
+    exactly as instructed, re-index, and the brand-new note reads
+    stale=True. The release's whole promise is "you will be told, then
+    supersede"; superseding as told healed nothing unless you happened to
+    re-index first, which nothing tells you to do.
+
+    So this re-derives the hash from the current source. Reads files, does
+    not write: the write scope of a meta call is still exactly one file,
+    the note itself, and a test asserts that.
+
+    Raises GhostEntity when the ref no longer resolves in the working
+    tree - deleted or renamed since the last index. Stamping against a
+    ghost would mint a note that can never be fresh and can never be
+    superseded, attached to a coordinate the code has abandoned. Refuse
+    and say so; never guess.
+
     This exists because it DRIFTED. `memway meta` stamped body_hash while
     the MCP `agent_meta` stamped logic_hash, so the same note written
     from two surfaces decayed at different rates - a docstring edit
@@ -37,7 +61,38 @@ def stamp_for(entity) -> str:
     single core for reads for exactly this reason; this is that principle
     extended to writes. Every write path calls this. Do not inline it.
     """
+    if repo_root is not None:
+        fresh = _current_entity(entity, repo_root)
+        if fresh is None:
+            raise GhostEntity(
+                f"{entity.qualname!r} is in the map but not in the working "
+                f"tree - deleted or renamed since the last index. Re-index "
+                f"(memway index .) and attach the note to the coordinate "
+                f"that exists, rather than stamping one that never can be "
+                f"fresh.")
+        entity = fresh
     return getattr(entity, "logic_hash", "") or entity.body_hash
+
+
+def _current_entity(entity, repo_root):
+    """The same entity as the working tree has it, or None if it is gone.
+
+    Uses the in-memory index path added in 0.54.1 - index(persist=False)
+    computes every hash and writes nothing, including no parse-cache
+    refresh. Reusing it rather than re-parsing one file by hand keeps ONE
+    implementation of what a logic hash is; a second parse path here is
+    exactly how stamp_for and agent_meta drifted apart the first time.
+    """
+    try:
+        from .indexer import Indexer
+        repo_root = Path(repo_root)
+        ix = Indexer(repo_root, repo_root / ".coord")
+        ix.load_existing(write_cache=False)
+        ix.index(persist=False)
+        cid = ix.by_qualname.get(entity.qualname)
+        return ix.entities.get(cid) if cid else None
+    except Exception:
+        return entity          # a broken re-parse must not block a write
 
 
 def accepted_for(entity) -> set:

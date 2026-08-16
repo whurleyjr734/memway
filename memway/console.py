@@ -204,8 +204,13 @@ def _write_meta(repo: str, data: dict):
     store = MetaStore(coord)
     path = store.root / e.coord_id / f"{channel}.jsonl"
     before = len(path.read_text().splitlines()) if path.exists() else 0
+    from .metadata import GhostEntity
+    try:
+        stamp = stamp_for(e, repo_p)
+    except GhostEntity as exc:
+        return 409, {"error": str(exc)}
     store.add(e.coord_id, channel, text, author="console",
-              body_hash=stamp_for(e))
+              body_hash=stamp)
     after = len(path.read_text().splitlines())
     return 200, {
         "ok": True, "coord_id": e.coord_id, "qualname": e.qualname,

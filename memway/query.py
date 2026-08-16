@@ -260,6 +260,7 @@ def show(repo: str, ref: str) -> dict:
         })
     out["edges"] = rel
     out["map_lag"] = _map_lag(repo, coord)
+    out["knowledge_lag"] = _knowledge_lag(ix, meta)
     return out
 
 
@@ -293,6 +294,55 @@ def _map_lag(repo, coord) -> dict:
         return lag(repo, coord)
     except Exception:
         return {}          # a broken freshness check must not break a read
+
+
+def _knowledge_lag(ix, meta) -> dict:
+    """Coordinates holding stale knowledge nobody has answered. {} if none.
+
+    THE SAME GUARANTEE AS _map_lag, applied to the other thing that rots.
+    freshness.py wrote the principle down for maps - "the map may lag; it
+    must never lag SILENTLY" - and enforced it by making every read say so
+    on the way past. Knowledge got the detection and none of the telling:
+    `show <ref>` flagged a stale entry only if you already suspected that
+    coordinate, and nothing said anything repo-wide.
+
+    Which is exactly how it failed. 0.54.1 shipped a workflow rule saying
+    "supersede what your change staled" and then broke it within the hour,
+    twice in one evening, by the person who wrote the rule with the tool
+    installed. Nothing told them the six coordinates existed. A rule that
+    depends on recall is the failure mode this project exists to fix.
+
+    SUPERSEDED HISTORY NEVER COUNTS. This asks unsuperseded_stale - the
+    ring's rule, newest-per-channel - so a repo that has answered every
+    stale entry reads silent even though the superseded text is still on
+    disk. The flagship holds 23 individually-stale entries and must report
+    nothing. A warning that fires forever is not a warning.
+
+    Read-only by construction: entities already in memory, plus the meta
+    files. Nothing here writes, which is what keeps it inside the fence.
+    """
+    from .metadata import unsuperseded_stale
+    try:
+        coords = []
+        for cid, e in ix.entities.items():
+            rows = []
+            for ch, entries in meta.read_all(cid, accepted_for(e)).items():
+                for en in entries:
+                    rows.append({**en, "channel": ch})
+            if unsuperseded_stale(rows):
+                coords.append(cid)
+        if not coords:
+            return {}
+        n = len(coords)
+        return {
+            "coordinates": sorted(coords),
+            "count": n,
+            "message": (f"{n} coordinate{'s' if n != 1 else ''} hold"
+                        f"{'' if n != 1 else 's'} stale knowledge "
+                        f"- memway attention"),
+        }
+    except Exception:
+        return {}          # a broken staleness check must not break a read
 
 
 def summary(repo: str) -> dict:
@@ -400,6 +450,7 @@ def summary(repo: str) -> dict:
 
     return {
         "map_lag": _map_lag(repo, coord),
+        "knowledge_lag": _knowledge_lag(ix, meta),
         "entities": len(ix.entities),
         "edges": len(edges),
         "languages": dict(langs),
@@ -685,6 +736,7 @@ def before_edit(repo: str, ref: str) -> dict:
         warnings = list(warnings) + [_lag["message"]]
     return {
         "map_lag": _lag,
+        "knowledge_lag": _knowledge_lag(ix, meta),
         "entity": _entity_dict(e),
         "grounding": grounding,
         "inheritance": inheritance,
@@ -815,10 +867,17 @@ def verify_change(repo_root, run=False):
     # only the first left edges.pkl behind, which is precisely how the
     # earlier leaks in this file survived - there are exactly two
     # cache-warming loaders on this path and missing either one is a write.
-    ix.load_existing(write_cache=False)
-    eb = EdgeBuilder(ix)
-    edges = EdgeBuilder.load(coord, write_cache=False) or []
-    result = _vc(ix, edges or eb.build(), repo_root, run=run, persist=False)
+    # read_only() is belt AND braces: the loader suppression below already
+    # makes this inert, proven by the fence. But it protects only what it
+    # names - if anyone adds a harvest_docs call to this path, the
+    # docbindings baseline write comes back and the suppression says
+    # nothing about it. Durability insurance, inert today.
+    with read_only():
+        ix.load_existing(write_cache=False)
+        eb = EdgeBuilder(ix)
+        edges = EdgeBuilder.load(coord, write_cache=False) or []
+        result = _vc(ix, edges or eb.build(), repo_root, run=run,
+                     persist=False)
 
     # Which knowledge did this change invalidate? Only entries that are the
     # NEWEST in their channel: an older entry somebody already superseded
@@ -895,7 +954,7 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     # stamp with logic_hash: the note survives comment/docstring edits and
     # flags stale only when BEHAVIOR changes (falls back to body hash)
     meta.add(e.coord_id, channel, text, author=author,
-             body_hash=stamp_for(e))
+             body_hash=stamp_for(e, repo_root))
     return {
         "attached": {"coord": e.coord_id, "qualname": e.qualname,
                      "channel": channel, "author": author},
