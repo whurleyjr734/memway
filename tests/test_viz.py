@@ -624,3 +624,76 @@ def test_the_title_tracks_a_changed_derivation(tmp_path):
     title = _re.search(r"<title>(.*?)</title>", html, _re.S).group(1)
     assert "SENTINEL-LABEL-42" in title, (
         f"the title ignored the derivation and is still a constant: {title!r}")
+
+
+# ------------------------------- an edge keeps its kind when you select it
+
+EDGE_KINDS = ("calls", "inherits", "imports", "contains")
+
+
+def test_selecting_a_node_keeps_the_edge_kinds_distinguishable():
+    """Lit edges must stay coloured by kind.
+
+    `.link.lit` set `stroke:var(--amber)`, which beat every per-kind rule
+    below it - so the moment you clicked a node, calls, inherits, imports
+    and contains all became one colour. That is precisely the moment the
+    distinction matters: "what reaches this, and how".
+
+    Asserted on the emitted bytes, and by SPECIFICITY rather than by
+    eyeballing the file: a two-class rule cannot override a three-class
+    one, so `.link.lit.calls` is what makes the fix hold.
+    """
+    from memway.viz import load_template
+    html = load_template()
+    assert "var(--amber)" not in _rule(html, ".link.lit"), \
+        "lit still forces one colour over every kind"
+    for kind in EDGE_KINDS:
+        assert f".link.lit.{kind}{{" in html, f"no lit rule for {kind}"
+        assert f"var(--e-{kind})" in _rule(html, f".link.lit.{kind}"), kind
+
+
+def test_one_colour_per_kind_feeds_swatch_line_and_lit():
+    """Three places must agree, so they read ONE variable.
+
+    The legend teaches the mapping, the resting line uses it, the lit line
+    uses it. Hard-coded hexes in any of the three is how a legend comes to
+    describe a colour the graph no longer draws.
+    """
+    from memway.viz import load_template
+    html = load_template()
+    for kind in EDGE_KINDS:
+        assert f"--e-{kind}:" in html, f"{kind} has no colour variable"
+        swatch = _swatch(html, kind)
+        assert f"var(--e-{kind})" in swatch, \
+            f"legend swatch for {kind} does not read the variable: {swatch}"
+        assert "#" not in swatch, f"legend swatch for {kind} hard-codes a hex"
+
+
+def test_every_edge_kind_the_payload_can_carry_has_a_colour(tmp_path):
+    """Guard against a kind existing in data with no rule to draw it.
+
+    Executed against a real payload rather than the constant above, so a
+    new edge kind added to the indexer shows up here instead of rendering
+    in whatever the base rule happens to be.
+    """
+    import json as _json
+    from memway.viz import export, render
+    html = render(export(str(HERE)))
+    i = html.index("const SAMPLE = ")
+    j = html.index("\n", i)
+    data = _json.loads(html[i + len("const SAMPLE = "):j].rstrip().rstrip(";"))
+    kinds = {e.get("kind", "calls") for e in data["edges"]}
+    assert len(kinds) >= 3, f"payload too thin to discriminate: {kinds}"
+    missing = [k for k in kinds if f".link.lit.{k}{{" not in html]
+    assert not missing, f"edge kinds with no lit colour: {missing}"
+
+
+def _rule(html: str, selector: str) -> str:
+    i = html.index(selector + "{")
+    return html[i:html.index("}", i)]
+
+
+def _swatch(html: str, kind: str) -> str:
+    i = html.index(f'data-ekind="{kind}"')
+    j = html.index("</span>", i)
+    return html[i:j]

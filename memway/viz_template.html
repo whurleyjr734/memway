@@ -44,6 +44,21 @@
     --coral:var(--beacon);   /* stale: the note is inherited from an older
                                 body and wants a human */
 
+    /* EDGE KINDS. One colour each, used by three places that must never
+       disagree: the legend swatch, the resting line, and the line lit up
+       when you select a node. They used to disagree - .link.lit forced
+       every edge to amber, so the moment you clicked a node the kinds
+       became indistinguishable, which is the one moment you most want to
+       know whether something is a call or a containment.
+
+       Each echoes the node kind it concerns: inherits takes the class
+       colour, imports the module colour, contains stays structural and
+       quiet. Deliberately clear of --fresh (knowledge rings) and
+       --beacon (stale), so an edge can never be mistaken for a verdict. */
+    --e-calls:#6FA8FF;
+    --e-inherits:#3EC8FF;
+    --e-imports:#7C6CFF;
+    --e-contains:#8B96B8;
     --module:#7C6CFF;
     --class:#3EC8FF;
     --func:#EAF0FF;
@@ -115,12 +130,20 @@
   /* the chart */
   #chart{position:fixed; inset:0; z-index:5; cursor:grab}
   #chart:active{cursor:grabbing}
-  .link{stroke:var(--edge); stroke-width:1px; stroke-opacity:.55}
-  .link.inherits{stroke:#5FB3A1; stroke-dasharray:4 3; stroke-opacity:.7}
-  .link.imports{stroke:#26364F; stroke-opacity:.4}
-  .link.contains{stroke:#1E2C45; stroke-opacity:.35}
-  .link.dimmed{stroke-opacity:.08}
-  .link.lit{stroke:var(--amber); stroke-opacity:.85; stroke-width:1.4px}
+  .link{stroke:var(--e-calls); stroke-width:1px; stroke-opacity:.28}
+  .link.inherits{stroke:var(--e-inherits); stroke-dasharray:4 3; stroke-opacity:.34}
+  .link.imports{stroke:var(--e-imports); stroke-opacity:.24}
+  .link.contains{stroke:var(--e-contains); stroke-opacity:.20}
+  .link.dimmed{stroke-opacity:.06}
+  /* LIT KEEPS THE KIND. Opacity and width carry the emphasis; the hue
+     carries the meaning, so selecting a node answers "what reaches this"
+     and "how" in one look. Three classes each (.link.lit.calls) so these
+     beat the two-class base rules above without !important. */
+  .link.lit{stroke-opacity:.95; stroke-width:1.8px}
+  .link.lit.calls{stroke:var(--e-calls)}
+  .link.lit.inherits{stroke:var(--e-inherits); stroke-opacity:1}
+  .link.lit.imports{stroke:var(--e-imports)}
+  .link.lit.contains{stroke:var(--e-contains)}
   .node{cursor:pointer}
   .node circle.core{stroke:var(--ink); stroke-width:1.5px}
   .node.dimmed{opacity:.14}
@@ -280,10 +303,10 @@
   <label class="kind-row"><input type="checkbox" data-origin="tests" checked><span class="swatch" style="background:var(--func);opacity:.35"></span>tests</label>
   <label class="kind-row kn-toggle"><input type="checkbox" id="knOnly"><span class="swatch" style="background:var(--amber)"></span>knowledge only</label>
   <div class="rail-title" style="margin-top:8px">Edges</div>
-  <label class="kind-row"><input type="checkbox" data-ekind="calls" checked><span class="swatch" style="background:#33445F;border-radius:1px;height:3px"></span>calls</label>
-  <label class="kind-row"><input type="checkbox" data-ekind="inherits" checked><span class="swatch" style="background:#5FB3A1;border-radius:1px;height:3px"></span>inherits</label>
-  <label class="kind-row"><input type="checkbox" data-ekind="imports"><span class="swatch" style="background:#26364F;border-radius:1px;height:3px"></span>imports</label>
-  <label class="kind-row"><input type="checkbox" data-ekind="contains"><span class="swatch" style="background:#1E2C45;border-radius:1px;height:3px"></span>contains</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="calls" checked><span class="swatch" style="background:var(--e-calls);border-radius:1px;height:3px"></span>calls</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="inherits" checked><span class="swatch" style="background:var(--e-inherits);border-radius:1px;height:3px"></span>inherits</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="imports"><span class="swatch" style="background:var(--e-imports);border-radius:1px;height:3px"></span>imports</label>
+  <label class="kind-row"><input type="checkbox" data-ekind="contains"><span class="swatch" style="background:var(--e-contains);border-radius:1px;height:3px"></span>contains</label>
 </div>
 
 <svg id="chart" role="img" aria-label="Force-directed graph of code entities and call edges"></svg>
