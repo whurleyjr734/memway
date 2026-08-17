@@ -27,6 +27,7 @@ values. Point it only at code you would run anyway.
 from __future__ import annotations
 
 import importlib
+import inspect
 import io
 import json
 import sys
@@ -69,7 +70,34 @@ def _locate(by_file, repo_root: Path, filename: str, lineno: int):
     return best
 
 
-def _resolve_callable(indexer, ref, namespaces):
+def _evict_if_foreign(mod_name, repo_root) -> None:
+    """Drop ONE cached module if it was loaded from outside this repo.
+
+    probe imports by module NAME, and sys.modules is per-process, so two
+    repos each containing `m.py` collide: the second probe gets the
+    first's module object, runs ITS code, and reports frames whose files
+    are not in this repo - so _locate matches nothing and the result
+    quietly loses `raised_at`. Found by probe's own tests running two
+    fixtures in one session, which is the same shape as a long-lived MCP
+    server probing several repos in turn.
+
+    Scoped to the exact name about to be imported, and only when its file
+    is outside repo_root. A broad sweep would evict memway's own modules
+    mid-execution - the first draft of this did exactly that.
+    """
+    if repo_root is None:
+        return
+    mod = sys.modules.get(mod_name)
+    f = getattr(mod, "__file__", None) if mod is not None else None
+    if not f:
+        return
+    root = str(Path(repo_root).resolve())
+    p = str(Path(f).resolve())
+    if not (p == root or p.startswith(root + "/")):
+        sys.modules.pop(mod_name, None)
+
+
+def _resolve_callable(indexer, ref, namespaces, repo_root=None):
     ent = indexer.resolve(ref)
     if ent is None:
         raise LookupError(f"no entity matches {ref!r}")
@@ -79,6 +107,7 @@ def _resolve_callable(indexer, ref, namespaces):
     for start in range(min(3, len(parts))):
         for split in range(len(parts), start, -1):
             mod_name = ".".join(parts[start:split])
+            _evict_if_foreign(mod_name, repo_root)
             try:
                 obj = importlib.import_module(mod_name)
             except ImportError:
@@ -127,7 +156,7 @@ def probe(indexer, edges, repo_root, ref: str,
     args = [_val(a) for a in (args or [])]
     kwargs = {k: _val(v) for k, v in (kwargs or {}).items()}
 
-    ent, fn = _resolve_callable(indexer, ref, [ns])
+    ent, fn = _resolve_callable(indexer, ref, [ns], repo_root)
     by_file = _entity_index(indexer)
 
     events: list[dict] = []
@@ -172,6 +201,29 @@ def probe(indexer, edges, repo_root, ref: str,
 
     out_buf = io.StringIO()
     result: dict = {"target": ent.qualname, "coord": ent.coord_id}
+
+    # ARITY CHECKED BEFORE THE CALL, the same way cli.main does it and for
+    # the same reason: catching TypeError around the call would also
+    # swallow a TypeError raised deep inside working code and report it as
+    # your mistake. bind() separates "you called it wrong" from "it broke".
+    # Reported by an agent evaluating the tool: it passed strings where
+    # entities were wanted and got an exception from three frames down,
+    # with nothing naming the signature it should have matched.
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        sig = None
+    if sig is not None:
+        try:
+            sig.bind(*args, **kwargs)
+        except TypeError as e:
+            return {**result, "ok": False,
+                    "error": f"arguments do not match {ent.qualname}: {e}",
+                    "signature": f"{ent.qualname}{sig}",
+                    "hint": "probe calls the real function - pass the values "
+                            "it actually takes, building any objects in "
+                            "`setup` first"}
+
     sys.settrace(tracer)
     try:
         with redirect_stdout(out_buf):
@@ -187,6 +239,17 @@ def probe(indexer, edges, repo_root, ref: str,
             if loc:
                 result["exception"]["raised_at"] = \
                     f"{loc.qualname} ({loc.coord_id}) line {fr.lineno}"
+                # Raised in the TARGET itself, on a call whose arity was
+                # already accepted: the likeliest cause is the type of a
+                # value, which bind() cannot see. Say so and show the
+                # signature rather than leaving the caller to guess whether
+                # they misused the tool or found a bug.
+                if loc.coord_id == ent.coord_id and sig is not None:
+                    result["exception"]["signature"] = f"{ent.qualname}{sig}"
+                    result["exception"]["hint"] = (
+                        "raised inside the target on its first frame - check "
+                        "the TYPES of the values passed; arity already "
+                        "matched the signature above")
                 break
     finally:
         sys.settrace(None)

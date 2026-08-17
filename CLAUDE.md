@@ -1,7 +1,8 @@
 # Project rules
 
 This repo IS memway, and it uses itself. The map in `.coord/` is
-committed and live (635 entities, 45 knowledge entries) — it is not a
+committed and live (run `memway summary .` for current counts; this
+line used to carry them and they rotted — see lesson 11) — it is not a
 scratch artifact, and a stale or damaged map is a real defect. The venv
 is `.venv/`; MCP wiring is `.mcp.json` at the root.
 

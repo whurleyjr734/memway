@@ -7,6 +7,55 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.5] - 2026-08-17
+
+Theme: **stop being wrong quietly.** Four fixes, each closing a case
+where memway stated something it could not support.
+
+### Fixed
+
+- **A blind resolver now says it is blind.** `before_edit` reported
+  `callers 0, blast 0` with `is_lower_bound: FALSE` for every Java
+  method — an affirmative claim that the zero was complete, when 0 of
+  1,770 resolved call edges in google/gson reach a method at all. The
+  radius is now a lower bound whenever an emitted call reference names
+  this entity and the resolver found **no candidate to judge**. This does
+  not fix Java resolution; it stops the report lying about it.
+  Deliberately narrow: a reference the guards *refused* is a decision,
+  not a gap, and counting refusals made the warning fire on healthy
+  Python — the 43-vs-3 failure in a new place.
+- **The lower-bound warning named the wrong cause.** It said "dynamic
+  event emission reached" unconditionally, because that was the only
+  cause until now. It derives its reason.
+- **The longest-standing flake is closed** — ~3 sightings in ~40 runs,
+  never reproducible in isolation. `test_package_version_matches_pyproject`
+  asserted against the **imported** module. Python's timestamp `.pyc`
+  invalidation checks only source mtime and size at one-second
+  granularity, and a version bump changes **neither**: `"0.55.3"` and
+  `"0.55.4"` are the same length, and the edit lands in the same second
+  as the preceding build's `.pyc`. The cache stays "valid" and the import
+  serves the old version while `tomllib` reads the new one. It fired
+  naturally on 0.55.3 **and again on 0.55.4**. The test now reads both
+  files as text — comparing two files should never route one through an
+  import cache.
+- **`probe` blamed you for its own confusion.** Arity is checked with
+  `bind()` *before* the call, the same rule `cli.main` follows, so
+  "you called it wrong" and "it is broken" no longer read alike. When the
+  target itself raises on its first frame, the signature and a
+  types-not-arity hint are attached.
+- **`probe` could run the wrong repo's code.** It imports by module name,
+  and `sys.modules` is per-process — so a second repo containing `m.py`
+  got the first repo's module, executed its code, and silently lost
+  `raised_at`. Found by probe's own new tests running two fixtures in one
+  session, which is exactly a long-lived MCP server probing several repos.
+
+### Changed
+
+- CLAUDE.md no longer hardcodes entity and knowledge counts. It claimed
+  "635 entities, 45 knowledge entries" against a real 1,068 and 123, and
+  **two independent reviewers quoted it as current fact** — in the file
+  that states lesson 11. It now points at `memway summary .`.
+
 ## [0.55.4] - 2026-08-16
 
 Theme: **comment rot rides the commit.**

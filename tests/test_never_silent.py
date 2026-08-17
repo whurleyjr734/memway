@@ -660,3 +660,107 @@ def test_the_in_memory_sketch_stays_a_LIST(tmp_path):
     raw = json.loads((r / ".coord/index/coordinates.json").read_text())
     assert all(isinstance(v["sketch"], str) for v in raw.values()), \
         "the sketch is still an array on disk"
+
+
+# ------------------------------------- a blind resolver says it is blind
+
+def test_unresolved_references_make_the_radius_a_lower_bound(tmp_path):
+    """The Java shape, reproduced without Java.
+
+    An entity whose registered name carries a disambiguator the emitter
+    does not use is INVISIBLE to resolution: the resolver never had a
+    candidate to judge. Before 0.55.5 that produced "callers 0, blast 0"
+    with is_lower_bound FALSE - an affirmative claim that the zero was
+    complete. Measured on google/gson: 0 of 1770 resolved call edges
+    reach a method, and every Java method read exactly that.
+    """
+    import json as _json
+    from memway.query import _unresolved_refs_to, _ctx
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "def helper(x):\n    return x + 1\n\n\n"
+        "def caller(x):\n    return helper(x)\n")
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    _, coord, ix, edges, _ = _ctx(str(r))
+    helper = ix.entities[ix.by_qualname[
+        next(q for q in ix.by_qualname if q.endswith("m.helper"))]]
+
+    # resolution is healthy here: the guards may refuse, but they SAW it
+    assert _unresolved_refs_to(ix, edges, helper) == 0, (
+        "a name the resolver can see must not count as unresolved - "
+        "refusals are decisions, not blind spots")
+
+    # Now register it the way JavaParser does: the entity carries an arity
+    # suffix and the INDEX knows it only by that name, while the emitted
+    # reference stays bare. Mutating the entity alone does not reproduce
+    # the condition - by_qualname must move too, or resolve() still finds
+    # it and there is no blind spot to detect.
+    old_q = helper.qualname
+    helper.qualname = old_q + "/1"
+    ix.by_qualname.pop(old_q, None)
+    ix.by_qualname[helper.qualname] = helper.coord_id
+    assert ix.resolve("helper") is None, \
+        "fixture did not reproduce the blind spot: the name still resolves"
+
+    assert _unresolved_refs_to(ix, edges, helper) >= 1, (
+        "a name spelled one way in the index and another in the emitted "
+        "reference is a blind spot and must be counted")
+
+
+def test_the_count_actually_reaches_the_briefing(tmp_path, monkeypatch):
+    """THE WIRING, not the counter. The first version of the test above
+    exercised _unresolved_refs_to directly and passed happily while
+    is_lower_bound ignored it - the number was right and the report still
+    lied, which is the whole defect restated."""
+    from memway import query
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "def helper(x):\n    return x + 1\n\n\n"
+        "def caller(x):\n    return helper(x)\n")
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    clean = query.before_edit(str(r), "m.helper")
+    assert clean["downstream"]["is_lower_bound"] is False, clean["downstream"]
+    assert not [w for w in clean["warnings"] if "LOWER BOUND" in w], \
+        clean["warnings"]
+
+    monkeypatch.setattr(query, "_unresolved_refs_to", lambda *a, **k: 3)
+    out = query.before_edit(str(r), "m.helper")
+    assert out["downstream"]["is_lower_bound"] is True, out["downstream"]
+    assert out["downstream"]["unresolved_refs"] == 3, out["downstream"]
+    w = [x for x in out["warnings"] if "LOWER BOUND" in x]
+    assert w, out["warnings"]
+    assert "3 call references" in w[0], w[0]
+    assert "dynamic event emission" not in w[0], (
+        f"the warning blamed events for a resolution gap: {w[0]}")
+
+
+def test_the_lower_bound_warning_names_its_actual_cause(tmp_path):
+    """It said "dynamic event emission reached" unconditionally, because
+    that was the only cause until 0.55.5. The moment a second cause could
+    raise the flag, the sentence explained the wrong one."""
+    import ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent
+           / "memway" / "query.py").read_text()
+    fn = next(n for n in ast.walk(ast.parse(src))
+              if isinstance(n, ast.FunctionDef) and n.name == "before_edit")
+    dump = ast.dump(fn)
+    assert "unresolved_refs" in dump, \
+        "the warning no longer considers unresolved references"
+    joined = [n for n in ast.walk(fn)
+              if isinstance(n, ast.Constant)
+              and isinstance(n.value, str)
+              and "dynamic event emission" in n.value]
+    assert joined, "the event cause disappeared entirely"
+    for c in joined:
+        assert "LOWER BOUND" not in c.value, (
+            "the event cause is welded to the warning header again - it "
+            "must be one reason among several, not the sentence")

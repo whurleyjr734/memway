@@ -66,6 +66,62 @@ def _ctx(repo: str):
     return repo_p, coord, ix, edges, meta
 
 
+def _short(name: str) -> str:
+    """Last segment of a reference, stripped of disambiguators.
+
+    Java registers overloads as Type.method/2 and Python registers
+    same-named defs as name#3, while BOTH parsers emit call targets as a
+    bare name. One identifier, two spellings, and the resolver compares
+    the wrong ends - which is why gson has zero method-level call edges.
+    Stripping here is not the fix for that; it is what lets us COUNT the
+    references that failed to land.
+    """
+    return re.split(r"[/#]", str(name).split(".")[-1])[0]
+
+
+def _unresolved_refs_to(ix, edges, ent) -> int:
+    """How many emitted call references name this entity but produced no
+    edge. 0 when everything that could point here did.
+
+    Deliberately generous on the input side and strict on the output
+    side: any raw call whose bare target matches this entity's bare name
+    is a candidate, and every resolved incoming call edge cancels one.
+    The remainder is what the map cannot account for. Over-counting here
+    is safe - it can only turn a confident number into an admittedly
+    incomplete one, never the reverse.
+    """
+    raw = getattr(ix, "_raw_edges", None) or []
+    if not raw:
+        return 0
+    target = _short(ent.qualname)
+    if target == ent.qualname.split(".")[-1]:
+        # This entity carries no disambiguator, so the resolver can see it
+        # by name. Anything the map lacks here was a DECISION - guard 2
+        # refusing an attribute call, guard 3 refusing a test helper - and
+        # a decision is not a gap. Counting refusals made this warning
+        # fire on healthy Python (rich's make_guide showed 5), which is
+        # the 43-vs-3 failure in a new place: a signal that fires
+        # everywhere carries nothing.
+        return 0
+    # The entity's name is spelled one way in the index and another in the
+    # emitted reference, so the resolver never had a candidate to judge.
+    # That is not a decision; it is a blind spot, and it is the one thing
+    # this counter exists to surface.
+    seen: dict = {}
+    n = 0
+    for r in raw:
+        if getattr(r, "kind", None) != "calls":
+            continue
+        ref = getattr(r, "dst_ref", "")
+        if _short(ref) != target:
+            continue
+        if ref not in seen:
+            seen[ref] = ix.resolve(ref) is None
+        if seen[ref]:
+            n += 1
+    return n
+
+
 def _entity_dict(e, meta=None) -> dict:
     d = {
         "coord_id": e.coord_id,
@@ -505,12 +561,29 @@ def before_edit(repo: str, ref: str) -> dict:
                              "depth": b["depths"][cid],
                              "via_event": cid in b["via_event"]})
     affected.sort(key=lambda a: (a["depth"], a["qualname"]))
+    # UNRESOLVED REFERENCES MAKE THE COUNT A LOWER BOUND, and until 0.55.5
+    # only dynamic event emission could say so. That left the worst case
+    # silent: on google/gson, 0 of 1770 resolved call edges reach a method,
+    # because JavaParser emits a BARE name while its own overload
+    # disambiguation registers every method as Type.method/arity - so every
+    # Java method read "callers 0, blast 0" with is_lower_bound FALSE, an
+    # affirmative claim that the zero was complete. The same shape costs
+    # Python three edges on @overload stubs (#N instead of /arity).
+    #
+    # This does not fix resolution; it stops the report lying about it.
+    # If the parser emitted a call to this entity's bare name and the
+    # resolver produced no edge for it, then the caller list is a floor,
+    # whatever the language and whatever the reason. Computed from data
+    # already on disk, so it costs a set membership test.
+    unresolved = _unresolved_refs_to(ix, edges, e)
     radius = {
         "downstream_count": len(affected),
         "direct": [a["qualname"] for a in affected if a["depth"] == 1],
         "transitive_count": sum(1 for a in affected if a["depth"] > 1),
         "via_event": [a["qualname"] for a in affected if a["via_event"]],
-        "is_lower_bound": b.get("radius_is_lower_bound", False),
+        "is_lower_bound": bool(b.get("radius_is_lower_bound", False)
+                               or unresolved),
+        "unresolved_refs": unresolved,
     }
 
     # Grounding: how trustworthy is this picture? Every edge carries the
@@ -691,9 +764,21 @@ def before_edit(repo: str, ref: str) -> dict:
         warnings.append(f"WIDELY DEPENDED ON ({len(callers)} direct "
                         "callers): signature/behavior changes ripple")
     if radius["is_lower_bound"]:
-        warnings.append("DOWNSTREAM REACH IS A LOWER BOUND: dynamic "
-                        "event emission reached - real impact may "
-                        "exceed what the graph shows")
+        # NAME THE ACTUAL CAUSE. This said "dynamic event emission
+        # reached" unconditionally, because that was the only way to be a
+        # lower bound until 0.55.5 - so the moment unresolved references
+        # could also set the flag, the sentence started explaining the
+        # wrong thing to the reader most in need of the right one.
+        why = []
+        if b.get("radius_is_lower_bound"):
+            why.append("dynamic event emission reached")
+        if radius["unresolved_refs"]:
+            why.append(f"{radius['unresolved_refs']} call reference"
+                       f"{'s' if radius['unresolved_refs'] != 1 else ''} to "
+                       f"this name could not be resolved to any entity")
+        warnings.append("DOWNSTREAM REACH IS A LOWER BOUND: "
+                        + " and ".join(why)
+                        + " - real impact may exceed what the graph shows")
     if has_stale:
         warnings.append("STALE KNOWLEDGE ATTACHED: notes below were "
                         "written against an older body - verify "

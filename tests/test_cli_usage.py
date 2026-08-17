@@ -148,3 +148,87 @@ def test_bare_invocation_still_prints_the_whole_map():
     out = r.stdout + r.stderr
     assert r.returncode == 1
     assert "Quickstart" in out, f"bare invocation lost its help:\n{out[:300]}"
+
+
+# ------------------------------------- probe says which mistake you made
+
+def test_probe_rejects_wrong_arity_at_the_boundary(tmp_path):
+    """bind() BEFORE the call, the same rule cli.main follows: catching
+    TypeError around the call would swallow a TypeError raised inside
+    working code and blame the caller for it.
+
+    Reported by an agent evaluating the tool - it passed the wrong shape
+    and got an exception three frames down, with nothing naming the
+    signature it should have matched.
+    """
+    import subprocess
+    from memway.query import probe
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "def scale(items, factor):\n    return [i * factor for i in items]\n")
+    subprocess.run(["git", "-C", str(r), "init", "-q", "-b", "main"],
+                   check=True)
+    assert _run("init", str(r)).returncode == 0
+
+    out = probe(str(r), "scale", args=[[1, 2, 3]])
+    assert out.get("ok") is False, out
+    assert "arguments do not match" in out.get("error", ""), out
+    assert out.get("signature", "").endswith("(items, factor)"), out
+    assert "setup" in out.get("hint", ""), out
+
+
+def test_probe_points_at_types_when_the_target_itself_raises(tmp_path):
+    """Arity matched, so bind() cannot help - but the first frame IS the
+    target, which is the signal that the VALUES are wrong rather than the
+    code. "You called it wrong" and "it is broken" must not read alike.
+
+    TWO REPOS IN ONE PROCESS, deliberately. probe imports by module name
+    and sys.modules is per-process, so a second repo containing `m.py`
+    used to get the FIRST repo's module, run its code, and produce frames
+    _locate could not match - losing raised_at entirely. Probing one repo
+    would pass against that bug; the collision is the test.
+    """
+    import subprocess
+    from memway.query import probe
+
+    SRC = "def scale(items, factor):\n    return [i * factor for i in items]\n"
+    made = []
+    for name in ("first", "second"):
+        r = tmp_path / name
+        r.mkdir()
+        (r / "m.py").write_text(SRC)
+        subprocess.run(["git", "-C", str(r), "init", "-q", "-b", "main"],
+                       check=True)
+        assert _run("init", str(r)).returncode == 0
+        made.append(r)
+
+    probe(str(made[0]), "scale", args=[[1, 2], 2])      # caches `m` from repo 1
+
+    out = probe(str(made[1]), "scale", args=["notalist", None])
+    ex = out.get("exception", {})
+    assert out.get("ok") is False, out
+    assert ex.get("raised_at", "").startswith("m.scale"), (
+        f"coordinate attribution was lost - the cached module from another "
+        f"repo shadowed this one: {ex}")
+    assert ex.get("signature", "").endswith("(items, factor)"), ex
+    assert "TYPES" in ex.get("hint", ""), ex
+
+
+def test_probe_still_returns_a_normal_result_for_a_good_call(tmp_path):
+    """The other half: none of the above may fire on a correct call."""
+    import subprocess
+    from memway.query import probe
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "def scale(items, factor):\n    return [i * factor for i in items]\n")
+    subprocess.run(["git", "-C", str(r), "init", "-q", "-b", "main"],
+                   check=True)
+    assert _run("init", str(r)).returncode == 0
+
+    out = probe(str(r), "scale", args=[[1, 2, 3], 2])
+    assert out.get("ok") is True, out
+    assert "error" not in out and "hint" not in out, out
