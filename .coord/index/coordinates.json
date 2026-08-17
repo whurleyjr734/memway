@@ -403,7 +403,7 @@
     "qualname": "memway.cli.cmd_meta",
     "path": "memway/cli.py",
     "lineno": 367,
-    "body_hash": "4c152e9160b2d388",
+    "body_hash": "45884dc538d8e772",
     "parent": "C-642291",
     "signature": "cmd_meta(repo, ref, channel, text, author)",
     "shape_hash": "7c15463892e3ee57",
@@ -428,21 +428,31 @@
       },
       {
         "line": 13,
-        "text": "flag (see query.before_edit). Rot was therefore permanent for anyone",
+        "text": "flag - the rule is metadata.rot_is_answered, asked by attention,",
         "kind": "comment"
       },
       {
         "line": 14,
-        "text": "working through the CLI, while agents on MCP could clear it fine.",
+        "text": "before_edit and verify_change alike since 0.55.4. Rot was therefore",
+        "kind": "comment"
+      },
+      {
+        "line": 15,
+        "text": "permanent for anyone working through the CLI, while agents on MCP",
+        "kind": "comment"
+      },
+      {
+        "line": 16,
+        "text": "could clear it fine.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "7d90923d3584d309",
-    "comment_rot": true,
-    "sketch": "AFYMXVR1AMuHr8qhASz4APOkALCUTpzEAKP/RtXvAMaBI6yJAF0HTCf0AAWMZKo9AFrNUKqyAI4Rxb+vArpUPzsSAHvU2h3eAJCeVI4RAH2EzWAtAXv5jP6iADkXvb+UAKnyxLyLAPAdJ7rTAEC0T9iGAUG6X23fAF0vjL5sAdlasl4rAHanARUOABdCuiZyANxSHmcjABFh+bpYAAARlH3iAHswzmPGABni5Z0pAPypvW+GAG74SjKSAYUIue2EACfsSnnVAHVxxuv1AE+SwBzvAAstuJKvAPyhofsjAF2z5LVUAQuMR+IpACYqoJNuAHvsEAHEAA1ylZwAAMr63xUSAEEWFRSFAOsIzvgaANZNHQ2BAUYINFTqAZA2lPad",
-    "n_shingles": 325,
-    "end_lineno": 395,
-    "loc": 29,
+    "comment_hash": "631f21fbe0c00bbf",
+    "comment_rot": false,
+    "sketch": "AFYMXVR1ALrcVNGMASz4APOkALCUTpzEAKP/RtXvAMaBI6yJAA8kG/1eAAWMZKo9AFrNUKqyAI4Rxb+vArpUPzsSAHvU2h3eAJCeVI4RAH2EzWAtAXv5jP6iADkXvb+UAJMv9UBMAPAdJ7rTAEC0T9iGAUG6X23fAF0vjL5sAdlasl4rAHanARUOABdCuiZyANxSHmcjABFh+bpYAAARlH3iAHswzmPGABni5Z0pAPPADsP8AG74SjKSAYUIue2EACfsSnnVAHVxxuv1AE+SwBzvAAstuJKvAPyhofsjAFLRBYsEAQuMR+IpAB7rjIsPAHvsEAHEAA1ylZwAAMr63xUSAEEWFRSFAOsIzvgaANZNHQ2BAUYINFTqAD5dPm4q",
+    "n_shingles": 344,
+    "end_lineno": 397,
+    "loc": 31,
     "complexity": 4
   },
   "C-0215e5": {
@@ -1755,7 +1765,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_summary",
     "path": "memway/cli.py",
-    "lineno": 832,
+    "lineno": 834,
     "body_hash": "43eeff2bd66c7a51",
     "parent": "C-642291",
     "signature": "cmd_summary(repo)",
@@ -1774,7 +1784,7 @@
     "comment_rot": false,
     "sketch": "A1QuZ4AiAwlZLkGlAsIDFWBNACWlckXZAPlE/tcKAGfm7HqxAIxj2OpPAvkEFTc0AC/Tsx5zAYPWeDT4AQTR3xG8AHvU2h3eBSodyKWwAMJYWVRcAMC9PWW/AFRWHzj3AASV/QZ9AGH48Xt1AEFzvoOQAFqZGcR1ABS9kWEaAcmgsogiAHd/gMGtAHCJng5aAvrYN28fAI9DGW9cAJFH4kQCAC+a69D9ABvMIbWPAKG0OnBKAN4sRV/HAHWEa0rrAOCcFvIlAQ7TTtQRAEBSOX1qA6ZOOTCNAVpRbbCgAO/NqyUIACpOAO5KAFVXKG9DAEtPio9mAHc4ZY4+AF/Sc6PoACfpvfbMASfJQRrBADm+3rxoAjZCWGnKAZA2lPad",
     "n_shingles": 202,
-    "end_lineno": 849,
+    "end_lineno": 851,
     "loc": 18,
     "complexity": 10
   },
@@ -2756,7 +2766,7 @@
     "kind": "function",
     "qualname": "memway.cli._is_editable",
     "path": "memway/cli.py",
-    "lineno": 1071,
+    "lineno": 1073,
     "body_hash": "df58ccc39e99ff4f",
     "parent": "C-642291",
     "signature": "_is_editable(dist)",
@@ -2775,7 +2785,7 @@
     "comment_rot": false,
     "sketch": "BkjO7m5oAA77Hvn3AMa4kdBRBDRj8D3tBbKko3zKALG+caibAEgStPh0AvapIRwFA0/QJmxMAH77nTZfAbuHpoMtAjRAHscUAluXjcCLBxi2/fvFAIx4HnlhAaNCHhecAJrN4oHPCM9ZsGi7BpQtntgqAGWajWflAFazfnDQA5gNMzIlAixtCSweASuuhnh8AHvw1OgqAEo3zJKTBwrd5lR5AN5nTq1bAQeq9TgYAjOKxLNmBEdoueCUAIby23t1BMTu/C6oAsvSjIo1A9En0cweAgnu3SL6A4vMOycqBQXTfhuxDBbPTD7AAty6+oZjArMtTQ0gAYuXjDZwA9Uf/EX8ADjcoDPDAFITAoelAlGefovfBUQ2aFvMAtJu2gmA",
     "n_shingles": 79,
-    "end_lineno": 1082,
+    "end_lineno": 1084,
     "loc": 12,
     "complexity": 4
   },
@@ -4506,7 +4516,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_viz",
     "path": "memway/cli.py",
-    "lineno": 968,
+    "lineno": 970,
     "body_hash": "f3d4d74ee6ff35eb",
     "parent": "C-642291",
     "signature": "cmd_viz(repo)",
@@ -4525,7 +4535,7 @@
     "comment_rot": false,
     "sketch": "AHSBBSq5AI09ki9XBIKnHIgIAMxkxij9AJEVGWp7AHYTpu2eAUyjdeXGAEUDuz7ZALrTm4jqAEJTKZTEAlYMFgDdAHvU2h3eAB0SYiItAK82s7SiAF9Q4RISAVuJNuRaAIMKFa/ZAL+OPI6DACTja3CIAJReSlkEAPEuGpzkAN7I7PYnAF3VFMsiAHCJng5aAEgkETRkAjkpBtgnAOv0U48tAKca+bE2ABni5Z0pADyPwjkhAHKF1lAyADotscSlABDJO/VDABOiBg0xACobWvjoAZq833ouADuSOMJVASn6JXLeAVkM3yjnBGx0Dy7BAEj2Y8AIAW25lwxbACBbIg6JAzLtqynIAEKKPzUXAGgTdurrAGVgXa12AQfM2GeJ",
     "n_shingles": 290,
-    "end_lineno": 1003,
+    "end_lineno": 1005,
     "loc": 36,
     "complexity": 12
   },
@@ -5441,7 +5451,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_harvest",
     "path": "memway/cli.py",
-    "lineno": 500,
+    "lineno": 502,
     "body_hash": "22d26e169c24dba5",
     "parent": "C-642291",
     "signature": "cmd_harvest(repo)",
@@ -5460,7 +5470,7 @@
     "comment_rot": false,
     "sketch": "Aa2hbRi9CvgTXrVbADoDQ0uyAIbZx1L/BKFMhFiiAHV6amJ+A+tC5ITPAP+qHdzgBFwTRuCjAj4boydyAKEpwcaTAHvU2h3eABbbUumyAFAtPheqAXBaLGkOACnkZp5lAAWVw9JuAPQXFmlnAcW2qejSAb5gfQ/qAWmCcXmXAWGoBbvKAUsGNWr3AOjJrEiSAGa8TC2+AF5oS4AzAsnwvmM2Arh9ow28Ah+4rGv5AtwqNj5RAcKq+/MwAYUIue2EAI2Xst8lAQzQVfbAAXlks1g3A6dnTlzAAXN3eqYSBgLnNK9oAhaw1I9HBY0hzbabBVZCznv1CPgf2b82AZTt4l8mAFYjKKsGAOVc+8IUAKodRQ4sBudmOCd3AJ2TSOj2",
     "n_shingles": 119,
-    "end_lineno": 508,
+    "end_lineno": 510,
     "loc": 9,
     "complexity": 2
   },
@@ -6050,7 +6060,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_pull",
     "path": "memway/cli.py",
-    "lineno": 399,
+    "lineno": 401,
     "body_hash": "b4e0c4f2c2f26515",
     "parent": "C-642291",
     "signature": "cmd_pull(name, into, source, force, replace_meta)",
@@ -6099,7 +6109,7 @@
     "comment_rot": false,
     "sketch": "AEv95NwlAAcLljSKACnIBCGPAMxkxij9AG3fQIcLAMlboc3qABCJAL+ZAIcvkwQ9AFlWMoVaAEtuU2PyAEBU+w+/AGVPJxejAHTtVBY8ADXKFvcvAKMuQWOVAAUQF7u8AASV/QZ9AJoVwP1OAEUpFC1SAHkd+r92ACGWyceMA9DHytG0AOMfKEHVAEFEn0z7AMnlYzpWAFsSQ6huAAoEbz3fAKca+bE2ABni5Z0pAGjxZBqWALogmKeOAJvg/jryAIBhSk5vABbYrB6LAHYid/QJADcWbtqsAGnL1a/sAHgfZkP5AHTdCEs7AAxFHOEAACKC14gdASGmEa8wAEV+arqYALkIGK5SALLuo/RTAo7fPX2mAAe6Se0jAGJqDi0i",
     "n_shingles": 624,
-    "end_lineno": 460,
+    "end_lineno": 462,
     "loc": 62,
     "complexity": 12
   },
@@ -10790,7 +10800,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_at",
     "path": "memway/cli.py",
-    "lineno": 463,
+    "lineno": 465,
     "body_hash": "6975343d54897b70",
     "parent": "C-642291",
     "signature": "cmd_at(repo, location)",
@@ -10809,7 +10819,7 @@
     "comment_rot": false,
     "sketch": "AOumG128AQavZQN7AF294rjvAMxkxij9BvKdaToQA3dLK5qUAEfre+j6AedWIN6RAKtFKssmADJ3hmV4AExFeGT9AHvU2h3eAKbs7b5rAQcsu+2KA2ipKk//Au+mCeZGBmDXmjNuAdBtZj4gAODhK6yNAiHMT/mmAHrPnHYhACvHCiflAGpM/HiUAswLRKnjABnSMyP+AncAcVBDAOv0U48tAdHkxxZNAtJ0PSCGAJYM2j94ASQViM5dAkQtSveoABdDfPfEATz67/JvASP0CdxJAZq833ouAFxqltk2ABfpZnZQAV72O61JAM5SRBbTA/u0Kgh9AjwSzexqA1Uf6vEVAcjkarkoAmcoHmItAs4Sho6HBUvPp0tCAHpumviA",
     "n_shingles": 202,
-    "end_lineno": 478,
+    "end_lineno": 480,
     "loc": 16,
     "complexity": 6
   },
@@ -11505,7 +11515,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_hooks",
     "path": "memway/cli.py",
-    "lineno": 697,
+    "lineno": 699,
     "body_hash": "d24afc7aca4daa52",
     "parent": "C-642291",
     "signature": "cmd_hooks(action, repo)",
@@ -11524,7 +11534,7 @@
     "comment_rot": true,
     "sketch": "Ao38H8eDACrB9m48AHiZHM7HAMaiMbdYAWA1UrBYAbSh+xM5AJZtZVG5AVs3OWo/AooLGRGoAHOyGA8eAj18mWY+AHvU2h3eAVkoc62cAFAtPheqAKMuQWOVAAsY2K5YAiW8MnfsAFE3wSS8AB+xvINzBQtdwVkzAYD/aIc1ALabpRH7AA49QHuAAB5X2U4IAGfsH2E1AWMw6mV6AbyhbrdKA4CK/9mrABni5Z0pBUKaOv9hAHetAAsTB4Y2EJU+AOCcFvIlAF9Asz4fADYdIklsAHuEwPdCA2gX4Wt1Af2zEbVQAcqvJMS7BFcm2N06AGgPCLJjAAbUos1/AWnx3kCdAOVJ9ZYOAQxzqSgPAAd75UerAhODNTKhAExxztAT",
     "n_shingles": 171,
-    "end_lineno": 715,
+    "end_lineno": 717,
     "loc": 19,
     "complexity": 6
   },
@@ -13085,7 +13095,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_console",
     "path": "memway/cli.py",
-    "lineno": 1006,
+    "lineno": 1008,
     "body_hash": "e0a67c232120c096",
     "parent": "C-642291",
     "signature": "cmd_console(repo)",
@@ -13134,7 +13144,7 @@
     "comment_rot": false,
     "sketch": "AC7mjU0tAcj4vdMoAJ4DwDhZAC8byIHGADLuKQqkAABgP7/dAaFNyG0DAAo3Zh1qAA5RD0bjANRb48UhANYQhstkAA9yA4GiADK6m3b1AFAtPheqAF9Q4RISAEwrt4ZTATrdsa+ZAHXamktrACTja3CIAYlb4ch0AMht4L6EAGe7sj3UAF3VFMsiAF7q0mDXAlORNjzIAJrTa2xyADWYKUR1AHZBl2g8ABni5Z0pAQcb0fAiACoeqk0VAGyDW2mWAFg56XpMABOiBg0xAEmZ8bkuAKUJB/VIADuSOMJVAJstBv9sAVqVOF7WAFjJ5V9RAkSpizpPAAHgO/+LAEWNjrA3ABhb8asrAAJxDQhzAGgTdurrAAWRfBpcAAVc3PeC",
     "n_shingles": 327,
-    "end_lineno": 1039,
+    "end_lineno": 1041,
     "loc": 34,
     "complexity": 7
   },
@@ -14384,7 +14394,7 @@
     "kind": "function",
     "qualname": "memway.cli.rules_document",
     "path": "memway/cli.py",
-    "lineno": 577,
+    "lineno": 579,
     "body_hash": "e4cada90d0ff63dc",
     "parent": "C-642291",
     "signature": "rules_document(tail)",
@@ -14405,7 +14415,7 @@
     "comment_rot": false,
     "sketch": "B1b+mqMnBBrqPGHuAw5yAhdWApStOnRJAbMGxXlqA2ZYWCgXAns8wZL8AxIC2h7UCyhvpQxpBrKQ5s7AAr2O8lAZBuQryfyLA/+E2nSlBi+eN6c5AbvYhSE2BMexEzN3A2mZF5iOBwPXe+u5AJUBAbNxAKrbA1HZAX9mHbmXBqC0kOGuArxtiCIJANCaOdrxAKLJ3mrvAN4TxLKkC9aUQ+BlABHXUmXbB0mV9ugLCEwiEpKxAosDwhgLAHVFUYGyCzO6tSrMB6cbPlrsAuYPG5DiDcNJuR7PATI9b8zQAf2zEbVQA9pBh73CA2/Vmp4yA60dOcBvAR+zFRiwAvkntJdlATSLMSAmA4VmOQSYBmJEO4vPAvCd1l82Dg4nf72c",
     "n_shingles": 61,
-    "end_lineno": 580,
+    "end_lineno": 582,
     "loc": 4,
     "complexity": 2
   },
@@ -15554,7 +15564,7 @@
     "kind": "function",
     "qualname": "memway.cli._log_hook_failure",
     "path": "memway/cli.py",
-    "lineno": 682,
+    "lineno": 684,
     "body_hash": "7bd1130e6415a0f5",
     "parent": "C-642291",
     "signature": "_log_hook_failure(coord, exc, tb)",
@@ -15575,7 +15585,7 @@
     "comment_rot": false,
     "sketch": "AOx9o+X7AwDXIkmwAHV4ewMkATWSRINrAARXdiTQARrtyO/qAdusY6apAi+zfuLwAzXNbAP+AqAF2JrAAJrfb8YwAHvU2h3eA5mXTI8+AGddEsidAD33uqirAlG8lktWAmUUnzJpA8BELPgeAIAoVlpBA4NoIL7FALKFs/HHAEh9AezLASBp88/UAaiLSyIjAuy9ioyQAl5rkQ1GAHQ3AP40AIy0kxW1AppyPrZPAQcb0fAiAUQCyDxPAGEBza0iA9tAOGatAV0lw9apAcF+zyINA8egkiSTAkMJR7RvAE4rc3DHAbMrFrjvAOQEgM0zAV4Lu2HhAHei1INVA4LL9WSzAEuNXvdRADsGH7PqAE4NIfzzAAqFgHNpAEgiwRkR",
     "n_shingles": 179,
-    "end_lineno": 694,
+    "end_lineno": 696,
     "loc": 13,
     "complexity": 4
   },
@@ -16025,7 +16035,7 @@
     "qualname": "memway.cli",
     "path": "memway/cli.py",
     "lineno": 1,
-    "body_hash": "c221f9637f7784ea",
+    "body_hash": "1f36b16f22a2c323",
     "parent": null,
     "signature": "",
     "shape_hash": "485d7ee35dbca6d3",
@@ -16245,516 +16255,526 @@
       },
       {
         "line": 379,
-        "text": "flag (see query.before_edit). Rot was therefore permanent for anyone",
+        "text": "flag - the rule is metadata.rot_is_answered, asked by attention,",
         "kind": "comment"
       },
       {
         "line": 380,
-        "text": "working through the CLI, while agents on MCP could clear it fine.",
+        "text": "before_edit and verify_change alike since 0.55.4. Rot was therefore",
         "kind": "comment"
       },
       {
-        "line": 427,
-        "text": "--replace-meta deliberately does NOT imply --force. The",
+        "line": 381,
+        "text": "permanent for anyone working through the CLI, while agents on MCP",
         "kind": "comment"
       },
       {
-        "line": 428,
-        "text": "destructive path should be harder to type than the safe one,",
+        "line": 382,
+        "text": "could clear it fine.",
         "kind": "comment"
       },
       {
         "line": 429,
+        "text": "--replace-meta deliberately does NOT imply --force. The",
+        "kind": "comment"
+      },
+      {
+        "line": 430,
+        "text": "destructive path should be harder to type than the safe one,",
+        "kind": "comment"
+      },
+      {
+        "line": 431,
         "text": "and typing both is the moment you notice which you asked for.",
         "kind": "comment"
       },
       {
-        "line": 456,
+        "line": 458,
         "text": "Honesty at the seam: the map describes a commit, the working",
         "kind": "comment"
       },
       {
-        "line": 457,
+        "line": 459,
         "text": "tree is at another. Staleness machinery handles the rest, but",
         "kind": "comment"
       },
       {
-        "line": 458,
+        "line": 460,
         "text": "silence here would let someone trust a map for code it never saw.",
         "kind": "comment"
       },
       {
-        "line": 504,
+        "line": 506,
         "text": "D8: persisted at index time, no re-index",
         "kind": "comment"
       },
       {
-        "line": 511,
+        "line": 513,
         "text": "The three measured rules (Phase B of the write-back experiment):",
         "kind": "comment"
       },
       {
-        "line": 512,
+        "line": 514,
         "text": "unconfigured agents execute perfectly and remember nothing; these",
         "kind": "comment"
       },
       {
-        "line": 513,
+        "line": 515,
         "text": "lines convert that into before-edit briefings, verified changes,",
         "kind": "comment"
       },
       {
-        "line": 514,
+        "line": 516,
         "text": "and reasons that outlive the session. Exact tool names matter -",
         "kind": "comment"
       },
       {
-        "line": 515,
+        "line": 517,
         "text": "agents should not have to guess (finding #14).",
         "kind": "comment"
       },
       {
-        "line": 516,
+        "line": 518,
         "text": "THE RULES ARE EMITTED TO THREE FILENAMES, ONE TEMPLATE",
         "kind": "comment"
       },
       {
-        "line": 517,
+        "line": 519,
         "text": "======================================================",
         "kind": "comment"
       },
       {
-        "line": 519,
+        "line": 521,
         "text": "AGENTS.md is canonical; CLAUDE.md and GEMINI.md are byte-identical",
         "kind": "comment"
       },
       {
-        "line": 520,
+        "line": 522,
         "text": "copies written in the same pass. Not redundancy for its own sake: a",
         "kind": "comment"
       },
       {
-        "line": 521,
+        "line": 523,
         "text": "client reads the filename it knows and ignores the rest, so a repo with",
         "kind": "comment"
       },
       {
-        "line": 522,
+        "line": 524,
         "text": "only CLAUDE.md silently gives non-Claude agents no rules at all. They",
         "kind": "comment"
       },
       {
-        "line": 523,
+        "line": 525,
         "text": "then work correctly and record nothing, which is the exact failure the",
         "kind": "comment"
       },
       {
-        "line": 524,
+        "line": 526,
         "text": "rules exist to prevent and is invisible while it happens.",
         "kind": "comment"
       },
       {
-        "line": 526,
+        "line": 528,
         "text": "One template, three writes, and a test asserting the managed blocks are",
         "kind": "comment"
       },
       {
-        "line": 527,
+        "line": 529,
         "text": "identical - so drift between them is structurally impossible rather",
         "kind": "comment"
       },
       {
-        "line": 528,
+        "line": 530,
         "text": "than merely unlikely.",
         "kind": "comment"
       },
       {
-        "line": 531,
+        "line": 533,
         "text": "The managed region. Everything after the end marker belongs to the user",
         "kind": "comment"
       },
       {
-        "line": 532,
+        "line": 534,
         "text": "and survives an upgrade; everything between the markers is ours and does",
         "kind": "comment"
       },
       {
-        "line": 533,
+        "line": 535,
         "text": "not. A file with no markers is not assumed to be ours.",
         "kind": "comment"
       },
       {
-        "line": 538,
+        "line": 540,
         "text": "Tool names are EXACT and CLI equivalents are named, because an agent that",
         "kind": "comment"
       },
       {
-        "line": 539,
+        "line": 541,
         "text": "has to guess a name skips the call (finding #14), and an agent with no",
         "kind": "comment"
       },
       {
-        "line": 540,
+        "line": 542,
         "text": "MCP client has no way to act on a rule written only in MCP terms.",
         "kind": "comment"
       },
       {
-        "line": 592,
+        "line": 594,
         "text": "Bodies emitted by earlier versions, which predate the markers. A file",
         "kind": "comment"
       },
       {
-        "line": 593,
+        "line": 595,
         "text": "matching one exactly is provably ours and provably unedited, so it can be",
         "kind": "comment"
       },
       {
-        "line": 594,
+        "line": 596,
         "text": "upgraded whole. Anything else unmarked is ambiguous and is refused.",
         "kind": "comment"
       },
       {
-        "line": 641,
+        "line": 643,
         "text": "Portable wiring: relies on the `memway` console script being on",
         "kind": "comment"
       },
       {
-        "line": 642,
+        "line": 644,
         "text": "PATH and on agents launching MCP servers with cwd = repo root, so",
         "kind": "comment"
       },
       {
-        "line": 643,
+        "line": 645,
         "text": "the file survives clones and moves (no absolute paths, no venv",
         "kind": "comment"
       },
       {
-        "line": 644,
+        "line": 646,
         "text": "paths). This is what lets a committed map travel with the repo.",
         "kind": "comment"
       },
       {
-        "line": 666,
+        "line": 668,
         "text": "One template, three filenames, one pass. A client reads the name it",
         "kind": "comment"
       },
       {
-        "line": 667,
+        "line": 669,
         "text": "knows, so emitting only CLAUDE.md leaves every other agent ruleless.",
         "kind": "comment"
       },
       {
-        "line": 802,
+        "line": 804,
         "text": "a bare sha/PR ref: search every coordinate's evidence for it",
         "kind": "comment"
       },
       {
-        "line": 905,
+        "line": 907,
         "text": "THREE OUTS, and the third is not a loophole. A rot you cannot fix",
         "kind": "comment"
       },
       {
-        "line": 906,
+        "line": 908,
         "text": "now is not an emergency: record a confirm (\"read it, the logic",
         "kind": "comment"
       },
       {
-        "line": 907,
+        "line": 909,
         "text": "moved, the comment is still accurate\") and it clears honestly by",
         "kind": "comment"
       },
       {
-        "line": 908,
+        "line": 910,
         "text": "suppression, until the logic moves again. Accepting it sends it",
         "kind": "comment"
       },
       {
-        "line": 909,
+        "line": 911,
         "text": "to attention, where the backlog is worked deliberately. What the",
         "kind": "comment"
       },
       {
-        "line": 910,
+        "line": 912,
         "text": "ceremony refuses to allow is walking past it silently.",
         "kind": "comment"
       },
       {
-        "line": 939,
+        "line": 941,
         "text": "THE TOTAL, not the length of the page. query.attention truncates",
         "kind": "comment"
       },
       {
-        "line": 940,
+        "line": 942,
         "text": "comment_rot to `limit`, so len(rot) was the size of the slice and",
         "kind": "comment"
       },
       {
-        "line": 941,
+        "line": 943,
         "text": "got printed as the census: this repo read \"comment rot: 20\" for",
         "kind": "comment"
       },
       {
-        "line": 942,
+        "line": 944,
         "text": "releases while the real backlog was 49, and two independent readers",
         "kind": "comment"
       },
       {
-        "line": 943,
+        "line": 945,
         "text": "on one day reported 20 and 10 believing both were totals. markers",
         "kind": "comment"
       },
       {
-        "line": 944,
+        "line": 946,
         "text": "printed marker_total on the same line the whole time.",
         "kind": "comment"
       },
       {
-        "line": 952,
+        "line": 954,
         "text": "These lists carry plain qualname strings, not dicts. Written as",
         "kind": "comment"
       },
       {
-        "line": 953,
+        "line": 955,
         "text": "dicts first, which printed a traceback on the very first run - the",
         "kind": "comment"
       },
       {
-        "line": 954,
+        "line": 956,
         "text": "shape is worth reading rather than assuming.",
         "kind": "comment"
       },
       {
-        "line": 1021,
+        "line": 1023,
         "text": "flush=True, and it matters. Python block-buffers stdout when it is",
         "kind": "comment"
       },
       {
-        "line": 1022,
+        "line": 1024,
         "text": "not a TTY, and this process then blocks in serve_forever() without",
         "kind": "comment"
       },
       {
-        "line": 1023,
+        "line": 1025,
         "text": "ever flushing - so `memway console > log` produced ZERO bytes while",
         "kind": "comment"
       },
       {
-        "line": 1024,
+        "line": 1026,
         "text": "the server was up and listening, and the single-session token, which",
         "kind": "comment"
       },
       {
-        "line": 1025,
+        "line": 1027,
         "text": "exists nowhere else, was unobtainable. Measured in the 0.54.0",
         "kind": "comment"
       },
       {
-        "line": 1026,
+        "line": 1028,
         "text": "acceptance: the banner only appeared under `python -u`.",
         "kind": "comment"
       },
       {
-        "line": 1049,
+        "line": 1051,
         "text": "The three read doors that existed over MCP and --json but not here.",
         "kind": "comment"
       },
       {
-        "line": 1050,
+        "line": 1052,
         "text": "verify-change is the one that mattered: the pre-commit hook had",
         "kind": "comment"
       },
       {
-        "line": 1051,
+        "line": 1053,
         "text": "nothing readable to call.",
         "kind": "comment"
       },
       {
-        "line": 1125,
+        "line": 1127,
         "text": "Flags lifted out of argv before dispatch, each declaring which commands",
         "kind": "comment"
       },
       {
-        "line": 1126,
+        "line": 1128,
         "text": "may receive it. Module level so a test can read them - and one does:",
         "kind": "comment"
       },
       {
-        "line": 1127,
+        "line": 1129,
         "text": "test_every_documented_flag_is_receivable walks the usage text above and",
         "kind": "comment"
       },
       {
-        "line": 1128,
+        "line": 1130,
         "text": "checks every flag it advertises against this table and against the",
         "kind": "comment"
       },
       {
-        "line": 1129,
+        "line": 1131,
         "text": "command's own parser.",
         "kind": "comment"
       },
       {
-        "line": 1131,
+        "line": 1133,
         "text": "A FLAG CAN BELONG TO MORE THAN ONE COMMAND. This mapped one owner each",
         "kind": "comment"
       },
       {
-        "line": 1132,
+        "line": 1134,
         "text": "for a year, and `memway viz --force` - a flag printed in viz's own usage",
         "kind": "comment"
       },
       {
-        "line": 1133,
+        "line": 1135,
         "text": "line - was rejected with \"applies to 'pull' only\", because pull happened",
         "kind": "comment"
       },
       {
-        "line": 1134,
+        "line": 1136,
         "text": "to claim --force first. The usage text and the parser disagreed, and the",
         "kind": "comment"
       },
       {
-        "line": 1135,
+        "line": 1137,
         "text": "usage text was right.",
         "kind": "comment"
       },
       {
-        "line": 1143,
+        "line": 1145,
         "text": "D6",
         "kind": "comment"
       },
       {
-        "line": 1146,
+        "line": 1148,
         "text": "Before anything else: --version is the first thing a person types",
         "kind": "comment"
       },
       {
-        "line": 1147,
+        "line": 1149,
         "text": "after installing, and it must not fall through to the usage path",
         "kind": "comment"
       },
       {
-        "line": 1148,
+        "line": 1150,
         "text": "and exit non-zero.",
         "kind": "comment"
       },
       {
-        "line": 1169,
+        "line": 1171,
         "text": "Flags are pulled out before dispatch because COMMANDS entries are",
         "kind": "comment"
       },
       {
-        "line": 1170,
+        "line": 1172,
         "text": "called with positional argv passthrough. Each flag declares which",
         "kind": "comment"
       },
       {
-        "line": 1171,
+        "line": 1173,
         "text": "command owns it; anywhere else it is a typo worth failing on rather",
         "kind": "comment"
       },
       {
-        "line": 1172,
+        "line": 1174,
         "text": "than silently ignoring.",
         "kind": "comment"
       },
       {
-        "line": 1180,
+        "line": 1182,
         "text": "same dash->underscore normalization the bool branch does:",
         "kind": "comment"
       },
       {
-        "line": 1181,
+        "line": 1183,
         "text": "no value flag has a dash today, but --max-age would map to",
         "kind": "comment"
       },
       {
-        "line": 1182,
+        "line": 1184,
         "text": "the kwarg 'max-age' and TypeError at bind() if it did not.",
         "kind": "comment"
       },
       {
-        "line": 1202,
+        "line": 1204,
         "text": "Bare invocation and an explicit --help both ASK for the manual;",
         "kind": "comment"
       },
       {
-        "line": 1203,
+        "line": 1205,
         "text": "only a typo does not. --help is not in COMMANDS, so splitting this",
         "kind": "comment"
       },
       {
-        "line": 1204,
+        "line": 1206,
         "text": "branch without naming it turned `memway --help` into \"unknown",
         "kind": "comment"
       },
       {
-        "line": 1205,
+        "line": 1207,
         "text": "command '--help'\" - caught by four existing tests, which is the",
         "kind": "comment"
       },
       {
-        "line": 1206,
+        "line": 1208,
         "text": "argument for the branch having been one line in the first place.",
         "kind": "comment"
       },
       {
-        "line": 1211,
+        "line": 1213,
         "text": "A TYPO IS NOT A REQUEST FOR THE MANUAL. Both cases printed the",
         "kind": "comment"
       },
       {
-        "line": 1212,
+        "line": 1214,
         "text": "full quickstart, so `memway freshness .` scrolled the whole help",
         "kind": "comment"
       },
       {
-        "line": 1213,
+        "line": 1215,
         "text": "past without ever naming the word it did not recognise - the",
         "kind": "comment"
       },
       {
-        "line": 1214,
+        "line": 1216,
         "text": "reader is left to diff the command list by eye to find out that",
         "kind": "comment"
       },
       {
-        "line": 1215,
+        "line": 1217,
         "text": "`freshness` was the problem. Say what was not understood, offer",
         "kind": "comment"
       },
       {
-        "line": 1216,
+        "line": 1218,
         "text": "the nearest real command, and stop.",
         "kind": "comment"
       },
       {
-        "line": 1230,
+        "line": 1232,
         "text": "Arity is checked BEFORE the call, with bind(), rather than by",
         "kind": "comment"
       },
       {
-        "line": 1231,
+        "line": 1233,
         "text": "catching TypeError around it - catching would also swallow a",
         "kind": "comment"
       },
       {
-        "line": 1232,
+        "line": 1234,
         "text": "TypeError raised deep inside a working command and report it as a",
         "kind": "comment"
       },
       {
-        "line": 1233,
+        "line": 1235,
         "text": "usage error, which is a worse lie than the traceback was.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "6b6532ae712951c6",
+    "comment_hash": "6f261e389661b130",
     "comment_rot": false,
     "sketch": "AAB60hadAANreL6vABPMx0XrAAf4jC5uAAO3xd6WAABgP7/dAAelAgZBAAWMZKo9AAH2J9gbABcbM9yHAA2R2lGjAAPDcpY2AA9JHWg0AAOUHrYjAAm0hCQVAAUQF7u8AASV/QZ9AAKuAl4EAARuOaupAA3GQP+EAArovasyAAhX4nKyAAimYX4BAA58QbtbAAdgfLrVAAXQ6kZBAAARlH3iABHXUmXbAAwHi3k3AAKUCePwAA/GxnlHAAYiPomaAA26R9qKAAez/dHXAAGKOtZLAADMVt/JABc0QOhQAAKPuTGsABttAG/zAAiQAxOIAAGrHlrbAAB6ReMeACBbIg6JAAqqxhmDAAJxDQhzAAd75UerAAWRfBpcAAPA/Q1f",
-    "n_shingles": 9014,
-    "end_lineno": 1244,
-    "loc": 1245,
+    "n_shingles": 9033,
+    "end_lineno": 1246,
+    "loc": 1247,
     "complexity": 227
   },
   "C-6428bb": {
@@ -17678,7 +17698,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_verify_change",
     "path": "memway/cli.py",
-    "lineno": 878,
+    "lineno": 880,
     "body_hash": "500ed871b20c139c",
     "parent": "C-642291",
     "signature": "cmd_verify_change(repo)",
@@ -17727,7 +17747,7 @@
     "comment_rot": false,
     "sketch": "AGMBJfJKALqZ6iKMAC/XtqL/AIjeUGXZAIQk3pIBALRLdXyQAEfre+j6AGH7zVsOAJOfziX9AK2eGoKDAExFeGT9AHvU2h3eACSSoZEmAFAtPheqABmOccvCAFRWHzj3AASV/QZ9AHUH08tAAN2AEUXDARVtNbUyAFazfnDQACvHCiflAAimYX4BAHCJng5aAHsuhlHSALGB9HLQAAHEc5PhAC6yT/y4AIomG7KsADoKRxYoAN4sRV/HARZh8RGsABdDfPfEANA9n8raASP0CdxJAH3G/VN9ABvIp3GPAB6dNcBZAKnaInh5AE/j2jD+ADzIB7dBAJQSPjDzAFzHtVejAeoMSy5KALO2M9YJAT95MDEjAHipiEQ8ABvdv6SW",
     "n_shingles": 458,
-    "end_lineno": 921,
+    "end_lineno": 923,
     "loc": 44,
     "complexity": 11
   },
@@ -18655,7 +18675,7 @@
     "kind": "function",
     "qualname": "memway.cli._version",
     "path": "memway/cli.py",
-    "lineno": 1085,
+    "lineno": 1087,
     "body_hash": "8b964fef5e3a37c5",
     "parent": "C-642291",
     "signature": "_version()",
@@ -18674,7 +18694,7 @@
     "comment_rot": false,
     "sketch": "AP1h35XWAA77Hvn3AOIo0moAAW7Jg1aKAqYjVuAzAjOa8u9YAEZBH6ZLAsXx4lghAKango7WAfFbjvB1AU7rXKLFAFcbHUfsAayxWWLlA/tokgMfAIx4HnlhAPpzzcX1ADrximtSAhnLFYN7Abdd9B5rADQpJDnNAHfHF1cMAHrUZpuQAA49QHuAAhRN4oOAAFKfolTbAAXQ6kZBAQeSLKawAIYCGAxAANXDWy7hAG3ZXE/VAMr1S2J0ABYtI6MuAKnMCDnJAQ/ooh97AJ6sr8wCABKnEHfJABc0QOhQAtLaxuqaBoVYppCLAsL0OaC+ASx+UQFTACwSwwTjAKhDZIgBADjcoDPDAFITAoelAF7x7Jy+A3RHbMWGACNETMJ7",
     "n_shingles": 215,
-    "end_lineno": 1112,
+    "end_lineno": 1114,
     "loc": 28,
     "complexity": 7
   },
@@ -19437,7 +19457,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_lineage",
     "path": "memway/cli.py",
-    "lineno": 481,
+    "lineno": 483,
     "body_hash": "efe4a0655121689e",
     "parent": "C-642291",
     "signature": "cmd_lineage(repo, ref)",
@@ -19450,7 +19470,7 @@
     "comment_rot": false,
     "sketch": "BHhMUepjAB0H3wQNAjdqtAXuAMxkxij9AYc/ptrPAOvgFVjUAJ3+w5SwAOXk39SeAyG2ZRoRAy84uXpIAC8yTBDeAHvU2h3eAQMXpBBxADZTnqflA05QL6k5AW9IlkAnClp2UIExAPQXFmlnAKlWnwbIAb5gfQ/qAu3UPar6AnqPR+J4AA49QHuAAPpmpflsAMqR7889ASTWSPRAAEz9OwI2AXtoilyGALWffLZUAGrj98KgANTofdkSAYUIue2EATTHvxOnAy99R7plAXlks1g3AZq833ouAFxqltk2AzYLHAmeAg4qQdK8AW6ao10uAIOv8okrAjLntcNmAMSF3MGaBvj1NbXhAmcoHmItAcBa9GEbAZxu/z5aBNiQHAbV",
     "n_shingles": 128,
-    "end_lineno": 496,
+    "end_lineno": 498,
     "loc": 16,
     "complexity": 6
   },
@@ -23828,7 +23848,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_evidence",
     "path": "memway/cli.py",
-    "lineno": 782,
+    "lineno": 784,
     "body_hash": "ac4976e730471ab9",
     "parent": "C-642291",
     "signature": "cmd_evidence(repo, ref, which)",
@@ -23852,7 +23872,7 @@
     "comment_rot": false,
     "sketch": "AFMpddmgABTYJhW1AE/CAoYPAMaiMbdYABZEJbk5AOvgFVjUAEfre+j6AFXBWAavAAQXfZfxADJ3hmV4AllsYaqWAA4cv4n+AH+hxXIAADZTnqflAQMIA89cATL2SiaLAvrWvIKCADNAcCjwAODhK6yNAGFJrL5LAArovasyANpkW60XACUgYx3IAEZsWU0nABSuuSitAAkdz6FRAABNM8VdADESGJ0RABni5Z0pADyPwjkhABdI/MIAAaZOT4wpAA26R9qKAQ7TTtQRAAGKOtZLADyuQlpfAK7HEwVUAAwjKwREABttAG/zAIIxBizlAIi+ro60ACeP42pmAgik/mNDAEuNXvdRAQGDxDA6AeiiNTHMASOS/y4MAPWfX647",
     "n_shingles": 477,
-    "end_lineno": 831,
+    "end_lineno": 833,
     "loc": 50,
     "complexity": 16
   },
@@ -27045,7 +27065,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_setup",
     "path": "memway/cli.py",
-    "lineno": 652,
+    "lineno": 654,
     "body_hash": "71946d7fd87d3cf0",
     "parent": "C-642291",
     "signature": "cmd_setup(repo)",
@@ -27074,7 +27094,7 @@
     "comment_rot": true,
     "sketch": "AON8Pf+eAD0G9weJAHiZHM7HAB5uUxkGAJD/FRu1AVSlRc38Ans8wZL8ACf+Svv6ACJCLwOxAB2m9CXMAjVdYEGjAHFGO3eBAPM5lKnyAFAtPheqAKMuQWOVBZ045qiKAnSaGYWhAIK88u0RAIPytUc+AZsRY/FkAu3UPar6AX2s6yhdAA49QHuAAWvZueVbAEmRrhY0ApDcknGFAC4/IoDCAJoCEBf2AE8M7cydArCp7mXNAGULDdVIAE+u34cmA9M+jT+GAAez/dHXAOm+grvTAMprEcTvA0WovcC7AQ3f78lBANN7HqLdAMkj0N39ALp4TxOdABMbqwHkA3xj90vlARgf3vGYATdgFOHdAq2iKxALATQTN5n1AginPSpg",
     "n_shingles": 263,
-    "end_lineno": 679,
+    "end_lineno": 681,
     "loc": 28,
     "complexity": 5
   },
@@ -28986,7 +29006,7 @@
     "kind": "function",
     "qualname": "memway.cli.plan_rules_write",
     "path": "memway/cli.py",
-    "lineno": 621,
+    "lineno": 623,
     "body_hash": "5994a00807c06b91",
     "parent": "C-642291",
     "signature": "plan_rules_write(path, doc)",
@@ -29008,7 +29028,7 @@
     "comment_rot": false,
     "sketch": "AZGNzv6+ANKOmWFnAHiZHM7HAAmjSwm8AARXdiTQALy9Lb5PAdMtqwosAQ+c8A39A+JwGJZQAmFzUzAhAKqd/TWvAHvU2h3eAA9JHWg0ANnJi6OuAAm0hCQVAId2GwQtAETIoGorAzJE2QiaA81BNgVvApzBT2CiAqQzVMz9A15tZ+wgAA49QHuAAWvZueVbAitkhkUvAi7wG73ZAW32DfP4AHoXknBkAhrv6jetAmhHkJ5rAWh2gVaGAAYiPomaAJ/8NrHGALZmdvXcApwek30FASNOr2xZADoDRqFIAiZtskoIAFfqbUDqAR4MxV8VAaxwKPcyAFobBJlZAFzHtVejAEuNXvdRABe5heuqACSdheJVAJFT2KB6ATWGyJff",
     "n_shingles": 226,
-    "end_lineno": 639,
+    "end_lineno": 641,
     "loc": 19,
     "complexity": 8
   },
@@ -29633,7 +29653,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_mcp",
     "path": "memway/cli.py",
-    "lineno": 718,
+    "lineno": 720,
     "body_hash": "5e4c3eafe9d2d86c",
     "parent": "C-642291",
     "signature": "cmd_mcp(repo)",
@@ -29652,7 +29672,7 @@
     "comment_rot": false,
     "sketch": "AYAZmX0oAunMUmkPAx3Xuy4QAuJ71nsXAJEVGWp7ArdVFradAns8wZL8AWtkvufYAzXNbAP+ASxTrpT5BUwx773YAHvU2h3eAPM5lKnyANnJi6OuAKMuQWOVALeZ1Pt8AL5K8wAcCM+nNQiTAIk2YkhFBnGcrZgMAgqzbM4lAnqPR+J4AA49QHuAAG8UJNSzBq3o8q7QBIm6G0PuAdG3m0WeA3Qp/xoNA2IDpxXwAJYM2j94AUA7SwueA0TJBG/yAr/1TcbHATz67/JvBBBYp5R1AKUJB/VIAToYnIJfAf2zEbVQCJLHypwIA2bDWTwTBXv6Oh5gAHei1INVA7mfiOeiAhwnX4sKBCSbWKLMAq8bdxEdAozvC8wTAZA2lPad",
     "n_shingles": 93,
-    "end_lineno": 725,
+    "end_lineno": 727,
     "loc": 8,
     "complexity": 2
   },
@@ -31094,7 +31114,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_before_edit",
     "path": "memway/cli.py",
-    "lineno": 852,
+    "lineno": 854,
     "body_hash": "dcd6759705149249",
     "parent": "C-642291",
     "signature": "cmd_before_edit(repo, ref)",
@@ -31113,7 +31133,7 @@
     "comment_rot": false,
     "sketch": "AOumG128ALrY6SiLAGqTSfE2AMxkxij9AATNga1MAGfm7HqxAns8wZL8ABv91CKfAAb+4/WgASeBZfDGAExFeGT9AHvU2h3eA2Pm+1mAATv4LvFJABwklX4LALP0fqpwAASV/QZ9AHUH08tAAARuOaupAFqZGcR1Ae0ON0yjACvHCiflAGpM/HiUAHCJng5aASAT5cNRAVLZtQcmAJFH4kQCAGbZj9o/ABvMIbWPAKG0OnBKADgyEM6MAbhlIXJoAr/1TcbHAQ7TTtQRATMMF1gPAIO+t33EABvIp3GPAYMUdIJXAfsgic/YAFVXKG9DAcW/G2JSAD03UIMbAL1WjuWrAty7gPjvASfJQRrBAllm8GktARcMs0BvAZA2lPad",
     "n_shingles": 257,
-    "end_lineno": 875,
+    "end_lineno": 877,
     "loc": 24,
     "complexity": 9
   },
@@ -34431,7 +34451,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_attention._label",
     "path": "memway/cli.py",
-    "lineno": 955,
+    "lineno": 957,
     "body_hash": "914602007ecaab21",
     "parent": "C-fa20be",
     "signature": "_label(x)",
@@ -34444,7 +34464,7 @@
     "comment_rot": false,
     "sketch": "Af6IfcwoDtUc0NeqBLMK9Xr/GkAeRd+ACHZz46+7F/Mf7sfWE7SRT6lMAc8GZ6EbBCeQoqGaCacUKX9VCNKSGZngAB6V/0fgANvzj0r8AnP/gL68AieaTymbAKuCl5KSCX39V16xAQZzHKUgHeD6zCabAMouIcexEJf4IS5FC/aFfa9sApyT/AJxATnhe3oMHg+NYQpHDY7gjEHiAnemRG8EH3wGKlcFBZSRS1fEA+8BgU9TCRpZj9JVASP1mzAnATPT2XjbAQ/ooh97ACVAguxfA9LPhTFnB+644QAbBSVsM3DoBd/l4PNbGahtqHjSAJmCR2O7CdkBd3TiD68WWdmnBUQCGHw4BXJuBwxzEvcDjWQOFri1kwr0AtJu2gmA",
     "n_shingles": 36,
-    "end_lineno": 957,
+    "end_lineno": 959,
     "loc": 3,
     "complexity": 5
   },
@@ -34749,7 +34769,7 @@
     "kind": "function",
     "qualname": "memway.cli._usage_line",
     "path": "memway/cli.py",
-    "lineno": 1115,
+    "lineno": 1117,
     "body_hash": "0743dfacbcb89e76",
     "parent": "C-642291",
     "signature": "_usage_line(cmd)",
@@ -34770,7 +34790,7 @@
     "comment_rot": false,
     "sketch": "As23E9l4BJfHn3H1AHV4ewMkBEjzWG8SAC6mqP6lAXXXnyIHAIKitJhoAMM1R9UcC6s6vkobAngpmTf2B144BXJhAHvU2h3eClBED4AQAGHKEkNfAjswzwmoAcmPP7ulANsIweJXA3/vdnNMDA1OqN3TBqyZOaJUALKFs/HHBBweqsb8AA49QHuAAQDjfWokAAdgfLrVAPUp2VL8AFFU45vhALq5y31wAnQ3jV0eDGOrnaTSAcKq+/MwA5fZd1ZnAF07sKsyCGFSVBOYALBZ+RfzAKUJB/VIAtdWsxyZAkeekxNnA3gPl2WnCEXZzIOaAc8yCiw3A5vaONK9AEWNjrA3AEuNXvdRAtfqzUe2AldXsXtbACdRbMzbBAicPok7",
     "n_shingles": 108,
-    "end_lineno": 1122,
+    "end_lineno": 1124,
     "loc": 8,
     "complexity": 5
   },
@@ -37954,7 +37974,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_dig",
     "path": "memway/cli.py",
-    "lineno": 728,
+    "lineno": 730,
     "body_hash": "7dd607d81c7298d9",
     "parent": "C-642291",
     "signature": "cmd_dig(repo, ref)",
@@ -37973,7 +37993,7 @@
     "comment_rot": true,
     "sketch": "AAsnArMMAQJig6e5AHiZHM7HAFX3zpdBAATNga1MALAM1e7PAEfre+j6AE0MdV6iAAH2J9gbAEaIEvC2AVUV5oNIAHvU2h3eAUgPIJIsAFAtPheqAEbetyM8AXj5qdicAASV/QZ9AFHaQdYdAInil6j6AEw/ttzbAHrPnHYhANKaZF5nAGpM/HiUAFJGHBVAAECdUIcSAPsx9npjAD7H8Ko8AMOfwHklABni5Z0pAI7mR3OBABX5ElRFADotscSlABdDfPfEAFJsWl82AAGKOtZLANaHjtHLAHPSeRipADET9N1IAN32Lry+ACvkDC9/Ai2ar/1QAKY0f9jlADbm0eAyAEuNXvdRAH8UJyDHAKaAJ+2CACMatafCAOL/w+rL",
     "n_shingles": 503,
-    "end_lineno": 779,
+    "end_lineno": 781,
     "loc": 52,
     "complexity": 18
   },
@@ -38574,7 +38594,7 @@
     "kind": "function",
     "qualname": "memway.cli._running_from_source",
     "path": "memway/cli.py",
-    "lineno": 1058,
+    "lineno": 1060,
     "body_hash": "0f5b67890601126d",
     "parent": "C-642291",
     "signature": "_running_from_source()",
@@ -38593,7 +38613,7 @@
     "comment_rot": false,
     "sketch": "AFAHbXpZAPQaV9+mAHV4ewMkAMaiMbdYA9xAzy0SAbSh+xM5APNpZY9xAEVHWJLqAbmYXh7QANX+4nK1AleKowTvAJVhFlYtABAm/5OfAAOUHrYjAzdaXI8qB4ebkiCtAkz68qfrAY3cARUwATz4VatGBlVXmwihAU06SvPmALkEDU89AAnA765oABIdhBXpAHvw1OgqAe//qcJqAJhOfkcDBFK6wrH+ATIgxcEXAUp6sxXXBOxtxqR+AinEqiTaCZy7hmCRASEPgifWAesSt74wAqeCcN9XASxPEVG4AIW3FBBaAwhg5zXOAJcJoN1bAqH/JYv1ACwSwwTjAjYlZHppATOqDJknAQ1qJwRnAJufnO2sAL8QNTvLAOgpD5N5",
     "n_shingles": 130,
-    "end_lineno": 1068,
+    "end_lineno": 1070,
     "loc": 11,
     "complexity": 2
   },
@@ -38680,7 +38700,7 @@
     "kind": "function",
     "qualname": "memway.cli.main",
     "path": "memway/cli.py",
-    "lineno": 1141,
+    "lineno": 1143,
     "body_hash": "35c58ee899dc0e4e",
     "parent": "C-642291",
     "signature": "main()",
@@ -38824,7 +38844,7 @@
     "comment_rot": false,
     "sketch": "ACrHO02sACyGMlIBABPMx0XrABYzHNsjAD+IINQMAEPs7SbRAEgJKp7uAKvIh6w1AAH2J9gbADWydM/WAD3KHM+PAEqWQFmDAD4MxHQ9ABhBTVpwAHjYalhjACRkV98HAFqcVF+VAKMihmQuAIChdx8CAIjoCFwQADJi2zCKAAhX4nKyAA49QHuAAA58QbtbALRju7w7AFsSQ6huAFcib9NvABVNOoTwAAwHi3k3ABhUOUjwAGd/tX1MADZprAm8AE2oD8BjAFSePw1EAA/jeYmFABryCzMcADWPbdtVAFNYftySAB4tuO0tAFoI+TajAH58bIUKADvVV0wfACu+y20rAJzGWGI3ABlVxFIZACq/9KrYAFaAou9CAAhQZgxZ",
     "n_shingles": 900,
-    "end_lineno": 1240,
+    "end_lineno": 1242,
     "loc": 100,
     "complexity": 24
   },
@@ -42475,7 +42495,7 @@
     "kind": "function",
     "qualname": "memway.cli.managed_block",
     "path": "memway/cli.py",
-    "lineno": 583,
+    "lineno": 585,
     "body_hash": "962291cdbdcb1f4c",
     "parent": "C-642291",
     "signature": "managed_block(text)",
@@ -42496,7 +42516,7 @@
     "comment_rot": false,
     "sketch": "B1b+mqMnBQMm9zI5BVmvDHBGEZYkYjoTAa5/BhSbEn6UgXZsAns8wZL8AQX8wvc7AQLbiv6rAR4Cf+CZAGIYBUVVBCim/1FmAyBSxA/cAScqe6xQALyupKncBSyMyyKOAlZCUs1tAKMeGiYgAwJqro/1BrBqWPdCA7mrtTGAAov7B7G+AEw1W4S2AVis28w/Fdm3Ru/UAVvbSWEMANNbaRPSBOg6V2+jAhrv6jetA+oTWmT1AeftlRdFAQehS5RaCf83g4chAFu4n+iTBe67V5uLAjreqWzAA4vMOycqAT+kJ0I7AIEasI+XAdHhbGWVA5Uq60lFAdILrxsaBtJoI8d1AMmJd82CAai42kh7ECelKuLJAA0/Ccd0BQvoVU4r",
     "n_shingles": 67,
-    "end_lineno": 589,
+    "end_lineno": 591,
     "loc": 7,
     "complexity": 3
   },
@@ -42990,7 +43010,7 @@
     "kind": "function",
     "qualname": "memway.cli.cmd_attention",
     "path": "memway/cli.py",
-    "lineno": 924,
+    "lineno": 926,
     "body_hash": "eea1804261bdd692",
     "parent": "C-642291",
     "signature": "cmd_attention(repo)",
@@ -43054,7 +43074,7 @@
     "comment_rot": false,
     "sketch": "AGMKWtc7ACrYQQTfAQLQIY1TAENYMD4GAC//zT1iAMUTzWC2AENan3VQAC8YFP0CAGVSH1s3AOwqI4NCABNq3M0kABb4XVO8ANvzj0r8AX1yvFUrAJV2exPzAFRWHzj3AASV/QZ9AHUH08tAAIOHjUhFAMouIcexAH8gsZfvANS9FkvgAOJdpYMHAHCJng5aAH2MhgqhARUgmPB2ADAUxPITALq5y31wAIomG7KsAGEym2EJAL6lxZxzAILNALS/ATPT2XjbAQ7TTtQRACVAguxfAADMVt/JAO04okBSAD+gu/3fAlOtLwkAABNyLqpdACTch8KBAJNAM9TWAFzHtVejAFo+EsgOARPGMByuAbxyKontADk0lIbWAA+owB9y",
     "n_shingles": 440,
-    "end_lineno": 965,
+    "end_lineno": 967,
     "loc": 42,
     "complexity": 14
   },

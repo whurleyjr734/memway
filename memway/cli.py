@@ -376,8 +376,10 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
     """
     # import, do not duplicate: this list had drifted from metadata.CHANNELS
     # and omitted 'confirm', which is the ONLY way to clear a comment-rot
-    # flag (see query.before_edit). Rot was therefore permanent for anyone
-    # working through the CLI, while agents on MCP could clear it fine.
+    # flag - the rule is metadata.rot_is_answered, asked by attention,
+    # before_edit and verify_change alike since 0.55.4. Rot was therefore
+    # permanent for anyone working through the CLI, while agents on MCP
+    # could clear it fine.
     from .metadata import CHANNELS, stamp_for
     if channel not in CHANNELS:
         raise SystemExit(f'unknown channel {channel!r} - '

@@ -1,0 +1,1 @@
+{"ts": "2026-08-17T04:16:49Z", "author": "cli", "text": "Re-read 2026-08-17. Same D11 refinement, same verification: is_test_entity gates the set this method uses for fan-in, so the comment describes the code beside it. Flagged by body churn across 0.55.x rather than by any drift in what it asserts.", "body_hash": "60578b7c7c0fd0a2"}
