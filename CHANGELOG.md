@@ -7,6 +7,73 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.4] - 2026-08-16
+
+Theme: **comment rot rides the commit.**
+
+**From this release, comment rot is caught at the commit that causes it;
+the pre-existing backlog is the last one.** The detection has worked
+since 0.53 — it was only ever reported to a queue somebody had to
+remember to visit, so 49 rots accumulated on this repo while every
+release closed clean. The backlog is now finite and shrink-only.
+
+### Added
+
+- **`verify_change` reports `rotted_comments`**, mirroring
+  `staled_knowledge`: a change invalidates two things — the knowledge
+  attached to the map, and the comments sitting in the source. Both are
+  now named at the moment the author still has the reasoning in their
+  head.
+- **Scoped to `changed_ids` only.** The backlog stays in `memway
+  attention`. A commit-time report that listed all 49 pre-existing rots
+  would be scrolled past within a week — `attention` read 43 when 3 were
+  actionable and stopped being worked, and that lesson cost a release.
+  `attention` is a queue you visit; this is an alarm, and an alarm that
+  fires on other people's work is not an alarm.
+- **The pre-commit hook greps for both sections.** It named
+  `STALED KNOWLEDGE` alone, so a rot section would have printed into a
+  pipe nobody reads. `hooks install` upgrades an existing block in place —
+  the 0.55.0 marker machinery, cashed in.
+- **Three outs, printed as actions**: edit the comment, record a
+  `confirm` ("read it, the logic moved, the comment is accurate"), or
+  accept it and let it ride to `attention`. Never blocking. What the
+  ceremony refuses is walking past it in silence.
+
+### Fixed
+
+- **`attention` truncated comment rot silently.** It returned
+  `rot[:limit]` with no total while `markers` — built into the same
+  payload three lines away — had shipped `marker_total` all along. This
+  repo reported "comment rot: 20" for releases; **the true backlog is
+  49**, and two independent readers on one day reported 20 and 10
+  believing both were totals. Now `comment_rot_total`, printed as
+  `comment rot: 49 (showing 20)`.
+
+### Modules are re-routed, not dismissed
+
+`rotted_comments` skips module entities at the commit surface only. A
+module's logic hash aggregates its contents, so it moves on any change to
+the file — a confirm recorded against it stales on your next commit and
+the same warning returns forever. An unanswerable warning is one people
+learn to scroll past. Modules keep their rot in `memway attention`, where
+16 of this repo's 49 backlog entries are module-level.
+
+### One rule, one implementation
+
+The confirm-suppression test lived **inline in three places** — this was
+found, not assumed: extracting it as `metadata.rot_is_answered` and
+adding the structural pin immediately surfaced a third copy in
+`before_edit` that nobody knew about. `attention`, `before_edit` and
+`verify_change` now all ask it.
+
+### Dogfood note
+
+The ceremony caught this release. Running `verify-change` before the
+commit reported 5 rotted comments and 3 staled entries in 0.55.4's own
+diff — including `pre_commit_block_for`, whose docstring still said
+"Report what you staled" after the function had started reporting both.
+That comment was edited; four others were confirmed on merit.
+
 ## [0.55.3] - 2026-08-16
 
 Theme: **the closure idiom.** A function may call a helper it defines

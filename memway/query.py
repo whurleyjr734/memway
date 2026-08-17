@@ -22,7 +22,7 @@ from pathlib import Path
 from .indexer import Indexer
 from .edges import EdgeBuilder, neighbors
 from .metadata import (MetaStore, stamp_for, accepted_for, for_display,
-                       unsuperseded_stale)
+                       unsuperseded_stale, rot_is_answered)
 from .metrics import MetricsStore
 from .lineage import VersionStore
 
@@ -621,15 +621,14 @@ def before_edit(repo: str, ref: str) -> dict:
             _markers.append({"tag": mk.group(1).upper(), "line": c["line"],
                              "text": mk.group(2)[:120]})
 
-    # Check for comment rot, but suppress if confirmed at current logic_hash
+    # Comment rot, suppressed by a CURRENT confirm - the one rule, asked.
+    # This was the third hand-written copy of it (attention had one, and
+    # verify_change was about to add a fourth); the structural pin in
+    # tests/test_read_fence.py found this one the moment it existed.
     has_rot = bool(getattr(e, "comment_rot", False))
-    if has_rot:
-        # Read meta to check for non-stale confirm entry (stamp matches current logic_hash)
-        _confirm_meta = meta.read_all(e.coord_id,
-                                       current_hash=accepted_for(e))
-        _confirm_entries = _confirm_meta.get("confirm", [])
-        if any(not en.get("stale") for en in _confirm_entries):
-            has_rot = False  # Confirmed at current logic_hash, suppress rot
+    if has_rot and rot_is_answered(
+            meta.read_all(e.coord_id, current_hash=accepted_for(e))):
+        has_rot = False
 
     comments_block = {
         "total": len(getattr(e, "comments", []) or []),
@@ -895,6 +894,57 @@ def verify_change(repo_root, run=False):
                 "text": row.get("text", ""),
             })
     result["staled_knowledge"] = staled
+
+    # Which COMMENTS did this change rot? The same question one layer out:
+    # staled_knowledge asks what the change invalidated in the map, this
+    # asks what it invalidated in the source. Both are caught at the commit
+    # that causes them, which is the only moment the author still has the
+    # reasoning in their head.
+    #
+    # SCOPED TO changed_ids, exactly like staled_knowledge, and this is the
+    # whole design. This repo carries a 49-item rot backlog; a commit-time
+    # report that listed all of it would be scrolled past within a week,
+    # and the ring rule already taught that lesson the expensive way -
+    # attention read 43 when 3 were actionable and stopped being worked.
+    # The backlog lives in `memway attention`, which is a queue you visit.
+    # This is an alarm, and an alarm that fires on other people's work is
+    # not an alarm.
+    #
+    # Free by construction: verify.verify_change calls index(persist=False),
+    # so ix.entities already holds WORKING-TREE entities whose comment_rot
+    # was computed against the stored map. This reports a verdict that was
+    # already sitting there; it computes nothing.
+    # MODULES ARE EXCLUDED HERE AND ONLY HERE. A module's logic hash
+    # aggregates its contents, so it moves whenever ANY function in the
+    # file changes - which means a module rot cannot be answered: the
+    # confirm you record stales on your next commit to that file, and the
+    # same warning returns forever. A warning that cannot be cleared is
+    # one people learn to scroll past, and this alarm has exactly one
+    # chance to be worth reading.
+    #
+    # They are NOT dismissed, only re-routed: modules still carry rot in
+    # `memway attention`, where 16 of this repo's 49 backlog entries are
+    # module-level and get worked deliberately rather than shouted at
+    # every commit. Measured on 0.55.4's own ceremony: 5 rots reported, 3
+    # of them modules, none of the three actionable in that moment.
+    rotted = []
+    for cid in dict.fromkeys(result.get("changed_ids", [])):
+        ent = ix.entities.get(cid)
+        if not ent or not getattr(ent, "comment_rot", False):
+            continue
+        if ent.kind == "module":
+            continue
+        if rot_is_answered(meta.read_all(cid, accepted_for(ent))):
+            continue
+        rotted.append({
+            "coordinate": cid,
+            "qualname": ent.qualname,
+            "path": ent.path,
+            "line": ent.lineno,
+            "comments": [c.get("text", "") for c in
+                         (getattr(ent, "comments", None) or [])][:3],
+        })
+    result["rotted_comments"] = rotted
     return result
 
 
@@ -972,13 +1022,22 @@ def attention(repo_root, limit=20):
     rot = []
     for e in ix.entities.values():
         if getattr(e, "comment_rot", False):
-            # Check for non-stale confirm entry
-            _confirm_meta = meta.read_all(e.coord_id,
-                                           current_hash=accepted_for(e))
-            _confirm_entries = _confirm_meta.get("confirm", [])
-            if not any(not en.get("stale") for en in _confirm_entries):
-                # No current confirmation, include in rot list
+            # ASKED, not restated - the same rule verify_change uses to
+            # report rot at the commit that caused it.
+            md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
+            if not rot_is_answered(md):
                 rot.append(e.qualname)
+    # NO SILENT CAPS. This truncated to `limit` and reported no total,
+    # while markers - built three lines down, into the same payload -
+    # shipped marker_total all along. So a reader saw 20 and could not
+    # tell whether that was the census or the first page of it: this
+    # repo's real backlog was 49, and two independent readers on the same
+    # day reported 20 and 10 as if they were totals. The rest of the
+    # codebase already keeps this rule (downstream's is_lower_bound, the
+    # shallow-clone label on dig, get_parsers naming every skipped
+    # language); one surface in this very function kept it and its
+    # neighbour did not.
+    rot_total = len(rot)
     rot = rot[:limit]
 
     markers = []
@@ -1023,6 +1082,7 @@ def attention(repo_root, limit=20):
 
     return {
         "comment_rot": rot,
+        "comment_rot_total": rot_total,
         "markers": markers[:limit],
         "marker_total": len(markers),
         "stale_design_docs": stale_docs,

@@ -64,7 +64,14 @@ def block_for(exe: str) -> str:
 
 
 def pre_commit_block_for(exe: str) -> str:
-    """Report what you staled, then put the map INSIDE the commit.
+    """Report what you invalidated, then put the map INSIDE the commit.
+
+    BOTH KINDS, since 0.55.4: the knowledge this change staled, and the
+    comments it rotted. The grep names both sections, because one that
+    named only STALED KNOWLEDGE would send the other into a pipe nobody
+    reads - and a report the hook cannot see is a report that does not
+    exist. This docstring said "what you staled" and was caught by the
+    very feature it describes, on the release that added it.
 
     EXITS 0 ALWAYS, on every path: each command carries `|| true` and the
     block adds no exit of its own, so a fresh hook's trailing `exit 0` or
@@ -92,7 +99,11 @@ def pre_commit_block_for(exe: str) -> str:
     """
     return f"""{BEGIN}
 # 1. what did this change invalidate? asked BEFORE the index moves.
-{exe} verify-change . 2>/dev/null | grep -A 99 "STALED KNOWLEDGE" || true
+#    BOTH sections: knowledge the change staled, and comments it rotted.
+#    The grep used to name STALED KNOWLEDGE alone, so the rot section
+#    added in 0.55.4 would have printed into a pipe nobody read - a
+#    report the hook could not see is a report that does not exist.
+{exe} verify-change . 2>/dev/null | grep -E -A 99 "STALED KNOWLEDGE|COMMENT ROT" || true
 # 2. refresh the map and put it IN this commit, so code and map arrive
 #    together. remove with: memway hooks uninstall
 {exe} index . --if-stale --quiet || true

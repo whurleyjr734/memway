@@ -538,3 +538,61 @@ def test_a_CRASHING_drifted_server_still_says_restart_me(monkeypatch,
         f"the crash carried no restart notice - exactly the case the "
         f"handshake exists for. keys: {list(payload)}")
     assert "restart" in payload["server_version_drift"].lower()
+
+
+def test_hooks_install_upgrades_an_OLD_block_in_place(tmp_path):
+    """0.55.4's rot section only reaches a human if the hook's grep is
+    widened - and every repo that ran `hooks install` before this release
+    carries the narrow one.
+
+    This is the marker machinery from 0.55.0 being cashed in: the block
+    between the markers is REPLACED, everything outside it is left alone
+    byte for byte. Without that, the release would ship a report the hook
+    could not see, in every repo that already had memway installed.
+    """
+    from memway.hooks import BEGIN, END
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+
+    hook = r / ".git" / "hooks" / "pre-commit"
+    foreign_top = "#!/bin/sh\n# our own lint gate\nruff check . || exit 1\n\n"
+    foreign_bottom = "\n# and a trailer nobody may touch\necho done\n"
+    old_block = (f"{BEGIN}\n"
+                 f"# 1. what did this change invalidate?\n"
+                 f'"/somewhere/old/memway" verify-change . 2>/dev/null | '
+                 f'grep -A 99 "STALED KNOWLEDGE" || true\n'
+                 f'"/somewhere/old/memway" index . --if-stale --quiet || true\n'
+                 f"git add .coord 2>/dev/null || true\n"
+                 f"{END}")
+    hook.write_text(foreign_top + old_block + foreign_bottom)
+
+    assert _cli("hooks", "install", str(r)).returncode == 0
+    now = hook.read_text()
+
+    assert now.startswith(foreign_top), "foreign content above the block moved"
+    assert now.endswith(foreign_bottom), "foreign content below the block moved"
+    assert now.count(BEGIN) == 1 and now.count(END) == 1, \
+        f"install duplicated the block instead of replacing it:\n{now}"
+    assert "COMMENT ROT" in now, \
+        f"the upgraded block still cannot see a rot section:\n{now}"
+    assert "/somewhere/old/memway" not in now, "stale exe path survived"
+
+
+def test_the_hook_block_greps_for_BOTH_report_sections():
+    """Derived, not restated: the sections the hook looks for must be the
+    sections the printer emits. A grep naming one of them makes the other
+    invisible - which is exactly what 0.55.4 had to widen."""
+    from memway import hooks
+    from pathlib import Path
+    block = hooks.pre_commit_block_for("memway")
+    cli_src = (Path(__file__).resolve().parent.parent
+               / "memway" / "cli.py").read_text()
+    for section in ("STALED KNOWLEDGE", "COMMENT ROT"):
+        assert section in cli_src, \
+            f"the printer no longer emits {section!r}"
+        assert section in block, \
+            f"the pre-commit hook cannot see {section!r}:\n{block}"

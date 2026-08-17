@@ -900,6 +900,25 @@ def cmd_verify_change(repo="."):
             print(f"      {e['text'][:120]}")
     else:
         print("  staled knowledge: none")
+    rotted = r.get("rotted_comments") or []
+    if rotted:
+        # THREE OUTS, and the third is not a loophole. A rot you cannot fix
+        # now is not an emergency: record a confirm ("read it, the logic
+        # moved, the comment is still accurate") and it clears honestly by
+        # suppression, until the logic moves again. Accepting it sends it
+        # to attention, where the backlog is worked deliberately. What the
+        # ceremony refuses to allow is walking past it silently.
+        print(f"  COMMENT ROT ({len(rotted)}) - comments unchanged across a "
+              f"behavior change:")
+        for e in rotted:
+            print(f"    {e['coordinate']}  {e['qualname']}  "
+                  f"{e['path']}:{e['line']}")
+            for c in e.get("comments", [])[:2]:
+                print(f"      {c[:110]}")
+        print("    fix: edit the comment, record a confirm, or accept it "
+              "rides to attention")
+    else:
+        print("  comment rot: none")
 
 
 def cmd_attention(repo):
@@ -917,8 +936,18 @@ def cmd_attention(repo):
     rot = r.get("comment_rot") or []
     docs = r.get("stale_design_docs") or []
     marks = r.get("markers") or []
+    # THE TOTAL, not the length of the page. query.attention truncates
+    # comment_rot to `limit`, so len(rot) was the size of the slice and
+    # got printed as the census: this repo read "comment rot: 20" for
+    # releases while the real backlog was 49, and two independent readers
+    # on one day reported 20 and 10 believing both were totals. markers
+    # printed marker_total on the same line the whole time.
+    rot_total = r.get("comment_rot_total", len(rot))
+    shown = f"comment rot: {rot_total}"
+    if rot_total > len(rot):
+        shown += f" (showing {len(rot)})"
     print(f"stale knowledge entries: {r.get('stale_notes', 0)}")
-    print(f"comment rot: {len(rot)}   design docs drifted: {len(docs)}   "
+    print(f"{shown}   design docs drifted: {len(docs)}   "
           f"markers: {r.get('marker_total', 0)}")
     # These lists carry plain qualname strings, not dicts. Written as
     # dicts first, which printed a traceback on the very first run - the

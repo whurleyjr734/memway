@@ -260,6 +260,30 @@ def test_no_module_reimplements_the_ring_rule():
             f"{f.name} reimplements the reading order; use for_display"
 
 
+def test_no_module_reimplements_the_rot_suppression_rule():
+    """Structural: "a current confirm answers rot" lives in metadata.
+
+    Extracted in 0.55.4 the moment it acquired a second caller. It had
+    lived inline in attention, and verify_change needed the identical
+    test to report rot at the commit that caused it - the same shape that
+    produced the ring-rule bug, the behind-count bug and four spellings
+    of one import. Both callers ask rot_is_answered; nobody re-derives it.
+    """
+    import re
+    # NOT r'\.get\(["\']confirm["\']\)' - that demands a closing paren
+    # immediately after the quote, so it missed `md.get("confirm", [])`,
+    # which is how anyone would actually write the copy. The first draft
+    # of this pin passed against the very sabotage it exists to catch.
+    inline = re.compile(r'\.get\(\s*["\']confirm["\']')
+    for f in (HERE / "memway").glob("*.py"):
+        if f.name == "metadata.py":
+            continue
+        src = f.read_text()
+        assert not inline.search(src), (
+            f"{f.name} reaches into the confirm channel directly: ask "
+            f"metadata.rot_is_answered(md) instead")
+
+
 # ---------------------------------------------------------------- arity
 
 @pytest.mark.parametrize("cmd", ["lineage", "dig", "viz", "meta", "show",

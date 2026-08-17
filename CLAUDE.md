@@ -87,10 +87,21 @@ twice in one evening. That is not discipline failing twice, it is a
 checklist missing a line - nothing between "edits done" and "commit"
 ever asked. So the close now runs, before the commit:
 
-    memway --json verify-change .    # staled_knowledge must be empty
+    memway --json verify-change .    # staled_knowledge AND
+                                     # rotted_comments must be empty
 
-If it is not empty, supersede in the SAME channel first - a confirm does
-not answer a stale note. Detection without a prompt at the right moment
+BOTH LISTS, since 0.55.4. A change invalidates two things: the knowledge
+attached to the map, and the comments sitting in the source. The second
+was detected all along and only ever reported to a queue somebody had to
+remember to visit, so 49 rots accumulated on this repo while every
+release closed clean. Same gate, same moment, and never blocking: a rot
+you cannot fix now takes a `confirm` ("read it, the logic moved, the
+comment is still accurate"), which clears it honestly by suppression
+until the logic moves again. Accepting it sends it to `attention`. What
+the ceremony refuses is walking past it in silence.
+
+If staled_knowledge is not empty, supersede in the SAME channel first - a
+confirm does not answer a stale note. Detection without a prompt at the right moment
 closes nothing, which is the argument the release itself made.
 
 RUN IT BEFORE `memway index`, NOT AFTER. verify_change compares the

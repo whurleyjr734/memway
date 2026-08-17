@@ -134,6 +134,30 @@ def for_display(md: dict) -> list:
     return out
 
 
+def rot_is_answered(md: dict) -> bool:
+    """Does a CURRENT confirm answer this entity's comment rot?
+
+    THE ONE SUPPRESSION RULE. Comment rot says "the logic moved and the
+    comments did not"; a confirm says "I read them, they still describe
+    this". The confirm is hash-stamped like any entry, so it answers only
+    until the logic moves again - which is what makes this honest rather
+    than a mute button.
+
+    Pass the output of MetaStore.read_all(cid, accepted_for(entity)); the
+    staleness flags must already be applied or every old confirm counts.
+
+    Extracted in 0.55.4 because it was about to have a second copy. This
+    rule lived inline in attention, and verify_change needed exactly the
+    same test to report rot at commit time. Every defect this project
+    found in the preceding four releases had that shape: the ring rule
+    hand-rolled in the queue, the .coord exclusion missed by a second
+    commit count, one metadata import written four ways. A rule with two
+    call sites gets one implementation, before the copies drift and not
+    after.
+    """
+    return any(not en.get("stale") for en in md.get("confirm", []))
+
+
 def unsuperseded_stale(knowledge: list) -> list:
     """THE ONE RING RULE, as rows: the entries that are stale AND decisive.
 

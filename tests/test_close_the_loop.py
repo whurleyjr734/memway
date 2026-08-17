@@ -404,3 +404,149 @@ def _raw_stale_count(repo) -> int:
         md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
         n += sum(1 for ens in md.values() for en in ens if en.get("stale"))
     return n
+
+
+# ------------------------------------------ comment rot rides the commit
+
+ROT_BEFORE = '''def widget(x):
+    """Sums the list by looping."""
+    # walks each element and accumulates
+    total = 0
+    for i in x:
+        total += i
+    return total
+
+
+def elsewhere(y):
+    """Doubles it."""
+    # this one is never touched
+    return y * 2
+'''
+
+ROT_AFTER = '''def widget(x):
+    """Sums the list by looping."""
+    # walks each element and accumulates
+    return sum(x)
+
+
+def elsewhere(y):
+    """Doubles it."""
+    # this one is never touched
+    return y * 2
+'''
+
+
+def _rot_repo(tmp_path):
+    """A repo carrying PRE-EXISTING rot, so scoping can be tested.
+
+    elsewhere is rotted first and left alone. Any later change must NOT
+    re-report it - a fixture with only the freshly-rotted entity would
+    pass a scoping bug that dumped the whole backlog.
+    """
+    r = tmp_path / "proj"
+    r.mkdir()
+    (r / "m.py").write_text(ROT_BEFORE)
+    _git(r, "init", "-q", "-b", "main")
+    _git(r, "add", "-A")
+    _git(r, "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "one", "--no-gpg-sign")
+    assert _cli("init", str(r)).returncode == 0
+    # rot `elsewhere` and BANK it into the map: logic moves, comment does not
+    (r / "m.py").write_text(ROT_BEFORE.replace("return y * 2",
+                                               "return y + y"))
+    assert _cli("index", str(r)).returncode == 0
+    return r
+
+
+def test_a_change_reports_the_comments_IT_rotted(tmp_path):
+    """Caught at the commit that causes it, while the author still has
+    the reasoning in their head - the same moment, and the same scoping,
+    as staled_knowledge."""
+    r = _rot_repo(tmp_path)
+    backlog = query.attention(str(r))["comment_rot_total"]
+    assert backlog >= 1, "fixture did not bank any pre-existing rot"
+
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    v = query.verify_change(str(r))
+    names = {e["qualname"] for e in v["rotted_comments"]}
+    assert any(n.endswith("widget") for n in names), (
+        f"the change rotted widget's comments and said nothing: {names}")
+
+
+def test_it_does_NOT_report_the_pre_existing_backlog(tmp_path):
+    """THE SCOPING HALF. attention read 43 when 3 were actionable and
+    stopped being worked; a commit-time alarm that fires on other
+    people's rot dies the same way, faster."""
+    r = _rot_repo(tmp_path)
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    v = query.verify_change(str(r))
+    names = {e["qualname"] for e in v["rotted_comments"]}
+    assert not any(n.endswith("elsewhere") for n in names), (
+        f"the backlog leaked into the commit report: {names}. Scope to "
+        f"changed_ids; the backlog belongs to `memway attention`.")
+
+
+def test_a_current_confirm_answers_rot_at_commit_time(tmp_path):
+    """Same suppression the queue uses, one implementation."""
+    r = _rot_repo(tmp_path)
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    # NO index here. verify_change reports what moved against the STORED
+    # map, so re-indexing first empties changed_ids and the report goes
+    # quiet - which is the same ordering trap CLAUDE.md lesson 9 records
+    # for staled_knowledge, met here from the other side.
+    before = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    out = _cli("meta", str(r), "widget", "confirm",
+               "read it: logic moved to sum(), the comment still describes it")
+    assert "added confirm entry" in out.stdout, out.stdout + out.stderr
+    after = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    assert any(n.endswith("widget") for n in before), before
+    assert not any(n.endswith("widget") for n in after), (
+        f"a current confirm must answer rot: {after}")
+
+
+def test_attention_reports_the_total_not_the_page(tmp_path):
+    """No silent caps. This printed the length of the truncated slice as
+    if it were the census - 20 against a real backlog of 49 - while
+    markers shipped marker_total on the same line all along."""
+    r = _rot_repo(tmp_path)
+    a = query.attention(str(r), limit=1)
+    assert "comment_rot_total" in a, sorted(a)
+    assert len(a["comment_rot"]) <= 1, a["comment_rot"]
+    assert a["comment_rot_total"] >= len(a["comment_rot"])
+    full = query.attention(str(r), limit=10000)
+    assert a["comment_rot_total"] == len(full["comment_rot"]), (
+        f"total {a['comment_rot_total']} disagrees with the full list "
+        f"{len(full['comment_rot'])}")
+
+
+def test_module_rot_stays_out_of_the_commit_report_but_not_the_queue(tmp_path):
+    """Both directions, because either alone passes a wrong rule.
+
+    A module's logic hash aggregates its contents, so it moves on any
+    change to the file - a confirm recorded against it stales on the next
+    commit and the warning returns forever. Unanswerable warnings train
+    people to scroll, and this alarm gets one chance.
+
+    But re-routed, never dismissed: `attention` must still carry them, or
+    the filter has quietly deleted 16 of this repo's 49 known rots.
+    """
+    r = _rot_repo(tmp_path)
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    v = query.verify_change(str(r))
+    kinds = {e["qualname"]: e for e in v["rotted_comments"]}
+
+    assert any(n.endswith("widget") for n in kinds), (
+        f"the function rot must still fire: {sorted(kinds)}")
+    assert not any(n == "m" or n.endswith(".m") for n in kinds), (
+        f"a module rot reached the commit report: {sorted(kinds)}")
+
+    # ...and the queue still knows about it
+    assert _cli("index", str(r)).returncode == 0
+    a = query.attention(str(r), limit=10000)
+    assert any(q == "m" or q.endswith(".m") for q in a["comment_rot"]), (
+        f"the filter deleted module rot instead of re-routing it: "
+        f"{a['comment_rot']}")
