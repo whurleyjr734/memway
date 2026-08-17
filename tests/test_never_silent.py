@@ -694,21 +694,40 @@ def test_unresolved_references_make_the_radius_a_lower_bound(tmp_path):
         "a name the resolver can see must not count as unresolved - "
         "refusals are decisions, not blind spots")
 
-    # Now register it the way JavaParser does: the entity carries an arity
-    # suffix and the INDEX knows it only by that name, while the emitted
-    # reference stays bare. Mutating the entity alone does not reproduce
-    # the condition - by_qualname must move too, or resolve() still finds
-    # it and there is no blind spot to detect.
+    # THE ARITY SPELLING IS NO LONGER A BLIND SPOT - 0.56.0 closed it.
+    # Registered as `helper/1` against a bare emitted `helper`, this used
+    # to be unreachable and the counter's whole purpose; refs.base_of now
+    # reconciles both ends, so the resolver finds it and there is nothing
+    # to report. This assertion is the regression guard for that fix.
     old_q = helper.qualname
     helper.qualname = old_q + "/1"
     ix.by_qualname.pop(old_q, None)
     ix.by_qualname[helper.qualname] = helper.coord_id
-    assert ix.resolve("helper") is None, \
-        "fixture did not reproduce the blind spot: the name still resolves"
+    ix.__dict__.pop("_suffix_index", None)
+    assert ix.resolve("helper") is not None, (
+        "a disambiguated registration must be reachable from a bare "
+        "reference - this is what one-name-one-producer bought")
+    assert _unresolved_refs_to(ix, edges, helper) == 0, (
+        "the arity spelling is reconciled now; counting it as a blind "
+        "spot would re-report a defect that no longer exists")
 
-    assert _unresolved_refs_to(ix, edges, helper) >= 1, (
-        "a name spelled one way in the index and another in the emitted "
-        "reference is a blind spot and must be counted")
+    # AND THE LIMIT, asserted rather than assumed. A spelling refs does
+    # NOT know cannot be detected: to see that an emitted `helper` should
+    # have reached `helper@1`, something must already know `@` introduces
+    # a disambiguator - which is the very knowledge refs is the sole
+    # holder of. So an unknown convention is invisible here, and the guard
+    # against one is refs being the only place a suffix is produced, not
+    # this counter noticing afterwards.
+    #
+    # Written down because the first draft of this test asserted the
+    # opposite and could never have passed.
+    helper.qualname = old_q + "@1"
+    ix.by_qualname.pop(old_q + "/1", None)
+    ix.by_qualname[helper.qualname] = helper.coord_id
+    ix.__dict__.pop("_suffix_index", None)
+    assert _unresolved_refs_to(ix, edges, helper) == 0, (
+        "this counter is not a general desync detector and must not be "
+        "documented as one - see refs.py for the actual guarantee")
 
 
 def test_the_count_actually_reaches_the_briefing(tmp_path, monkeypatch):

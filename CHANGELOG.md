@@ -7,6 +7,84 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-08-17
+
+Theme: **one name, one producer.**
+
+A qualname can carry a disambiguator — Java overloads register as
+`Type.method/2`, same-named Python defs as `name#3` — and those two
+suffixes were produced in two different layers by two pieces of code that
+had never heard of each other:
+
+```
+parsers.py:670   q = f"{owner}.{name}/{a}"        the Java PARSER
+indexer.py:747   qualname = f"{qualname}#{occ}"   the REGISTRY
+```
+
+Meanwhile every call target was emitted **bare**. The registry stored one
+spelling and the emitter wrote another, and resolution compared the wrong
+ends. Neither suffix was wrong; both disambiguate real ambiguity. The
+defect was that only one side of the conversation knew the convention.
+
+`refs.py` is now the only place a reference is spelled — `render`,
+`base_of`, `short_of`, `arity_of` — called by the parsers, the registry,
+the resolver, the verifier and probe alike.
+
+### Fixed
+
+- **Java call edges reach methods.** Measured on google/gson at the same
+  clone: resolved call edges **1,770 → 4,919**, of which **3,150 are
+  `method → method` where there were zero**. `Gson.newJsonWriter/1` reads
+  **callers 7, blast 34** where it read `0` and `0`. The remaining 1,769
+  `method → class` are constructor calls, which correctly target types.
+  Arity comes from the **argument count at the call site**, so the
+  overload actually called is the one that resolves — and the edge is
+  `resolution: exact`, not a bare-name guess.
+- **`@overload` stubs no longer steal the call.** Python occurrence
+  numbering happens **once, in the parser**, read by both the entity walk
+  and the call attribution. `Response.iter_content#3 → generate` resolves;
+  previously the call was credited to the first stub and the real
+  implementation showed no edge.
+- **A bare name reaches a disambiguated registration.**
+  `memway show gson upperCaseFirstLetter` answers instead of claiming no
+  entity matches.
+- **`Entity(**e)` ignores fields it does not know** — the last unguarded
+  door of the `via_attr` class. `load_raw_edges` learned this in 0.54.3
+  after a long-running MCP server died on
+  `unexpected keyword argument 'via_attr'`; its sibling never did.
+  Verified before fixing: `Entity(**e)` with an unknown key raised.
+  **It ships a release BEFORE the field it exists to permit** (`surface_hash`,
+  0.56.1), because the filter lives in the reader and only helps builds
+  that already have it.
+
+### Corpus floors, re-measured
+
+| repo @ sha | recall | floor | closure misses | ceiling |
+|---|---|---|---|---|
+| psf/requests @ 8068356 | **98%** | 96% | **0** | 1 |
+| pallets/click @ cbd7a41 | **70%** | 68% | **0** | 1 |
+| Textualize/rich @ 9d8f9a3 | **98%** | 96% | **0** | 1 |
+
+The oracle itself had to be normalised through `refs`: keyed on the raw
+last segment it read `iter_content#3` where the ast oracle said
+`iter_content`, which moved requests from 98% to 94% and looked exactly
+like a regression.
+
+### Schema
+
+**`PARSE_SCHEMA_VERSION` 6 → 7.** Verified, not reasoned: the cache
+stores raw edges *and* entities, so patching the emitter with a warm
+cache yielded the OLD `dst_ref` and the new one only after clearing it.
+Existing maps re-parse once on first index under this release.
+
+### Known limit, asserted rather than assumed
+
+The unresolved-reference counter added in 0.55.5 **cannot see a
+disambiguator `refs` does not know** — recognising an unfamiliar suffix
+requires already knowing it is one. The guarantee against that class is
+`refs` being the sole producer, not the counter noticing afterwards. A
+test asserts the limit so it cannot be sold as a general desync detector.
+
 ## [0.55.5] - 2026-08-17
 
 Theme: **stop being wrong quietly.** Four fixes, each closing a case

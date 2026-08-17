@@ -622,3 +622,135 @@ def test_a_sibling_closure_can_call_a_helper_of_the_same_parent(tmp_path):
     good = [e for e in edges if e["src"] == inner and e["dst"] == helper
             and e.get("kind") == "calls"]
     assert good, "a sibling closure is in scope and must resolve"
+
+
+def test_a_java_call_reaches_the_METHOD_it_names(tmp_path):
+    """gson-shaped. Java registers overloads as Type.method/arity while
+    the emitter wrote a bare name, so the two could never meet: measured
+    on google/gson, 0 of 1770 resolved call edges reached a method and
+    every Java method read "callers 0, blast 0".
+
+    Both ends now come from refs.render - the registration from the
+    declaration's parameter count, the reference from the ARGUMENT count
+    at the call site - so the overload actually called is the one that
+    resolves.
+    """
+    pytest.importorskip("tree_sitter_java")
+    ix, eb, edges = _edges_for(tmp_path, {
+        "A.java": "class A {\n"
+                  "  String f(String x) { return g(x, 1); }\n"
+                  "  String g(String a, int b) { return a; }\n"
+                  "  String g(String a) { return a; }\n"
+                  "}\n",
+    })
+    q = {v: k for k, v in ix.by_qualname.items()}
+    caller = next(c for n, c in ix.by_qualname.items() if n.endswith("A.f/1"))
+    two = next(c for n, c in ix.by_qualname.items() if n.endswith("A.g/2"))
+    one = next(c for n, c in ix.by_qualname.items() if n.endswith("A.g/1"))
+
+    calls = {(e["src"], e["dst"]): e for e in edges if e.get("kind") == "calls"}
+    assert (caller, two) in calls, (
+        "a two-argument call must reach the two-parameter overload; "
+        f"edges were {[(q.get(s), q.get(d)) for s, d in calls]}")
+    assert (caller, one) not in calls, \
+        "arity must DISCRIMINATE, not merely resolve to something"
+
+    # PROVENANCE, not just presence. Without the arity tiebreak the edge
+    # still appears - EdgeBuilder falls through to a bare-name guess at
+    # 0.6 - so asserting existence alone passes against the bug. The
+    # point of carrying arity is that this is KNOWN, not guessed.
+    edge = calls[(caller, two)]
+    assert edge.get("resolution") == "exact", (
+        f"the overload was guessed, not resolved: resolution="
+        f"{edge.get('resolution')!r} confidence={edge.get('confidence')}")
+
+
+def test_a_unique_overload_resolves_from_its_BARE_name(tmp_path):
+    """What a human types. `memway show gson upperCaseFirstLetter`
+    answered "no entity matches" for a method that plainly exists,
+    because the index was keyed by the raw last segment - which for a
+    Java method is `upperCaseFirstLetter/1`, and nobody types that.
+
+    The suffix index is keyed by refs.short_of on both sides now, so a
+    bare name reaches a disambiguated registration when it is unambiguous.
+    """
+    pytest.importorskip("tree_sitter_java")
+    ix, _, _ = _edges_for(tmp_path, {
+        "B.java": "class B {\n  String only(String a) { return a; }\n}\n",
+    })
+    e = ix.resolve("only")
+    assert e is not None, (
+        "a uniquely-named method must resolve from the name a human "
+        f"would type; index holds {sorted(ix.by_qualname)}")
+    assert e.qualname.endswith("only/1"), e.qualname
+
+
+def test_a_python_overload_stub_does_not_steal_the_call(tmp_path):
+    """requests-shaped. Same-named defs register as name#N, and until
+    0.56.0 the REGISTRY invented those numbers after parsing - so a call
+    inside the real implementation was attributed to the bare name and
+    landed on the first @overload stub, while the helper it called hung
+    under iter_content#3 with no incoming edge.
+
+    Numbering now happens once, in the parser, read by both the entity
+    walk and the call attribution.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "m.py": "class R:\n"
+                "    def read(self): ...\n"
+                "    def read(self): ...\n"
+                "    def read(self):\n"
+                "        def gen():\n"
+                "            return 1\n"
+                "        return gen()\n",
+    })
+    gen = next((c for n, c in ix.by_qualname.items()
+                if n.endswith("read#3.gen")), None)
+    real = next((c for n, c in ix.by_qualname.items()
+                 if n.endswith("R.read#3")), None)
+    stub = next((c for n, c in ix.by_qualname.items()
+                 if n.endswith("R.read")), None)
+    assert gen and real and stub, sorted(ix.by_qualname)
+
+    calls = [(e["src"], e["dst"]) for e in edges if e.get("kind") == "calls"]
+    assert (real, gen) in calls, \
+        "the implementation that defines the helper must own the call"
+    assert (stub, gen) not in calls, \
+        "the first stub must not be credited with a call it never makes"
+
+
+def test_an_entity_from_the_future_loads_clean(tmp_path):
+    """The last unguarded door of the via_attr class.
+
+    load_raw_edges learned in 0.54.3 to ignore fields it does not know,
+    after a long-running MCP server started before an upgrade died on
+    `unexpected keyword argument 'via_attr'` the moment the map was
+    re-indexed by the newer build. Its sibling - Entity(**e) in
+    load_existing - never got the same treatment, so the next field added
+    to Entity would have repeated the incident exactly.
+
+    Verified before the fix: Entity(**e) with an unknown key raises.
+    """
+    import json
+    from memway.indexer import Indexer
+
+    r = tmp_path / "r"
+    r.mkdir(parents=True, exist_ok=True)
+    (r / "m.py").write_text("def alpha(x):\n    return x\n")
+    coord = r / ".coord"
+    ix = Indexer(r, coord)
+    full_index(ix, r)                                # index + save
+
+    path = coord / "index" / "coordinates.json"
+    data = json.loads(path.read_text())
+    for rec in data.values():
+        rec["surface_hash"] = "a field this build has never heard of"
+    path.write_text(json.dumps(data))
+
+    from memway.indexer import Indexer
+    fresh = Indexer(r, coord)
+    fresh.load_existing(write_cache=False)          # must not raise
+    assert fresh.entities, "the map loaded empty instead of ignoring the field"
+    assert any(e.qualname.endswith("m.alpha") for e in fresh.entities.values())
+    assert not hasattr(next(iter(fresh.entities.values())), "surface_hash"), \
+        "the unknown field was absorbed rather than dropped"

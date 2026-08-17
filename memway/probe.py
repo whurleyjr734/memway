@@ -35,6 +35,8 @@ import traceback
 from contextlib import redirect_stdout
 from pathlib import Path
 
+from . import refs
+
 _MAX_REPR = 120
 
 
@@ -101,7 +103,7 @@ def _resolve_callable(indexer, ref, namespaces, repo_root=None):
     ent = indexer.resolve(ref)
     if ent is None:
         raise LookupError(f"no entity matches {ref!r}")
-    parts = ent.qualname.split("#")[0].split(".")
+    parts = refs.base_of(ent.qualname).split(".")
     # walk module path -> attribute path; also try skipping leading
     # path components ("src." in src-layouts is not an importable pkg)
     for start in range(min(3, len(parts))):

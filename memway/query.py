@@ -25,6 +25,7 @@ from .metadata import (MetaStore, stamp_for, accepted_for, for_display,
                        unsuperseded_stale, rot_is_answered)
 from .metrics import MetricsStore
 from .lineage import VersionStore
+from . import refs
 
 
 # _ctx NEVER warms a pickle cache - `memway index` writes them, reads
@@ -69,14 +70,12 @@ def _ctx(repo: str):
 def _short(name: str) -> str:
     """Last segment of a reference, stripped of disambiguators.
 
-    Java registers overloads as Type.method/2 and Python registers
-    same-named defs as name#3, while BOTH parsers emit call targets as a
-    bare name. One identifier, two spellings, and the resolver compares
-    the wrong ends - which is why gson has zero method-level call edges.
-    Stripping here is not the fix for that; it is what lets us COUNT the
-    references that failed to land.
+    Delegates. This spelled the strip itself in 0.55.5 - `re.split(r"[/#]",
+    ...)` - which was a fourth module deciding what a suffix looks like,
+    the same shape as the defect 0.56.0 exists to end. refs is the only
+    module that knows, on the reading side as well as the writing side.
     """
-    return re.split(r"[/#]", str(name).split(".")[-1])[0]
+    return refs.short_of(name)
 
 
 def _unresolved_refs_to(ix, edges, ent) -> int:
@@ -89,20 +88,37 @@ def _unresolved_refs_to(ix, edges, ent) -> int:
     The remainder is what the map cannot account for. Over-counting here
     is safe - it can only turn a confident number into an admittedly
     incomplete one, never the reverse.
+
+    WHAT IT CANNOT SEE, and this is not a defect to be fixed here: a
+    disambiguator refs does not know. To notice that an emitted `helper`
+    should have reached an entity registered as `helper@1`, something
+    must already know that `@` introduces a suffix - which is exactly the
+    knowledge refs.py is the sole holder of. The guarantee against that
+    class is refs being the ONLY producer of a reference, not this
+    counter catching the drift afterwards. Asserted in
+    tests/test_never_silent.py so the limit cannot quietly be forgotten
+    and this cannot be sold as a general desync detector.
+
+    Since 0.56.0 reconciled /arity and #N it fires rarely by design; it
+    stays as a cheap floor, not as the mechanism.
     """
     raw = getattr(ix, "_raw_edges", None) or []
     if not raw:
         return 0
+    # REFUSALS ARE NOT GAPS, and the loop below already knows the
+    # difference: a reference the guards refused RESOLVED first, so
+    # resolve(ref) is not None and it is never counted. Only a reference
+    # the resolver could not place at all reaches the counter.
+    #
+    # 0.55.5 carried an extra bail here - skip entities whose name has no
+    # KNOWN disambiguator - written when the count was emitted-minus-landed
+    # and did fire on healthy Python. Once the loop started asking
+    # resolve() per reference that bail became redundant, and worse than
+    # redundant: it assumed refs knows every convention that will ever
+    # exist, so an unfamiliar spelling read as "no suffix" and silenced the
+    # one case this counter still guards. Removed, and the rich and gson
+    # fixtures below prove silence is still kept where it belongs.
     target = _short(ent.qualname)
-    if target == ent.qualname.split(".")[-1]:
-        # This entity carries no disambiguator, so the resolver can see it
-        # by name. Anything the map lacks here was a DECISION - guard 2
-        # refusing an attribute call, guard 3 refusing a test helper - and
-        # a decision is not a gap. Counting refusals made this warning
-        # fire on healthy Python (rich's make_guide showed 5), which is
-        # the 43-vs-3 failure in a new place: a signal that fires
-        # everywhere carries nothing.
-        return 0
     # The entity's name is spelled one way in the index and another in the
     # emitted reference, so the resolver never had a candidate to judge.
     # That is not a decision; it is a blind spot, and it is the one thing
@@ -657,7 +673,7 @@ def before_edit(repo: str, ref: str) -> dict:
         }
     elif e.kind == "method" and e.parent and e.parent in ix.entities:
         cls_cid = e.parent
-        short = e.qualname.rsplit(".", 1)[-1].split("#")[0]
+        short = refs.short_of(e.qualname)
         overrides, overridden_by, inherits_to = None, [], []
         for hops, anc in enumerate(_mro(cls_cid), start=1):
             anc_e = ix.entities.get(anc)

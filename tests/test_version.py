@@ -284,10 +284,14 @@ def test_the_version_check_survives_a_stale_pyc(tmp_path, monkeypatch):
     src = HERE / "memway" / "__init__.py"
     orig = src.read_text()
     cur = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', orig).group(1)
-    parts = cur.split(".")
-    prev = ".".join(parts[:-1] + [str(int(parts[-1]) - 1)])
-    assert len(prev) == len(cur), (
-        f"this fixture needs a same-LENGTH predecessor; {cur!r} -> {prev!r}")
+    # A DIFFERENT version of the SAME LENGTH - which is the whole point,
+    # since the cache compares only mtime and size. Built by flipping the
+    # last digit rather than decrementing: subtracting one turns 0.56.0
+    # into 0.56.-1, so the first version of this fixture worked for patch
+    # bumps and broke on the very next minor release.
+    prev = cur[:-1] + ("0" if cur[-1] != "0" else "9")
+    assert len(prev) == len(cur) and prev != cur, (
+        f"this fixture needs a same-LENGTH neighbour; {cur!r} -> {prev!r}")
 
     pyc = HERE / "memway" / "__pycache__" / "__init__.cpython-313.pyc"
     saved = pyc.read_bytes() if pyc.exists() else None

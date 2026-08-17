@@ -16,6 +16,8 @@ so most plugins are a node-type mapping plus an import/call convention.
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import refs
+
 
 @dataclass
 class RawEntity:
@@ -90,10 +92,36 @@ class PythonParser(LanguageParser):
         def seg(node):
             return "\n".join(lines[node.lineno - 1: node.end_lineno])
 
+        # ONE NUMBERING, read by both traversals. Same-named defs in one
+        # scope are disambiguated with #N - and until 0.56.0 the REGISTRY
+        # invented those numbers after the fact, so the parser emitted a
+        # call attributed to the bare `Response.iter_content` while the
+        # helper it called hung under `iter_content#3`. The call landed on
+        # the first @overload stub and the real implementation showed no
+        # edge. Numbering here, once, means the entity walk and the call
+        # attribution cannot disagree, and _assign finds the name already
+        # unique. Mirrors the walk below exactly (direct children only), so
+        # which entities exist does not change - only how they are spelled.
+        qual_of: dict = {}
+
+        def number(node, parent_qual):
+            seen: dict = {}
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                      ast.ClassDef)):
+                    n = seen.get(child.name, 0) + 1
+                    seen[child.name] = n
+                    q = refs.render(f"{parent_qual}.{child.name}",
+                                    occurrence=n if n > 1 else None)
+                    qual_of[id(child)] = q
+                    number(child, q)
+
+        number(tree, mod)
+
         def walk(node, parent_qual, in_class):
             for child in ast.iter_child_nodes(node):
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    q = f"{parent_qual}.{child.name}"
+                    q = qual_of.get(id(child), f"{parent_qual}.{child.name}")
                     kind = "method" if in_class else "function"
                     sig = f"{child.name}({', '.join(a.arg for a in child.args.args)})"
                     entities.append(RawEntity(kind, q, child.lineno,
@@ -102,7 +130,7 @@ class PythonParser(LanguageParser):
                                               parent_qual))
                     walk(child, q, False)
                 elif isinstance(child, ast.ClassDef):
-                    q = f"{parent_qual}.{child.name}"
+                    q = qual_of.get(id(child), f"{parent_qual}.{child.name}")
                     entities.append(RawEntity("class", q, child.lineno,
                                               child.end_lineno,
                                               seg(child), child.name, "",
@@ -162,7 +190,7 @@ class PythonParser(LanguageParser):
                 v.var_types = [{}]          # per-function: name -> Type
 
             def visit_ClassDef(v, n):
-                q = f"{v.stack[-1]}.{n.name}"
+                q = qual_of.get(id(n), f"{v.stack[-1]}.{n.name}")
                 v.stack.append(q)
                 v.class_stack.append(q)
                 v.generic_visit(n)
@@ -170,7 +198,8 @@ class PythonParser(LanguageParser):
                 v.stack.pop()
 
             def visit_FunctionDef(v, n):
-                v.stack.append(f"{v.stack[-1]}.{n.name}")
+                v.stack.append(qual_of.get(
+                    id(n), f"{v.stack[-1]}.{n.name}"))
                 # annotation-assisted typing: `def f(s: Session)` means
                 # s.request() is Session.request - the type fact is
                 # ALREADY in the source; using it is not inference.
@@ -626,7 +655,18 @@ class JavaParser(LanguageParser):
             if n.type == "method_invocation":
                 nm = n.child_by_field_name("name")
                 if nm is not None:
-                    edges.append(RawEdge(scope, ntext(nm), "calls"))
+                    # SPELLED THE WAY THE REGISTRY SPELLS IT. This emitted
+                    # a bare name while methods register as name/arity, so
+                    # the two could never meet - 0 of 1770 resolved call
+                    # edges in gson reached a method. The argument count at
+                    # the call site is the arity, and it is right here.
+                    a = n.child_by_field_name("arguments")
+                    edges.append(RawEdge(
+                        scope,
+                        refs.render(ntext(nm),
+                                    arity=a.named_child_count
+                                    if a is not None else None),
+                        "calls"))
             if n.type == "object_creation_expression":
                 t = n.child_by_field_name("type")
                 if t is not None:
@@ -667,7 +707,7 @@ class JavaParser(LanguageParser):
                     # overload disambiguation: arity suffix only when
                     # needed would require two passes; always-suffix
                     # keeps identity stable as overloads come and go
-                    q = f"{owner}.{name}/{a}"
+                    q = refs.render(f"{owner}.{name}", arity=a)
                     ents.append(RawEntity("method", q,
                         n.start_point[0] + 1, n.end_point[0] + 1,
                         ntext(n), name))
@@ -688,7 +728,20 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 6      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 7      # 2: scope-aware call resolution
+                              # 7: ONE reference producer (refs.py).
+                              #    The cache stores raw edges AND
+                              #    entities, so a change to how a
+                              #    reference is SPELLED - Java
+                              #    name/arity from the call site,
+                              #    Python #N assigned in the parser
+                              #    rather than the registry - would
+                              #    otherwise replay the old spelling
+                              #    from a warm cache forever.
+                              #    Verified, not assumed: patching
+                              #    the emitter with a warm cache
+                              #    yielded the OLD dst_ref, and the
+                              #    new one only after clearing it.
                               # 4: stable shingle hash (blake2b) - the
                               #    cache holds sketches, so a warm cache
                               #    would replay randomized ones forever

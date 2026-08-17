@@ -25,6 +25,7 @@ import re
 import subprocess
 from collections import deque
 from pathlib import Path
+from . import refs
 
 
 _TEST_FILE = {
@@ -90,7 +91,7 @@ def _is_runnable_test(e, repo_root: Path) -> bool:
 def _pytest_node(e, repo_root: Path) -> str:
     """entity -> pytest node id (file::Class::method or file::function)."""
     module_parts = Path(e.path).with_suffix("").parts
-    qual_parts = e.qualname.split("#")[0].split(".")
+    qual_parts = refs.base_of(e.qualname).split(".")
     # strip the module-path prefix from the qualname to get the in-file path
     i = 0
     while i < len(qual_parts) and i < len(module_parts) \
@@ -168,7 +169,7 @@ def verify_change(indexer, edges, repo_root, max_depth: int = 4,
 
     # name-hit tier: test files mentioning a changed entity's short name
     # with no resolved edge into the impact set. A guess - and labeled one.
-    shorts = {ents[c].qualname.split("#")[0].rsplit(".", 1)[-1]
+    shorts = {refs.short_of(ents[c].qualname)
               for c in changed_ids if c in ents}
     shorts = {s for s in shorts if len(s) > 3}          # skip noise names
     name_hit = set()

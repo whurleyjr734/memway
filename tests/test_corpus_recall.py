@@ -38,6 +38,8 @@ from pathlib import Path
 
 import pytest
 
+from memway import refs
+
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
@@ -46,9 +48,9 @@ pytestmark = [pytest.mark.slow, pytest.mark.network]
 # Pinned shas: a floor measured against a moving target is not a floor.
 CORPUS = [
     # repo url, name, sha, min overall recall %, max missing local edges
-    ("https://github.com/psf/requests", "requests", "8068356", 95, 3),
-    ("https://github.com/pallets/click", "click", "cbd7a41", 66, 4),
-    ("https://github.com/Textualize/rich", "rich", "9d8f9a3", 96, 2),
+    ("https://github.com/psf/requests", "requests", "8068356", 96, 1),
+    ("https://github.com/pallets/click", "click", "cbd7a41", 68, 1),
+    ("https://github.com/Textualize/rich", "rich", "9d8f9a3", 96, 1),
 ]
 
 
@@ -94,11 +96,17 @@ def _load(repo: Path):
 
 
 def _measure(repo: Path):
+    # NORMALISED THROUGH refs, because 0.56.0 made disambiguators real:
+    # a raw last-segment key reads `iter_content#3` where the ast oracle
+    # says `iter_content`, and every such name silently stops matching.
+    # Measured: that alone moved requests from 98% to 94% and looked
+    # exactly like a regression. The oracle must speak the same language
+    # as the map, and refs is where that language is defined.
     ents, calls = _load(repo)
     short = {}
     for e in ents:
         if e.get("kind") in ("function", "method"):
-            short.setdefault(e["qualname"].split(".")[-1], []).append(
+            short.setdefault(refs.short_of(e["qualname"]), []).append(
                 e["qualname"])
     # Unambiguous targets only. A name with two definitions cannot be
     # scored against a resolver whose whole job is refusing to guess.
@@ -124,11 +132,11 @@ def _measure(repo: Path):
             if tgt not in uniq or src not in short or src == tgt:
                 continue
             checked += 1
-            if any(s.split(".")[-1] == src and d == uniq[tgt]
+            if any(refs.short_of(s) == src and d == uniq[tgt]
                    for s, d in calls):
                 hit += 1
             else:
-                parts = uniq[tgt].split(".")
+                parts = refs.base_of(uniq[tgt]).split(".")
                 if len(parts) >= 2 and parts[-2] == src:
                     local_missing += 1          # the closure case
     return checked, hit, local_missing

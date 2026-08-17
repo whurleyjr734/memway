@@ -340,3 +340,37 @@ def test_the_fence_covers_more_than_the_queries():
     and dropping them would leave the test above passing."""
     assert len(READS) > len(query.QUERIES), sorted(READS)
     assert {"viz", "dig"} <= set(READS)
+
+
+def test_no_module_reimplements_the_reference_producer():
+    """Structural: how a reference is SPELLED lives in refs.py.
+
+    The defect this ends had the suffix produced in two layers by two
+    pieces of code that had never heard of each other - parsers.py wrote
+    `/arity`, indexer.py wrote `#N`, and every emitted call target was
+    bare. gson had 0 method-level call edges as a result.
+
+    So no module outside refs may build a disambiguator by hand, and no
+    module may decide for itself what one looks like. Both halves matter:
+    the first stops a new speller appearing, the second stops a new
+    reader disagreeing about what to strip.
+    """
+    import re
+    build = re.compile(r'f"\{[^"]*\}[/#]\{')          # f"{name}/{a}"
+    # `#` ONLY on the strip side. `/` is also a path separator, and the
+    # first draft of this pin flagged four legitimate path splits
+    # (cli.py, indexer.py, viz.py, parsers.py) alongside the four real
+    # hand-rolled disambiguator strips it correctly found. A pin that
+    # cries wolf on correct code gets deleted, not obeyed.
+    strip = re.compile(r'(rsplit|split)\(["\']#["\']')
+    for f in (HERE / "memway").glob("*.py"):
+        if f.name == "refs.py":
+            continue
+        src = f.read_text()
+        assert not build.search(src), (
+            f"{f.name} builds a disambiguated reference by hand: use "
+            f"refs.render(base, arity=...) or refs.render(base, "
+            f"occurrence=...)")
+        assert not strip.search(src), (
+            f"{f.name} decides for itself what a disambiguator looks "
+            f"like: use refs.base_of / refs.short_of / refs.arity_of")

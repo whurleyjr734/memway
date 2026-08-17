@@ -26,6 +26,8 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
+from . import refs
+
 
 ENTITY_KINDS = ("package", "module", "class", "function", "method", "attribute")
 
@@ -468,8 +470,24 @@ class Indexer:
                                         write=write_cache)
             except (json.JSONDecodeError, EOFError):
                 data = self._recover_from_snapshot()
+            # IGNORE FIELDS THIS BUILD DOES NOT KNOW - the last unguarded
+            # door of the via_attr class. load_raw_edges learned this in
+            # 0.54.3, after a long-running MCP server started before an
+            # upgrade died on `unexpected keyword argument 'via_attr'` the
+            # moment the map was re-indexed by the newer build. Its
+            # sibling here was never given the same treatment, so the next
+            # Entity field would have repeated the incident exactly -
+            # verified before writing this: Entity(**e) with an unknown
+            # key raises TypeError.
+            #
+            # The filter has to live in the READER, which means it helps
+            # only builds that already have it. That is why it ships a
+            # release BEFORE the field it exists to permit (surface_hash,
+            # 0.56.1) rather than alongside it.
+            from dataclasses import fields as _fields
+            known = {f.name for f in _fields(Entity)}
             for cid, e in data.items():
-                e = dict(e)
+                e = {k: v for k, v in e.items() if k in known}
                 e["sketch"] = decode_sketch(e.get("sketch"))
                 self.entities[cid] = Entity(**e)
                 self.by_qualname[e["qualname"]] = cid
@@ -743,10 +761,15 @@ class Indexer:
         # instead of silently overwriting the earlier entity. File order
         # is deterministic, so occurrence keys persist across re-indexing.
         if qualname in self.by_qualname:
+            # THE SAME PRODUCER the parsers use. This spelled `#N` by hand
+            # while JavaParser spelled `/arity` by hand two modules away,
+            # and nothing knew both conventions - so a bare emitted
+            # reference could match neither. refs.render is now the only
+            # place a disambiguator is attached, in any layer.
             occ = 2
-            while f"{qualname}#{occ}" in self.by_qualname:
+            while refs.render(qualname, occurrence=occ) in self.by_qualname:
                 occ += 1
-            qualname = f"{qualname}#{occ}"
+            qualname = refs.render(qualname, occurrence=occ)
         # Same qualname as before -> keep the same coordinate ID.
         prev_e = old_entities.get(old_by_qualname.get(qualname, ""))
         if prev_e is not None and comments:
@@ -861,18 +884,36 @@ class Indexer:
             return self.entities[ref]
         if ref in self.by_qualname:
             return self.entities[self.by_qualname[ref]]
+        # INDEXED BY THE BASE NAME, so a reference and a registration meet
+        # even when one carries a disambiguator. Keyed on the raw last
+        # segment, `separateCamelCase` could never find
+        # `FieldNamingPolicy.separateCamelCase/2` - which is why gson had
+        # zero method-level call edges. refs.short_of strips /arity and #N
+        # from both ends of the comparison; refs is the only module that
+        # knows what a suffix looks like.
         if not hasattr(self, "_suffix_index") or \
                 len(self._suffix_seen) != len(self.by_qualname):
             from collections import defaultdict
             self._suffix_index = defaultdict(list)
             for q, cid in self.by_qualname.items():
-                self._suffix_index[q.rsplit(".", 1)[-1]].append((q, cid))
+                self._suffix_index[refs.short_of(q)].append((q, cid))
             self._suffix_seen = dict(self.by_qualname)
-        last = ref.rsplit(".", 1)[-1]
-        matches = [cid for q, cid in self._suffix_index.get(last, [])
-                   if q.endswith(ref)]
+        base_ref = refs.base_of(ref)
+        matches = [cid for q, cid in self._suffix_index.get(refs.short_of(ref), [])
+                   if refs.base_of(q).endswith(base_ref)]
         if len(matches) == 1:
             return self.entities[matches[0]]
+        # ARITY BREAKS AN OVERLOAD TIE. `g/2` at the call site means the
+        # two-parameter g, and the registration says which that is. Only
+        # applied when the reference actually declares an arity, so a bare
+        # name still falls through to the rules below rather than being
+        # silently narrowed to whatever arity happened to match.
+        want = refs.arity_of(ref)
+        if len(matches) > 1 and want is not None:
+            exact = [c for c in matches
+                     if refs.arity_of(self.entities[c].qualname) == want]
+            if len(exact) == 1:
+                return self.entities[exact[0]]
         # D11b: ambiguous bare names - if exactly one candidate is
         # production code, prefer it over test fixtures/helpers
         if len(matches) > 1:
