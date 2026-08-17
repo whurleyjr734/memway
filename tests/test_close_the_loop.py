@@ -522,16 +522,20 @@ def test_attention_reports_the_total_not_the_page(tmp_path):
         f"{len(full['comment_rot'])}")
 
 
-def test_module_rot_stays_out_of_the_commit_report_but_not_the_queue(tmp_path):
-    """Both directions, because either alone passes a wrong rule.
+def test_module_rot_reaches_neither_the_commit_report_nor_the_queue(tmp_path):
+    """0.56.1 ended module rot; this test used to assert the opposite.
 
-    A module's logic hash aggregates its contents, so it moves on any
-    change to the file - a confirm recorded against it stales on the next
-    commit and the warning returns forever. Unanswerable warnings train
-    people to scroll, and this alarm gets one chance.
+    Written for 0.55.4, it required `attention` to STILL carry modules -
+    correct then, because the filter was a routing decision: the commit
+    alarm should not fire on something a confirm could never clear, but
+    the queue should still list it.
 
-    But re-routed, never dismissed: `attention` must still carry them, or
-    the filter has quietly deleted 16 of this repo's 49 known rots.
+    0.56.1 removed the flag at the source instead. A module docstring's
+    claims range over the file and beyond it, so nothing bounds what the
+    check is checking; the honest build is no check rather than an
+    approximate one wearing a precise name. Modules now appear in
+    neither surface, and this fixture asserts that rather than the
+    routing it was born to protect.
     """
     r = _rot_repo(tmp_path)
     (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
@@ -544,9 +548,9 @@ def test_module_rot_stays_out_of_the_commit_report_but_not_the_queue(tmp_path):
     assert not any(n == "m" or n.endswith(".m") for n in kinds), (
         f"a module rot reached the commit report: {sorted(kinds)}")
 
-    # ...and the queue still knows about it
+    # ...and the queue does not either, since 0.56.1
     assert _cli("index", str(r)).returncode == 0
     a = query.attention(str(r), limit=10000)
-    assert any(q == "m" or q.endswith(".m") for q in a["comment_rot"]), (
-        f"the filter deleted module rot instead of re-routing it: "
-        f"{a['comment_rot']}")
+    assert not any(q == "m" or q.endswith(".m") for q in a["comment_rot"]), (
+        f"a module reached the queue: {a['comment_rot']}. Module rot ends "
+        f"at the computation now - see CLAUDE.md lesson 12.")

@@ -1015,19 +1015,17 @@ def verify_change(repo_root, run=False):
     # so ix.entities already holds WORKING-TREE entities whose comment_rot
     # was computed against the stored map. This reports a verdict that was
     # already sitting there; it computes nothing.
-    # MODULES ARE EXCLUDED HERE AND ONLY HERE. A module's logic hash
-    # aggregates its contents, so it moves whenever ANY function in the
-    # file changes - which means a module rot cannot be answered: the
-    # confirm you record stales on your next commit to that file, and the
-    # same warning returns forever. A warning that cannot be cleared is
-    # one people learn to scroll past, and this alarm has exactly one
-    # chance to be worth reading.
+    # REDUNDANT SINCE 0.56.1, AND KEPT DELIBERATELY. Modules no longer
+    # carry comment_rot at all - the flag ends at the computation in
+    # indexer._assign, because a module docstring's claims range over the
+    # file and beyond it and no hash can bound them. So this branch can no
+    # longer fire.
     #
-    # They are NOT dismissed, only re-routed: modules still carry rot in
-    # `memway attention`, where 16 of this repo's 49 backlog entries are
-    # module-level and get worked deliberately rather than shouted at
-    # every commit. Measured on 0.55.4's own ceremony: 5 rots reported, 3
-    # of them modules, none of the three actionable in that moment.
+    # It stays as a second guard rather than being deleted, and it says so
+    # rather than reading like a live rule: 0.55.4 added it because module
+    # rot could not be answered (a confirm staled on the next commit to
+    # that file), and if module rot ever returns under an honestly-named
+    # prompt, the commit-time alarm must still not carry it.
     rotted = []
     for cid in dict.fromkeys(result.get("changed_ids", [])):
         ent = ix.entities.get(cid)

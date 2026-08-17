@@ -136,3 +136,91 @@ def test_examples_dir_is_not_scanned_for_design_bindings(tmp_path):
     query.before_edit(str(repo), "price")
     assert (repo / ".coord" / "docbindings.json").read_bytes() == before, \
         "reindex rewrote docbindings.json - the map dirties on every index"
+
+
+# ------------------------------------------- modules are not rot-checkable
+
+def test_a_module_never_carries_comment_rot(tmp_path):
+    """0.56.1: the flag ends at the source, not at a display filter.
+
+    A module docstring has no boundary a hash can respect. This repo's own
+    indexer.py docstring claims things about its module surface, about
+    behaviour inside its functions, AND about lineage.py - three scopes in
+    one paragraph. Hashing the whole file re-flagged the module on every
+    edit and no confirm could ever stick (14 permanent entries); hashing
+    only the surface would be clearable but silently blind to the second
+    kind of claim.
+
+    So no module gets the flag, and the check is on the DATA: a display
+    filter would leave dead flags in .coord for the next reader to trip on.
+    """
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        '"""Module docstring that will not be touched."""\n'
+        "# a module-level comment, also untouched\n"
+        "VALUE = 1\n\n\n"
+        "def alpha(x):\n"
+        '    """Doc."""\n'
+        "    t = 0\n"
+        "    for i in x:\n"
+        "        t += i\n"
+        "    return t\n")
+    _idx(r)
+
+    # move logic everywhere, touch no comment anywhere
+    (r / "m.py").write_text(
+        '"""Module docstring that will not be touched."""\n'
+        "# a module-level comment, also untouched\n"
+        "VALUE = 2\n\n\n"
+        "def alpha(x):\n"
+        '    """Doc."""\n'
+        "    return sum(x)\n")
+    ix = _idx(r)
+
+    from memway.query import attention
+    mods = [e for e in ix.entities.values() if e.kind == "module"]
+    assert mods, "fixture produced no module entity"
+    assert not any(getattr(e, "comment_rot", False) for e in mods), (
+        "a module carries comment_rot IN THE DATA - the exclusion must be "
+        "at the computation, not a filter over the output")
+
+    a = attention(str(r), limit=10000)
+    byq = {e.qualname: e for e in ix.entities.values()}
+    flagged_mods = [q for q in a["comment_rot"]
+                    if q in byq and byq[q].kind == "module"]
+    assert not flagged_mods, f"a module reached the queue: {flagged_mods}"
+
+
+def test_function_rot_is_untouched_and_still_precise(tmp_path):
+    """The other half, and the one that must not be traded away. A
+    function's comments and its body share a scope, so the signal is
+    exact - and 0.56.1 changes nothing about it."""
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "def alpha(x):\n"
+        '    """Sums by looping."""\n'
+        "    # walks each element\n"
+        "    t = 0\n"
+        "    for i in x:\n"
+        "        t += i\n"
+        "    return t\n")
+    _idx(r)
+
+    (r / "m.py").write_text(
+        "def alpha(x):\n"
+        '    """Sums by looping."""\n'
+        "    # walks each element\n"
+        "    return sum(x)\n")
+    ix = _idx(r)
+
+    from memway.query import attention
+    fn = next(e for e in ix.entities.values() if e.qualname.endswith("m.alpha"))
+    assert getattr(fn, "comment_rot", False), (
+        "the precise signal was traded away with the imprecise one - a "
+        "function whose logic moved with its comments untouched must flag")
+
+    a = attention(str(r), limit=10000)
+    assert any(q.endswith("m.alpha") for q in a["comment_rot"]), a["comment_rot"]
+    assert a["comment_rot_total"] >= 1

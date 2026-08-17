@@ -772,7 +772,36 @@ class Indexer:
             qualname = refs.render(qualname, occurrence=occ)
         # Same qualname as before -> keep the same coordinate ID.
         prev_e = old_entities.get(old_by_qualname.get(qualname, ""))
-        if prev_e is not None and comments:
+        # MODULES ARE NOT ROT-CHECKABLE, and this is a statement about what
+        # can be known rather than a tuning choice.
+        #
+        # The rule is "the comments did not move and the logic did", which
+        # is precise for a function: its comments and its body share one
+        # scope. A MODULE docstring has no such boundary. memway/indexer.py's
+        # own docstring makes three kinds of claim at once - "each entity
+        # carries body_hash, shape_hash..." (module surface), "assigns a
+        # stable coordinate ID to every entity" (behaviour inside _assign),
+        # and "renamed entities are matched via body-hash similarity
+        # (handled in lineage.py)" (ANOTHER MODULE). No hash of this file
+        # bounds what that docstring is talking about.
+        #
+        # So the flag could only ever be wrong in one direction or the
+        # other. Hashing the whole file - what shipped until 0.56.1 - meant
+        # any edit anywhere re-flagged the module, and since a module's
+        # logic hash aggregates its contents a confirm could never stick:
+        # 14 permanent coral entries that no amount of reading could clear.
+        # Hashing only the module's SURFACE was the planned fix and is
+        # worse in the direction that matters: clearable, but silently
+        # blind to a docstring describing behaviour a function body
+        # implements. Confident and incomplete is the failure mode this
+        # project treats as most serious.
+        #
+        # Module docstring review is a deliberate human task. It is not
+        # something a hash can prompt honestly, so nothing here pretends
+        # to. Function, method and class rot is untouched and precise.
+        if kind == "module":
+            comment_rot = False
+        elif prev_e is not None and comments:
             prev_lh = getattr(prev_e, "logic_hash", "")
             prev_ch = getattr(prev_e, "comment_hash", "")
             if prev_ch != comment_hash:

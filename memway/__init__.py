@@ -4,4 +4,4 @@
 # (see cli._version); this literal exists so a source-tree or editable
 # run can still answer `memway --version`. tests/test_version.py pins it
 # to pyproject.toml so the two cannot drift.
-__version__ = "0.56.0"
+__version__ = "0.56.1"

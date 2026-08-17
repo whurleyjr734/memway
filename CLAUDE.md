@@ -118,6 +118,23 @@ those read the stamps and do not care what order you did things in.
 public repo creation, force-pushes: prepare everything, verify
 everything, then hand over the final command.
 
+**12. A signal must have a boundary, or it is not a signal.** Comment
+rot asks "did the comments stay while the logic moved" - exact for a
+function, whose comments and body share one scope. It was applied to
+MODULES for three releases and could never be right there: this repo's
+own `indexer.py` docstring claims things about its module surface, about
+behaviour inside its functions, AND about `lineage.py` - three scopes in
+one paragraph, and no hash of that file bounds them. Hashing the whole
+file re-flagged every module on every edit, so a confirm could never
+stick and 14 permanent coral entries accumulated. Hashing only the
+module's surface was the planned fix and was worse where it counts:
+clearable, but silently blind to a docstring describing behaviour a
+function body implements - confident and incomplete, which is the failure
+mode this project treats as most serious. So memway stops asking. Module
+docstring review is a deliberate human task. Before adding a check, ask
+what bounds the thing it claims to check; if nothing does, the honest
+build is no check rather than an approximate one wearing a precise name.
+
 **11. Any string containing a version, a name, or a command list must
 derive from the value it describes** - prose constants rot on every
 surface we have shipped them. Five specimens, all found by a human

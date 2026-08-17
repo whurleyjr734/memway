@@ -7,6 +7,57 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.56.1] - 2026-08-17
+
+Theme: **a signal must have a boundary.**
+
+**Module docstrings describe behavior no hash can bound — files,
+functions, and other modules — so memway no longer flags them as rot.
+Module docstring review is a deliberate human task; function/method/class
+rot is unchanged and precise. The 14 standing module flags are cleared as
+category errors, not as fixed.**
+
+### Why
+
+Comment rot asks *"did the comments stay while the logic moved."* For a
+function that is exact: its comments and its body share one scope. Applied
+to a module it never could be. This repo's own `indexer.py` docstring
+claims things about its module surface, about behaviour inside its
+functions, **and about `lineage.py`** — three scopes in one paragraph.
+
+Hashing the whole file (through 0.56.0) re-flagged every module on every
+edit, and since a module's logic hash aggregates its contents a confirm
+could never stick: **14 permanent coral entries** that no amount of
+reading could clear. 0.56.0 itself created two of them by editing
+`probe.py` and `verify.py` for two lines each.
+
+Hashing only the module's *surface* was the planned 0.56.1 and is worse
+where it counts — clearable, but silently blind to a docstring describing
+behaviour a function body implements. Confident and incomplete is the
+failure mode this project treats as most serious. So the check ends
+rather than getting a better approximation.
+
+### Changed
+
+- `comment_rot` is not computed for module entities. **At the
+  computation**, in `indexer._assign` — not a display filter, so no dead
+  flags sit in `.coord` for the next reader to trip on.
+- `attention`, `verify_change` and the census therefore read a true zero
+  for modules; `comment_rot_total` counts only boundable entities.
+- The module filter added to `rotted_comments` in 0.55.4 is now
+  redundant. It stays as a second guard and **says so**, rather than
+  reading like a live rule.
+- CLAUDE.md gains lesson 12: before adding a check, ask what bounds the
+  thing it claims to check; if nothing does, the honest build is no check
+  rather than an approximate one wearing a precise name.
+
+### Not shipped
+
+`surface_hash` dies with the scope. The `Entity(**e)` filter from 0.56.0
+keeps that door open, and nothing needs to go through it now — an
+honestly-named `module_surface_changed` prompt can earn its way in later
+on a witness's ask.
+
 ## [0.56.0] - 2026-08-17
 
 Theme: **one name, one producer.**
