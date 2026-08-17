@@ -231,6 +231,35 @@ def test_no_module_reimplements_the_hash_rule():
             f"{f.name} inlines the accepted-hash set"
 
 
+def test_no_module_reimplements_the_ring_rule():
+    """Structural: staleness and reading order live in metadata too.
+
+    stamp_for got this guard in 0.54.x after three surfaces drifted apart.
+    unsuperseded_stale and for_display are the same kind of rule and had
+    no guard, so attention quietly hand-counted `en.get("stale")` across
+    every entry and reported 43 where the decisive queue was 3 - superseded
+    history counted as a live warning, on the one surface named "the queue",
+    while ambient _knowledge_lag read the same bytes correctly. One rule,
+    one implementation, asked by name.
+
+    The pattern below is the hand count itself: iterating entries and
+    testing the raw stale flag without asking whether anything superseded
+    it. Ask unsuperseded_stale(for_display(...)) instead.
+    """
+    import re
+    hand_count = re.compile(
+        r'for\s+\w+\s+in\s+\w+(\.values\(\))?\s*\n?.*?\.get\(["\']stale["\']\)')
+    for f in (HERE / "memway").glob("*.py"):
+        if f.name == "metadata.py":
+            continue
+        src = f.read_text()
+        assert not hand_count.search(src), (
+            f"{f.name} hand-rolls staleness: ask "
+            f"unsuperseded_stale(for_display(md)) instead")
+        assert 'sorted(entries, key' not in src, \
+            f"{f.name} reimplements the reading order; use for_display"
+
+
 # ---------------------------------------------------------------- arity
 
 @pytest.mark.parametrize("cmd", ["lineage", "dig", "viz", "meta", "show",

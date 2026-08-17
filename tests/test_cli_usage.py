@@ -99,3 +99,52 @@ def test_a_flag_on_the_wrong_command_still_fails():
     assert r.returncode == 1, r.stdout + r.stderr
     assert "applies to" in r.stderr, r.stderr
     assert "'pull' or 'viz'" in r.stderr, r.stderr
+
+
+# --------------------------------------- a typo is not a request for help
+
+def test_unknown_command_names_the_word_it_did_not_understand():
+    """`memway freshness .` printed the entire quickstart and never said
+    'freshness'. The reader has to diff the command list by eye to learn
+    which word was wrong - on the one path where they already know they
+    made a mistake and just want to be told which."""
+    r = _run("freshness", ".")
+    out = r.stdout + r.stderr
+    assert r.returncode == 1, r.returncode
+    assert "freshness" in out, f"never named the bad command:\n{out}"
+    assert "Quickstart" not in out, f"dumped the full help:\n{out}"
+    assert len(out.strip().splitlines()) == 1, \
+        f"expected one line, got:\n{out}"
+    assert not r.stdout.strip(), \
+        f"an error belongs on stderr, not stdout: {r.stdout!r}"
+
+
+def test_a_near_miss_gets_the_command_it_probably_meant():
+    """Asserts the SUGGESTION, not the word.
+
+    The first version of this checked `"summary" in out`, which the full
+    help dump satisfies - the command list contains every command. It
+    passed against the bug it was written to catch.
+    """
+    r = _run("summry", ".")
+    out = (r.stdout + r.stderr).strip()
+    assert "did you mean 'summary'" in out, f"no suggestion offered:\n{out}"
+    assert len(out.splitlines()) == 1, f"expected one line, got:\n{out}"
+
+
+def test_a_wild_miss_says_where_the_list_is_rather_than_guessing():
+    """Same trap: every assertion here is also true of the help dump
+    unless the one-line shape is pinned too."""
+    r = _run("zzzzz")
+    out = (r.stdout + r.stderr).strip()
+    assert len(out.splitlines()) == 1, f"expected one line, got:\n{out}"
+    assert "zzzzz" in out, out
+    assert "did you mean" not in out, f"guessed at nonsense:\n{out}"
+
+
+def test_bare_invocation_still_prints_the_whole_map():
+    """The other half of the branch: no command IS a request for help."""
+    r = _run()
+    out = r.stdout + r.stderr
+    assert r.returncode == 1
+    assert "Quickstart" in out, f"bare invocation lost its help:\n{out[:300]}"

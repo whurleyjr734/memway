@@ -21,7 +21,8 @@ from pathlib import Path
 
 from .indexer import Indexer
 from .edges import EdgeBuilder, neighbors
-from .metadata import MetaStore, stamp_for, accepted_for
+from .metadata import (MetaStore, stamp_for, accepted_for, for_display,
+                       unsuperseded_stale)
 from .metrics import MetricsStore
 from .lineage import VersionStore
 
@@ -76,7 +77,6 @@ def _entity_dict(e, meta=None) -> dict:
         "signature": e.signature,
     }
     if meta is not None:
-        from .metadata import for_display
         md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
         knowledge = [{
             "channel": r["channel"],
@@ -319,7 +319,6 @@ def _knowledge_lag(ix, meta) -> dict:
     Read-only by construction: entities already in memory, plus the meta
     files. Nothing here writes, which is what keeps it inside the fence.
     """
-    from .metadata import for_display, unsuperseded_stale
     try:
         coords = []
         for cid, e in ix.entities.items():
@@ -654,7 +653,6 @@ def before_edit(repo: str, ref: str) -> dict:
 
     md = meta.read_all(e.coord_id,
                        current_hash=accepted_for(e))
-    from .metadata import for_display
     knowledge, has_stale = [], False
     for r in for_display(md):
         stale = bool(r.get("stale"))
@@ -852,8 +850,7 @@ def verify_change(repo_root, run=False):
     from pathlib import Path
     from .indexer import Indexer
     from .edges import EdgeBuilder
-    from .metadata import (MetaStore, accepted_for, for_display,
-                           unsuperseded_stale)
+    from .metadata import MetaStore, accepted_for
     from .verify import verify_change as _vc
     repo_root = Path(repo_root)
     coord = repo_root / ".coord"
@@ -1010,12 +1007,19 @@ def attention(repo_root, limit=20):
         if drifted:
             stale_docs.append({"doc": doc, "drifted_entities": drifted})
 
+    # THE RING RULE, asked - not restated. This counted every entry
+    # carrying en["stale"] by hand, so superseded history counted as a
+    # warning: the flagship read "43 stale knowledge entries" when the
+    # decisive queue was 3, and 43 was exactly the number of entries that
+    # had a newer entry behind them. Ambient _knowledge_lag, reading the
+    # same bytes through unsuperseded_stale, said 3 the whole time - one
+    # surface contradicting another about one number, which is how a
+    # queue stops being worked. Same rule, same answer, one caller.
     stale_notes = 0
     for e in ix.entities.values():
-        md = meta.read_all(e.coord_id, current_hash={
-            getattr(e, "logic_hash", ""), e.body_hash})
-        stale_notes += sum(1 for ens in md.values()
-                           for en in ens if en.get("stale"))
+        rows = for_display(meta.read_all(e.coord_id,
+                                         current_hash=accepted_for(e)))
+        stale_notes += len(unsuperseded_stale(rows))
 
     return {
         "comment_rot": rot,

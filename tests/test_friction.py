@@ -435,3 +435,106 @@ def test_the_banner_is_not_a_hardcoded_sentence():
     for literal in ("--if-stale --quiet", "each runs"):
         assert literal not in dump, \
             f"cmd_hooks hardcodes {literal!r} instead of deriving it"
+
+
+# ------------------------------------ the migration message derives too
+
+def test_the_migration_message_names_the_versions_it_migrates(tmp_path):
+    """EXECUTED against a real v2 map, because the string is not behaviour.
+
+    This printed "(v1 -> v2)" as a constant while SKETCH_VERSION was 3:
+    a sentence announcing a migration nobody was performing, sitting two
+    lines from the number it misquoted. Every test on this path asserts
+    what the index DOES, and the index did the right thing the whole time.
+    """
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    HERE = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(HERE))
+    from memway.indexer import SKETCH_VERSION
+
+    r = tmp_path / "proj"
+    r.mkdir()
+    (r / "m.py").write_text("def alpha(x):\n    return x + 1\n")
+    subprocess.run(["git", "init", "-q", "-b", "main", str(r)], check=True)
+
+    def cli(*a):
+        return subprocess.run([sys.executable, "-m", "memway.cli", *a],
+                              capture_output=True, text=True, cwd=str(HERE))
+
+    assert cli("init", str(r)).returncode == 0
+
+    # age the map to generation 2 - the migration is 2 -> SKETCH_VERSION
+    man_p = r / ".coord" / "manifest.json"
+    man = json.loads(man_p.read_text())
+    man["sketch_version"] = 2
+    man_p.write_text(json.dumps(man, indent=1) + "\n")
+
+    (r / "m.py").write_text("def alpha(x):\n    return x + 2\n")
+    out = cli("index", str(r)).stdout
+    assert "sketch generation changed" in out, f"no migration announced:\n{out}"
+    assert f"(v2 -> v{SKETCH_VERSION})" in out, (
+        f"message does not name the real versions (SKETCH_VERSION="
+        f"{SKETCH_VERSION}):\n{out}")
+
+
+def test_the_migration_message_is_not_a_hardcoded_sentence():
+    """Guard the guard, exactly as the banner has one."""
+    import ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent
+           / "memway" / "cli.py").read_text()
+    fn = next(n for n in ast.walk(ast.parse(src))
+              if isinstance(n, ast.FunctionDef) and n.name == "cmd_index")
+    dump = ast.dump(fn)
+    assert "stored_sketch_version" in dump, \
+        "the migration message no longer derives the stored version"
+    assert "SKETCH_VERSION" in dump, \
+        "the migration message no longer derives the current version"
+    for literal in ("v1 -> v2", "v2 -> v3"):
+        assert literal not in dump, \
+            f"cmd_index hardcodes {literal!r} instead of deriving it"
+
+
+def test_a_CRASHING_drifted_server_still_says_restart_me(monkeypatch,
+                                                         tmp_path):
+    """The notice rides the session, not the success path.
+
+    The incident this handshake was built for is an old server dying on a
+    map the new build re-indexed - it raised
+    `RawEdge.__init__() got an unexpected keyword argument 'via_attr'`
+    on EVERY call. version_drift() was asked after the tool call and
+    inside the same try, so the crash returned a bare {"error": ...} and
+    the one sentence that explains it - restart your MCP server - was
+    never computed. Reproduced on this repo's own server, 2026-08-16,
+    where it had been silently stale for hours.
+
+    Executed against a tool that raises, because that IS the condition.
+    """
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(SRC)
+    _git(r, "init", "-q", "-b", "main")
+    _cli("init", str(r))
+    monkeypatch.setattr("importlib.metadata.version", lambda n: "99.0.0")
+    monkeypatch.setattr(mcp, "_ANNOUNCED", False)
+
+    def boom(repo, args):
+        raise TypeError("RawEdge.__init__() got an unexpected keyword "
+                        "argument 'via_attr'")
+
+    monkeypatch.setitem(mcp._BY_NAME["memway_summary"], "fn", boom)
+
+    msg = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+           "params": {"name": "memway_summary", "arguments": {}}}
+    resp = mcp.handle(msg, str(r))
+    assert resp and resp["result"].get("isError"), resp
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert "error" in payload, payload
+    assert "server_version_drift" in payload, (
+        f"the crash carried no restart notice - exactly the case the "
+        f"handshake exists for. keys: {list(payload)}")
+    assert "restart" in payload["server_version_drift"].lower()

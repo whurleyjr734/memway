@@ -287,22 +287,32 @@ def handle(msg: dict, repo: str) -> dict | None:
         import json as _json
         from .flightlog import record
         args = params.get("arguments", {})
+        # ASKED BEFORE THE CALL, so a crash still carries it. This ran
+        # after tool["fn"] and inside the same try, which meant the one
+        # incident the handshake exists for - an old server dying on a
+        # map the new build re-indexed - was the one case it never
+        # announced. In that state EVERY tool raises, so there is no
+        # successful response left to carry the notice, and the reader
+        # gets a bare TypeError with nothing saying "restart me".
+        # Reproduced on this repo's own server, 2026-08-16.
+        drift = version_drift()
         try:
             data = tool["fn"](repo, args)
             record(repo, name, args,
                    ok=not (isinstance(data, dict) and "error" in data))
             # carried as a FIELD, like map_lag and knowledge_lag - the
             # pattern already exists and agents already read it.
-            drift = version_drift()
             if drift and isinstance(data, dict):
                 data = {"server_version_drift": drift, **data}
             return _result(id_, {"content": [
                 {"type": "text", "text": _json.dumps(data, indent=2)}]})
         except Exception as e:                       # never crash the agent
             record(repo, name, args, ok=False)
+            err = {"error": f"{type(e).__name__}: {e}"}
+            if drift:
+                err = {"server_version_drift": drift, **err}
             return _result(id_, {"content": [
-                {"type": "text",
-                 "text": _json.dumps({"error": f"{type(e).__name__}: {e}"})}],
+                {"type": "text", "text": _json.dumps(err)}],
                 "isError": True})
     if id_ is not None:
         return _error(id_, -32601, f"unknown method {method!r}")

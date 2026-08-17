@@ -7,6 +7,64 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.2] - 2026-08-16
+
+Theme: **one rule, one implementation - and every sentence derives.**
+
+### The queue told the truth about everything except itself
+
+`memway attention` reported **43 stale knowledge entries** on this repo
+when **3** needed answering. The other 40 were entries somebody had
+already replaced, with the replacement sitting directly above them in the
+same channel. `attention` hand-counted `en.get("stale")` across every
+entry instead of asking `unsuperseded_stale`, so superseded history read
+as a live warning - the 0.54.2 lesson (*superseded is not stale*)
+reappearing in the one surface named "the queue".
+
+Ambient `knowledge_lag`, reading the same bytes through the same rule,
+said 3 the whole time. Two surfaces, one repo, one number, two answers.
+
+- `attention` routes through `for_display` / `unsuperseded_stale`
+- the four scattered `from .metadata import ...` sites in `query.py`
+  collapse into one module-level import
+- **the no-reimplementation pin extends** from `stamp_for` to
+  `unsuperseded_stale` and `for_display`: no module may hand-roll
+  staleness or reading order again
+
+### Fixed
+
+- **The migration message named the wrong versions.** It printed
+  `(v1 -> v2)` as a constant while `SKETCH_VERSION` was **3** - announcing
+  a migration nobody was performing. Both ends now derive from
+  `stored_sketch_version()` and `SKETCH_VERSION`.
+- **The version handshake was silent on the crash it exists for.**
+  `version_drift()` ran after the tool call and inside the same `try`, so
+  an old server dying on a re-indexed map returned a bare `{"error": ...}`
+  and never said *restart your MCP server* - and in that state every call
+  raises, so no successful response was ever left to carry it. Observed
+  live on this repo. The notice is now computed before the call and
+  attached to both branches.
+- **The behind-count counted from the wrong baseline.** The pre-commit
+  hook indexes while HEAD is still the previous commit, so
+  `indexed_at_sha` names the commit *before* the one the map describes.
+  Invisible while the tree matches; the moment code moved, one change
+  reported as `behind: 2`. `baseline_for_tree()` now finds the commit
+  whose content the map actually is, bounded to 25 commits with a
+  fallback to the recorded sha.
+- **A typo got the whole manual.** `memway freshness .` printed the full
+  quickstart and never named the word it did not recognise. Unknown
+  commands now get one line on stderr plus a `did you mean` suggestion;
+  bare invocation still prints the map.
+
+### Not a defect
+
+`summary`'s `knowledge.superseded` counts **coordinates retired by a
+rename** whose knowledge migrated to a successor - a lineage concept,
+pinned by `test_census_superseded_vs_orphaned`. It is unrelated to
+`for_display`'s per-entry `superseded` flag, and its `0` on this repo is
+correct. One word, two meanings, two surfaces: the conflation produced a
+defect report against correct code, and is recorded on the coordinate.
+
 ## [0.55.1] - 2026-08-16
 
 Theme: **the map earns its bytes.** 0.55.0 made the map ride inside every

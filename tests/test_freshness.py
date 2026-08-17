@@ -559,10 +559,83 @@ def test_one_counting_implementation():
     """Structural: the rule that broke was a second copy of a first rule."""
     import ast
     src = (HERE / "memway" / "freshness.py").read_text()
-    assert src.count('"rev-list"') == 1, \
-        "a second rev-list appeared; unify it into code_commits_between"
+    # COUNTING is what must be unified, not touching rev-list. The rule
+    # that broke was a second COUNT that forgot the .coord exclusion, so
+    # the pin is on `--count`: code_commits_between is the only place a
+    # number of commits is produced. baseline_for_tree also calls rev-list,
+    # to LIST candidate commits for a content comparison - it produces no
+    # count and needs no exclusion, because it compares tree hashes that
+    # already drop .coord in head_tree. Widened deliberately in 0.55.2
+    # rather than worked around.
+    assert src.count('"--count"') == 1, \
+        "a second commit count appeared; unify it into code_commits_between"
+    counters = [n.name for n in ast.walk(ast.parse(src))
+                if isinstance(n, ast.FunctionDef)
+                and any(isinstance(c, ast.Constant) and c.value == "--count"
+                        for c in ast.walk(n))]
+    assert counters == ["code_commits_between"], \
+        f"counting moved or spread: {counters}"
     # THREE now: the dirty check, the behind count, and the tree hash.
     # All three ask the same question - "did the CODE move" - and .coord
     # is not code. A fourth appearing without a reason is the smell.
     assert src.count(':(exclude).coord') == 3, \
         "both the dirty check and the behind count must exclude .coord"
+
+
+# ------------------------------------------- the count a reader can check
+
+def test_behind_counts_from_the_commit_the_map_DESCRIBES(tmp_path):
+    """One code change since the map was accurate reads as ONE.
+
+    The pre-commit hook indexes while HEAD is still the previous commit,
+    so indexed_at_sha names the commit BEFORE the one whose content the
+    map is. While the tree matches, lag() answers on content and never
+    counts - so the skew is invisible until code moves, and then the
+    count is one too many. Measured in the 0.55.1 acceptance: a single
+    code change reported "2 commits ahead", which no reader can
+    reconcile against their own git log.
+    """
+    R = tmp_path / "proj"
+    R.mkdir()
+    _git(R, "init", "-q", "-b", "main")
+    (R / "m.py").write_text("def alpha(x):\n    return x + 1\n")
+    _commit(R, "one")
+    assert _cli("init", str(R)).returncode == 0
+    assert _cli("hooks", "install", str(R)).returncode == 0
+
+    # a code commit WITH hooks: the map rides inside it, and the recorded
+    # sha is now one behind the commit it describes
+    (R / "m.py").write_text("def alpha(x):\n    return x + 2\n")
+    ride = _commit(R, "code change, map rides along")
+    man = json.loads((R / ".coord" / "manifest.json").read_text())
+    assert man["indexed_at_sha"] != ride, (
+        "fixture is not reproducing the skew - the recorded sha already "
+        "names the commit it describes, so there is nothing to fix")
+    assert not freshness.lag(R, R / ".coord"), "map should read current"
+
+    # hooks off, then exactly ONE more code commit
+    assert _cli("hooks", "uninstall", str(R)).returncode == 0
+    (R / "m.py").write_text("def alpha(x):\n    return x + 3\n")
+    _commit(R, "second code change, map left behind")
+
+    gap = freshness.lag(R, R / ".coord")
+    assert gap, "a real code change must be reported"
+    assert gap["behind"] == 1, (
+        f"one code commit happened since the map was accurate; reported "
+        f"{gap['behind']} - {gap['message']}")
+    assert "1 commit ahead" in gap["message"], gap["message"]
+
+
+def test_the_baseline_search_is_bounded_and_falls_back(tmp_path):
+    """Past the scan limit it returns the recorded sha - imprecise, never
+    wrong, and never a git walk that punishes a big gap."""
+    R = tmp_path / "proj"
+    R.mkdir()
+    _git(R, "init", "-q", "-b", "main")
+    (R / "m.py").write_text("x = 0\n")
+    first = _commit(R, "one")
+    for i in range(freshness._BASELINE_SCAN_LIMIT + 2):
+        (R / "m.py").write_text(f"x = {i + 1}\n")
+        _commit(R, f"c{i}")
+    head = _git(R, "rev-parse", "HEAD").stdout.strip()
+    assert freshness.baseline_for_tree(R, first, head, "deadbeefdeadbeef") == ""

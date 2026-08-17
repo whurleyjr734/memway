@@ -223,8 +223,16 @@ def cmd_index(repo, *flags):
     # built on a measurement that never happened.
     migrating = getattr(ix, "stale_sketches", False)
     if migrating:
-        print("  sketch generation changed (v1 -> v2): stored sketches came "
-              "from a different hash")
+        # DERIVED, both ends. This said "(v1 -> v2)" as a constant while
+        # SKETCH_VERSION was 3, so it announced a migration nobody was
+        # performing - a sentence describing a number, kept next to the
+        # number, drifting the moment the number moved. Nothing in the
+        # suite could see it: every test here asserts behaviour, and the
+        # string is not behaviour. Fifth specimen this session.
+        from .indexer import SKETCH_VERSION, stored_sketch_version
+        print(f"  sketch generation changed "
+              f"(v{stored_sketch_version(coord)} -> v{SKETCH_VERSION}): "
+              f"stored sketches came from a different hash")
         print("    this index runs WITHOUT the minhash signal; renames it "
               "cannot rule out are filed as pending-review")
         print("    lineage verdicts before and after this point are not "
@@ -1162,8 +1170,26 @@ def main():
                 args = args[:i] + args[i + 1:]
                 changed = True
                 break
-    if not args or args[0] not in COMMANDS:
+    # Bare invocation and an explicit --help both ASK for the manual;
+    # only a typo does not. --help is not in COMMANDS, so splitting this
+    # branch without naming it turned `memway --help` into "unknown
+    # command '--help'" - caught by four existing tests, which is the
+    # argument for the branch having been one line in the first place.
+    if not args or args[0] in ("--help", "-h", "help"):
         print(__doc__)
+        sys.exit(1)
+    if args[0] not in COMMANDS:
+        # A TYPO IS NOT A REQUEST FOR THE MANUAL. Both cases printed the
+        # full quickstart, so `memway freshness .` scrolled the whole help
+        # past without ever naming the word it did not recognise - the
+        # reader is left to diff the command list by eye to find out that
+        # `freshness` was the problem. Say what was not understood, offer
+        # the nearest real command, and stop.
+        from difflib import get_close_matches
+        near = get_close_matches(args[0], sorted(COMMANDS), n=1, cutoff=0.6)
+        hint = (f" - did you mean {near[0]!r}?" if near
+                else " - run `memway` for the command list")
+        sys.stderr.write(f"memway: unknown command {args[0]!r}{hint}\n")
         sys.exit(1)
     wrong = [f for f, own in owners.items() if args[0] not in own]
     if wrong:

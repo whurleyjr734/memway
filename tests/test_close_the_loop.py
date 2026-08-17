@@ -327,3 +327,80 @@ def test_the_console_banner_survives_redirection(tmp_path):
     text = log.read_text()
     assert "memway console on" in text, f"banner never flushed: {text!r}"
     assert "token=" in text, text
+
+
+# ------------------------------------------- the queue tells the truth
+
+def test_attention_counts_the_decisive_queue_not_the_history(repo):
+    """A superseded stale entry is history, not a warning - on EVERY
+    surface that counts.
+
+    attention hand-rolled `en.get("stale")` across all entries, so the
+    flagship advertised 43 stale entries when 3 needed answering: the
+    other 40 were entries somebody had already replaced, with the
+    replacement sitting directly above in the same channel. Ambient
+    _knowledge_lag, reading the same bytes through unsuperseded_stale,
+    said 3 the whole time. Two surfaces, one repo, one number, two
+    answers - and the one people are sent to was the wrong one.
+
+    Fixture shape matters: one coordinate carrying BOTH a superseded
+    stale entry and a live one. A fixture with only live entries passes
+    against the hand count too, which is the version of this test that
+    would have proved nothing.
+    """
+    # stale the original note by changing behaviour
+    (repo / "m.py").write_text(AFTER)
+    assert _cli("index", str(repo)).returncode == 0
+
+    before = query.attention(str(repo))["stale_notes"]
+    assert before == 1, f"one stale note expected, got {before}"
+
+    # answer it: a second entry in the same channel supersedes the first
+    out = _cli("meta", str(repo), "widget", "notes", "answered: still correct")
+    assert "added notes entry" in out.stdout, out.stdout + out.stderr
+
+    after = query.attention(str(repo))["stale_notes"]
+    raw = _raw_stale_count(repo)
+    assert raw == 1, f"the superseded entry must still be ON DISK, got {raw}"
+    assert after == 0, (
+        f"attention counted superseded history: {after} (raw flag count "
+        f"is {raw} - that is the number the hand count reported)")
+
+
+def test_the_queue_and_the_ambient_warning_agree(repo):
+    """Same rule, same repo, same verdict on whether anything is due.
+
+    Not the same integer: attention counts ENTRIES, ambient counts
+    COORDINATES, and a coordinate can hold two decisive entries. What
+    must never differ is whether they see a queue at all - that is the
+    contradiction that made the flagship read 43-and-silent at once.
+    """
+    from memway.query import _ctx, _knowledge_lag
+
+    (repo / "m.py").write_text(AFTER)
+    assert _cli("index", str(repo)).returncode == 0
+
+    def both():
+        _, _, ix, _, meta = _ctx(str(repo))
+        return (query.attention(str(repo))["stale_notes"] > 0,
+                bool(_knowledge_lag(ix, meta)))
+
+    q, ambient = both()
+    assert q and ambient, f"stale note invisible: queue={q} ambient={ambient}"
+
+    _cli("meta", str(repo), "widget", "notes", "answered: still correct")
+    q, ambient = both()
+    assert not q and not ambient, (
+        f"answered, but queue={q} ambient={ambient} - the surfaces disagree")
+
+
+def _raw_stale_count(repo) -> int:
+    """What the hand count reported: every entry with the flag set."""
+    from memway.metadata import MetaStore, accepted_for
+    from memway.query import _ctx
+    _, _, ix, _, meta = _ctx(str(repo))
+    n = 0
+    for e in ix.entities.values():
+        md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
+        n += sum(1 for ens in md.values() for en in ens if en.get("stale"))
+    return n

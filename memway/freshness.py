@@ -108,9 +108,13 @@ def code_tree(repo) -> str:
     return hashlib.sha256(out.encode()).hexdigest()[:16]
 
 
-def head_tree(repo) -> str:
-    """The same hash for HEAD's committed content. '' when unavailable."""
-    out, ok = _git(repo, "ls-tree", "-r", "HEAD", "--", ".")
+def head_tree(repo, rev: str = "HEAD") -> str:
+    """The same hash for a commit's content. '' when unavailable.
+
+    Takes a rev so the baseline search can ask it of an arbitrary commit;
+    defaults to HEAD, which is every existing caller.
+    """
+    out, ok = _git(repo, "ls-tree", "-r", rev, "--", ".")
     if not ok:
         return ""
     lines = [l for l in out.splitlines()
@@ -122,6 +126,46 @@ def head_tree(repo) -> str:
         _, _, blob = rest.partition(" ")
         norm.append(f"{mode} {blob} 0\t{path}")
     return hashlib.sha256("\n".join(norm).encode()).hexdigest()[:16] if norm else ""
+
+
+_BASELINE_SCAN_LIMIT = 25
+
+
+def baseline_for_tree(repo, was: str, sha: str, tree_was: str) -> str:
+    """The newest commit in was..sha whose content IS the map's, or ''.
+
+    THE MAP IS STAMPED BEFORE ITS OWN COMMIT EXISTS. The pre-commit hook
+    indexes while HEAD is still the previous commit, so indexed_at_sha
+    records the commit BEFORE the one the map actually describes. While
+    the tree matches, nothing notices - lag() returns {} on content and
+    never reaches the count. The moment code moves, the fallback counts
+    from that stale baseline and reports one commit more than has
+    happened: measured in the 0.55.1 acceptance as "behind: 2" after a
+    single code change since the map was last accurate.
+
+    The direction was always safe - it over-reports staleness, never
+    under - but "2 commits ahead" when one landed is a number a reader
+    cannot reconcile with their own git log, and a warning nobody can
+    reconcile is a warning they stop reading.
+
+    Bounded: at most _BASELINE_SCAN_LIMIT commits are examined, one
+    ls-tree each, and only on the path that is already about to print a
+    warning. Past the limit it returns '' and the caller keeps the
+    recorded sha - the old answer, which was merely imprecise, not wrong.
+    """
+    if not tree_was:
+        return ""
+    out, ok = _git(repo, "rev-list", "--reverse", f"{was}..{sha}")
+    if not ok:
+        return ""
+    commits = [c for c in out.split() if c]
+    if not commits or len(commits) > _BASELINE_SCAN_LIMIT:
+        return ""
+    found = ""
+    for c in commits:
+        if head_tree(repo, c) == tree_was:
+            found = c                    # newest match wins (reverts repeat)
+    return found
 
 
 def code_commits_between(repo, was: str, sha: str) -> tuple:
@@ -221,7 +265,12 @@ def lag(repo, coord) -> dict:
     if tree_was and not dirty:
         if tree_was == head_tree(repo):
             return {}
-    behind, known = code_commits_between(repo, was, sha)
+    # The recorded sha predates the commit the map describes whenever the
+    # pre-commit hook did the indexing, so count from the commit whose
+    # content the map actually is. Falls back to the recorded sha when
+    # that cannot be established - never slander a map for being old.
+    base = baseline_for_tree(repo, was, sha, tree_was) or was
+    behind, known = code_commits_between(repo, base, sha)
     # COMMITTING THE MAP MOVES HEAD. memway tells you to commit .coord, so
     # `was != sha` the instant you do - while the map still describes the
     # code exactly. Gating on sha equality made the warning fire forever
