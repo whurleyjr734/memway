@@ -278,16 +278,31 @@ def _merge_meta(bundle_meta: Path, local_meta: Path) -> dict:
 
 
 def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
-         force: bool = False, replace_meta: bool = False, fetch=None) -> dict:
+         force: bool = False, replace_meta: bool = False, fetch=None,
+         replay: bool = False) -> dict:
     """Fetch, verify, and unpack a map bundle. Returns a report dict.
 
     `fetch` is injectable so the whole path is testable without network.
+
+    replay=True inverts what gets installed. The default takes the
+    bundle's INDEX - which describes the commit it was built from - and
+    hands it to you whole, reporting `drifted` if your checkout is
+    somewhere else. That leaves you holding a map of code you do not
+    have. With replay, the local tree is indexed and only the bundle's
+    KNOWLEDGE is carried across, matched by coordinate and, where names
+    moved, by lineage's own signal mix. The structure regenerates in
+    seconds; the knowledge is the part nobody can reconstruct.
     """
     fetch = fetch or _http_get
     into = Path(into).resolve()
     coord = into / ".coord"
 
-    if coord.exists() and not force:
+    # replay never overwrites a local index - it BUILDS one from your tree
+    # and appends knowledge - so the guard against installing over an
+    # existing map does not apply to it. Requiring --force there would
+    # make the safe path harder to type than the destructive one, which is
+    # the inversion cmd_pull already refuses for --replace-meta.
+    if coord.exists() and not force and not replay:
         raise PullError(
             f"{coord} already exists - refusing to install over it.\n"
             "  --force replaces the derived index and MERGES the bundle's\n"
@@ -315,8 +330,33 @@ def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
         src = staged / ".coord"
         if not src.is_dir():
             raise PullError("bundle has no .coord/ at its root - refusing")
-        merged = None
-        if not coord.exists():
+        merged = replayed = None
+        if replay:
+            # INDEX WHAT YOU HAVE, then carry the knowledge onto it. The
+            # bundle's index is deliberately discarded with the temp dir:
+            # it describes a commit this checkout is not at, and keeping
+            # it is how you end up reading a map of somebody else's tree.
+            from .indexer import Indexer
+            from .edges import EdgeBuilder
+            from .replay import replay as _replay
+            ix = Indexer(into, coord)
+            ix.load_existing()
+            ix.index()
+            ix.save()
+            eb = EdgeBuilder(ix)
+            eb.build()
+            eb.save(coord)
+            replayed = _replay(src, coord, ix)
+            # PROVENANCE SURVIVES THE INDEX. The bundle's manifest is
+            # discarded with the temp dir along with its index - correct,
+            # since it describes a commit this tree is not at - but that
+            # left the report reading the LOCAL manifest, which has no
+            # upstream_sha, so `drifted` came back False on a replay that
+            # existed *because* the versions differ. The identity of the
+            # knowledge you just inherited is not derivable from your own
+            # map; it has to be carried out before the bundle is dropped.
+            replayed["knowledge_from"] = _describe(src)
+        elif not coord.exists():
             shutil.move(str(src), str(coord))
         elif replace_meta:
             shutil.rmtree(coord)
@@ -343,12 +383,23 @@ def pull(name: str, into: str = ".", source: str = DEFAULT_SOURCE,
     report.update({"name": base, "version": version, "url": url,
                    "sha256": digest, "installed_to": str(coord),
                    "members": len(members), "merged": merged,
+                   "replayed": replayed,
                    "replaced_meta": bool(replace_meta and merged is None)})
     head = _local_head(into)
     # Drift is measured against upstream_sha - the commit the map was built
     # from. _describe normalizes the legacy `sha` alias into that name, so
     # this comparison does not care which schema the bundle shipped.
-    report["drifted"] = bool(head and report.get("upstream_sha")
-                             and not head.startswith(str(report["upstream_sha"])))
+    # DRIFT IS MEASURED AGAINST THE SHA THE KNOWLEDGE CAME FROM. On a
+    # replay the local manifest is yours and carries no upstream_sha, so
+    # reading it here answered False for the one case that is always a
+    # drift - the bundle's version differing from the checkout is why
+    # replay was asked for. The bundle's identity is carried in
+    # replayed["knowledge_from"]; use it when it is there.
+    upstream = report.get("upstream_sha")
+    if replayed:
+        upstream = (replayed.get("knowledge_from") or {}).get("upstream_sha") \
+            or upstream
+    report["drifted"] = bool(head and upstream
+                             and not head.startswith(str(upstream)))
     report["local_head"] = head
     return report

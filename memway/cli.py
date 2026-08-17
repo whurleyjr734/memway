@@ -23,6 +23,12 @@ Workflow: grep finds it; memway explains it and remembers it.
                                           local knowledge is merged, not lost
                                         [--replace-meta] DELETES locally
                                           authored knowledge
+                                        [--replay] index YOUR tree and carry
+                                          only the knowledge over, matched
+                                          by coordinate and through renames;
+                                          entries keep their stamps, so what
+                                          was written against older code
+                                          reads stale
   memway lineage <repo> [ref]         identity history through renames
   memway console <repo> [--port N]    serve the map live: tools as buttons,
                                         notes written back from the card
@@ -399,7 +405,7 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
 
 
 def cmd_pull(name, into=".", source=None, force=False,
-             replace_meta=False):
+             replace_meta=False, replay=False):
     """Fetch a published map and install it into <into>/.coord.
 
     A map is worth more when you do not have to build it: someone
@@ -434,7 +440,8 @@ def cmd_pull(name, into=".", source=None, force=False,
                 "destructive: deletes locally authored knowledge; "
                 "requires explicit --force")
         r = pull(name, into=into, source=source or DEFAULT_SOURCE,
-                 force=bool(force), replace_meta=bool(replace_meta))
+                 force=bool(force), replace_meta=bool(replace_meta),
+                 replay=bool(replay))
     except PullError as e:
         raise SystemExit(f"pull failed: {e}")
     except Exception as e:
@@ -454,12 +461,53 @@ def cmd_pull(name, into=".", source=None, force=False,
               f"{m['coords_local_kept']} local coordinate(s) preserved")
     elif r.get("replaced_meta"):
         print("  knowledge REPLACED: locally authored entries were deleted")
+    rp = r.get("replayed")
+    if rp:
+        kf = rp.get("knowledge_from") or {}
+        src_sha = str(kf.get("upstream_sha") or "")[:12]
+        print(f"  indexed YOUR tree; replayed knowledge from "
+              f"{kf.get('name') or 'the bundle'}"
+              f"{' @ ' + src_sha if src_sha else ''}")
+        print(f"    {rp['exact']} coordinate(s) matched exactly, "
+              f"{rp['matched']} through a rename, "
+              f"{rp['orphaned']} unplaced")
+        for m in rp.get("matches", [])[:5]:
+            print(f"      {m['from']} -> {m['to']}  ({m['score']})")
+        print(f"    +{rp['entries_replayed']} entries "
+              f"({rp['entries_already_present']} already present)")
+        # ORPHANS ARE NAMED, NEVER DROPPED SILENTLY. Knowledge that could
+        # not be placed is the one part of a bundle nobody can regenerate;
+        # a count alone would leave the reader unable to go and look.
+        for o in rp.get("orphans", [])[:5]:
+            print(f"      unplaced: {o['qualname']} "
+                  f"({o['entries']} entries, best match {o['best_score']})")
+        if len(rp.get("orphans", [])) > 5:
+            print(f"      ... and {len(rp['orphans']) - 5} more unplaced")
+        print("    entries keep their original stamps, so anything written "
+              "against older code reads STALE rather than current")
     if r.get("drifted"):
         # Honesty at the seam: the map describes a commit, the working
         # tree is at another. Staleness machinery handles the rest, but
         # silence here would let someone trust a map for code it never saw.
-        print(f"  note: this map describes {str(r['upstream_sha'])[:12]}; your "
-              f"tree is at {r['local_head'][:12]} - local code may have drifted")
+        #
+        # TWO DIFFERENT SEAMS, and one sentence cannot serve both. On a
+        # normal install the MAP came from elsewhere. On a replay the map
+        # is yours - freshly indexed from your own tree - and it is the
+        # KNOWLEDGE that came from another commit. The install sentence
+        # printed here read "this map describes None" after a replay,
+        # because upstream_sha lives in the bundle's manifest and a replay
+        # deliberately does not install it.
+        if rp:
+            kf = rp.get("knowledge_from") or {}
+            src_sha = str(kf.get("upstream_sha") or "")[:12]
+            print(f"  note: this map is YOUR tree at {r['local_head'][:12]}; "
+                  f"the knowledge was written against {src_sha or 'another '
+                  'commit'} - entries whose code moved read stale")
+        else:
+            print(f"  note: this map describes "
+                  f"{str(r['upstream_sha'])[:12]}; your "
+                  f"tree is at {r['local_head'][:12]} - local code may have "
+                  f"drifted")
 
 
 def cmd_at(repo, location):
@@ -1137,7 +1185,8 @@ def _usage_line(cmd: str) -> str:
 # usage text was right.
 VALUE_FLAGS = {"--author": ("meta",), "--source": ("pull",),
                "--into": ("pull",)}
-BOOL_FLAGS = {"--force": ("pull", "viz"), "--replace-meta": ("pull",)}
+BOOL_FLAGS = {"--force": ("pull", "viz"), "--replace-meta": ("pull",),
+              "--replay": ("pull",)}
 
 
 def main():

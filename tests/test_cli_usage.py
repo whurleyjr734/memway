@@ -232,3 +232,24 @@ def test_probe_still_returns_a_normal_result_for_a_good_call(tmp_path):
     out = probe(str(r), "scale", args=[[1, 2, 3], 2])
     assert out.get("ok") is True, out
     assert "error" not in out and "hint" not in out, out
+
+
+def test_every_registered_flag_is_documented():
+    """The pin above reads flags OUT of the usage text and requires each
+    to be receivable. It cannot see the other direction, so a flag that
+    exists and is undocumented passes silently - which is exactly what
+    happened when --replay was added: BOOL_FLAGS knew about it, the usage
+    text did not, and the whole suite stayed green.
+
+    A flag nobody can discover is a flag nobody uses.
+    """
+    import re
+    from memway.cli import BOOL_FLAGS, VALUE_FLAGS, __doc__ as usage
+
+    registered = set(BOOL_FLAGS) | set(VALUE_FLAGS)
+    documented = set(re.findall(r"--[a-z][a-z-]*", usage or ""))
+    missing = sorted(registered - documented)
+    assert not missing, (
+        f"registered but absent from the usage text: {missing}. Add each to "
+        f"the command block it belongs to in memway/cli.py's module "
+        f"docstring, or nobody will find it.")
