@@ -4,7 +4,7 @@
     "kind": "function",
     "qualname": "memway.edges.neighbors",
     "path": "memway/edges.py",
-    "lineno": 331,
+    "lineno": 367,
     "body_hash": "4c4f18b023670b52",
     "parent": "C-de4bf4",
     "signature": "neighbors(edges, coord_id)",
@@ -26,7 +26,7 @@
     "comment_rot": false,
     "sketch": "AAOgommqAalynFjLBVmvDHBGAl7VBYSuAf9axdCXAvqTdtA2AVZTnLb4APou2twfAyBIK8VaAfVWWT1FAMkPFPi3GIYP/oqFA6vqaiHQDBUBBZNzBAR7JW/gA6ACkJtZAyyus1nVABJqg7C1AkztT4MKADDX6Uq2BCNVgXZqANKaZF5nA2yAXXDfADtmxhc3BhFGIVFpBAfJqj7OAS8bFtevBwirdrROBKG59irAAlVnDTBKA/Bf/axyAnPDLfgEFRDQpMlgAK7Ax5MuCJ3eDzEKAqqSp8BFA4vMOycqBFCPz0xlBMv8f+bOBgR6K91DAKC12PyHBqVvO/uDBIsJQCisAHk7SctlAWlLRxJ7AqVnlot4AJFT2KB6BPeoKopW",
     "n_shingles": 52,
-    "end_lineno": 333,
+    "end_lineno": 369,
     "loc": 3,
     "complexity": 3
   },
@@ -681,6 +681,39 @@
     "n_shingles": 159,
     "end_lineno": 138,
     "loc": 14,
+    "complexity": 7
+  },
+  "C-03f43a": {
+    "coord_id": "C-03f43a",
+    "kind": "function",
+    "qualname": "tests.test_corpus_recall.test_edge_recall_floor",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 139,
+    "body_hash": "bfd28e5d8b6e28d7",
+    "parent": "C-f1bc8f",
+    "signature": "test_edge_recall_floor(tmp_path, url, name, sha, floor, max_local)",
+    "shape_hash": "c71e9ee8f1ba0034",
+    "logic_hash": "5cc480a35006070b",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 3,
+        "text": "Partial clone: every sha stays reachable (unlike --depth) while the",
+        "kind": "comment"
+      },
+      {
+        "line": 4,
+        "text": "blobs arrive on demand, so pinning a sha costs seconds, not minutes.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "58fdd258bd5ed8f6",
+    "comment_rot": false,
+    "sketch": "AB0x1fpdAuY3xW4DAoIgkQfcANtcuC2YADjOcloqALxsl8OjACnoY5XbAdmd9cfXAUyeyza/AJHARpSIABQr6US2AHvU2h3eAJJoCZRxAZdU5o2+AAdYe+nqAEwrt4ZTAUA0VHHfAGYrcQaoAAW7PGEiAerJb0LwAA0e4O30AAtLKKpfAcunLJVmAfyq86opACUUKf2VAGrhC3w1AEiYbsa4AJ2R8s79AA7avKneAQcb0fAiALbE+hDoAGInJ5v6AEh9HdN6AVwjZqOAAMAv8dbmANaAkdskABTUxiJLAsAh3wWrAC1JCEQ+AOQEgM0zAJdS88V0AD0px6mhAJIcrO5RACRl03zwAEag1/I+AGHHOlriARov7G/uAEX8BNZ9",
+    "n_shingles": 325,
+    "end_lineno": 165,
+    "loc": 27,
     "complexity": 7
   },
   "C-044efd": {
@@ -4136,6 +4169,28 @@
     "loc": 4,
     "complexity": 2
   },
+  "C-18b05f": {
+    "coord_id": "C-18b05f",
+    "kind": "method",
+    "qualname": "tests.test_corpus_recall._Scoped.visit_Call",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 69,
+    "body_hash": "ce2cebc5a9cd278e",
+    "parent": "C-c3af5d",
+    "signature": "visit_Call(self, n)",
+    "shape_hash": "547c97ad0c6c95cf",
+    "logic_hash": "63646e85d1ee4726",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "BVmrFzo2Bi+bKTzTActE5Y+FBV81wVMNAQmII14NBDaGSHFIAR5KgPfnCZfNQsylDk4aoTUJBTMpDy2cArsYGg1zAQMZHECTAI9bF/1pAn0axWM8A5i73+CyABhktyBRABlYfPUXAPFT3YzvAKuLAQBEA/cv6sY8BnNnbudRCDs6pCeMA6b+mH0nATnhe3oMARCm5YbKAx/j5aBNAVNb2zIUAz7jesKsCNutsscwCYaLgtvAAQq6K/tXA6mh+q/iAKMdrDrNA8ssnp3UAS9dn6+GD+Aq499LAXN3eqYSBZVbNF7+BCjFIdqUBOMcZV4NAaJItFl+AGZdhVyNCtdYSSzdAqt6B14QAW7KYXG3ATKaK9KQBBJuXFRfAB3lHOYz",
+    "n_shingles": 70,
+    "end_lineno": 75,
+    "loc": 7,
+    "complexity": 5
+  },
   "C-18b18e": {
     "coord_id": "C-18b18e",
     "kind": "attribute",
@@ -4353,6 +4408,28 @@
     "end_lineno": 287,
     "loc": 17,
     "complexity": 9
+  },
+  "C-1ab177": {
+    "coord_id": "C-1ab177",
+    "kind": "attribute",
+    "qualname": "tests.test_corpus_recall._Scoped.visit_FunctionDef",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 66,
+    "body_hash": "ab7af9a7a65bf8cd",
+    "parent": "C-c3af5d",
+    "signature": "",
+    "shape_hash": "dde22707b28675f7",
+    "logic_hash": "85b7b3a100f8a552",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "Blz+Ou8CJKoRNrqCINWX7IyGMD8To7KoNUKUUYT4PYwSCKr+Cf+SxpzSCQEVdaIEHmyTK5QEGpYX4poqEpmRkKx+PKSGCbvlZxaeBaRQKDeI8qITe4Ofar2KJ4KLZ6o5SDCd37X8Ew2NyNJnXK2aRM3WDpiMvdqNUdqYqcUIL5AYZFkVKOOeGm9ZPA0GyVFPNHCAh2dvMLoHPmqhAcWD7Fy1BTcFo2KbDVqCWVTbGaQCCHrNHq+ExkzhbtEDfXInMXMXdW2iY04B4YoZLP4Z3pXId/sOVoJzGEkYQ532RGgMu5ulF9QbNIQcWOUNIJOfAqcdmYxKI6YMkRnKK8mLQC/eLzsP/hEQOEaJtScwOIgOawkmDPO2Gj9qBB0w0AFM",
+    "n_shingles": 3,
+    "end_lineno": 66,
+    "loc": 1,
+    "complexity": 1
   },
   "C-1aeef4": {
     "coord_id": "C-1aeef4",
@@ -6838,6 +6915,34 @@
     "loc": 4,
     "complexity": 3
   },
+  "C-2ce85b": {
+    "coord_id": "C-2ce85b",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_a_function_CAN_call_a_helper_it_defines_itself",
+    "path": "tests/test_units_core2.py",
+    "lineno": 564,
+    "body_hash": "0d725cb8f99822ae",
+    "parent": "C-80b544",
+    "signature": "test_a_function_CAN_call_a_helper_it_defines_itself(tmp_path)",
+    "shape_hash": "ccca1665d5e7a573",
+    "logic_hash": "18f86ce60d47b0fc",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "The closure idiom. Rule 1 always said \"from OUTSIDE that body\"; until 0.55.3 it never checked, and dropped this edge too. THIS IS THE CASE NO EXISTING FIXTURE EXERCISED, which is exactly why every one",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "37c13f6f1d889ea5",
+    "comment_rot": false,
+    "sketch": "AD3TklGyAFVhX9hsANqJdiIhAUpn6vVRAf9axdCXARACxpVsADtlKzGPAihgWSvgANoVOmdAAFa1lt9DAMkPFPi3AGfscqO0AJZ133YTAEpxdEbHAJT1hEjnAAF+zLofAAG1cqjbAB6q3yJHADzRNisLADyiAjCLAFazfnDQAFpd2VMEACgb+HSyAhRN4oOAAQLSJtEgAQv+oMJ6AMirXF6gAFDK8O8NACaKuZAxAEpXoSUKANe0p9nYAxBOvTpBAKsEoofhAB6hxHeUAB8xSR4TAdpn1/YlAQr/41M3ABqWoj+TACfmxYRYAUW8nBTBACrdmilsAb/gLX/PACDjkk7aAMJZnfVlAH4C2K9iAAqyyMi7AA6MVywPACDanLDz",
+    "n_shingles": 385,
+    "end_lineno": 601,
+    "loc": 38,
+    "complexity": 12
+  },
   "C-2ceca5": {
     "coord_id": "C-2ceca5",
     "kind": "function",
@@ -7118,7 +7223,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.build",
     "path": "memway/edges.py",
-    "lineno": 154,
+    "lineno": 190,
     "body_hash": "fd01ec5ce6f54d5d",
     "parent": "C-cbc42e",
     "signature": "build(self)",
@@ -7382,7 +7487,7 @@
     "comment_rot": false,
     "sketch": "ABZ7DSrrAApxabm8ABLAd9EkAEMeNAlHAC6mqP6lAAZhy0J9AIuNFO0pABr/YBeHAAH2J9gbADJ3hmV4AAOCBt3dAAJlK38pABbbUumyABx1myXoABr11PBdAAChVemcABlYfPUXAAPr30i7AIChdx8CAEzjyKxiAGDRiwAVAAHQUM2hAA49QHuAACVlVZ9fACLjFR71AAQVymZiARnzf3RwAAEB3OhMAAsn+ek5ACB2oL8tABCs6xKWAGMJsyLvADFa4g2FACOjzzUnAAk74GwQACyse2bXADqE7EbhAL03wC1wABova/45ADfdedq9AFaODuO1ABwWQVIXAEWNjrA3ACfpvfbMAA1u2rDWALhVh/DFAA6MVywPAB3lHOYz",
     "n_shingles": 1205,
-    "end_lineno": 297,
+    "end_lineno": 333,
     "loc": 144,
     "complexity": 50
   },
@@ -13628,6 +13733,28 @@
     "loc": 4,
     "complexity": 4
   },
+  "C-57f2fd": {
+    "coord_id": "C-57f2fd",
+    "kind": "attribute",
+    "qualname": "tests.test_corpus_recall._Scoped.visit_ClassDef",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 67,
+    "body_hash": "5a9ed07bf6cfe3de",
+    "parent": "C-c3af5d",
+    "signature": "",
+    "shape_hash": "364051304af1ed65",
+    "logic_hash": "9202e9f53666fe69",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "zTEwsBXDtIhP+mnWPkPOJO3poB1Nb2H8K9TNmeWXra5MxHmqF2nLDv29mSNLuXFQAPrK4/VrirRJLkl+DA/IWM0R98lIg0EkeYDHzcU/41pGeFjSZRXGotzl7O9F7VD4VqbEF9ST2GBDQiimQjvDjKy5xfVCNyBMT0zBYaRnMQZBrDh6uMHA1rwNIptfATAgpFLeS7Q7Lixe9gvOkefdII/hG6FcawP0nXjclYePBzJbwBuijo3aCp+1cEdatRNI+h7Z/5djfdhYKet255PXVG8JaW1XnuMc0yTWyWc3Wv5Vc/rK3LnVvn7dRnNU6PLwycrTE3aLs4RSXcqeNV/SiE6xvxlRMsJEJtDQfUZfqKpQp9pyEmXv0l4FlD9uHNIY",
+    "n_shingles": 1,
+    "end_lineno": 67,
+    "loc": 1,
+    "complexity": 1
+  },
   "C-582f65": {
     "coord_id": "C-582f65",
     "kind": "function",
@@ -14765,7 +14892,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.save",
     "path": "memway/edges.py",
-    "lineno": 308,
+    "lineno": 344,
     "body_hash": "bc40890948b6d977",
     "parent": "C-cbc42e",
     "signature": "save(self, coord_dir)",
@@ -14780,7 +14907,7 @@
     "comment_rot": false,
     "sketch": "CNjrgzGYAkuZMDrIBK+jt7pxBgmFpNg0AvQQSKAmAK8zuXDhAMupuFwEAQxQEtwBBq6OZCifAv+nd7A/BFOtiL/1AhZgoRHTAUlG63sOATqRUVFeAk9k9JNtAI48yATiAQwYsl0CALGXMYK3AdDeHYfWAByZBAQXAANQOvCBAX2s6yhdBlwRDU8IC7uC0HWRAkYWgA3zBwyDJ05/ADnPUdoVApkxV5Y4AWOY0HWhAQcb0fAiAPFYF618CI7bk615CFJtIpmnAhp/tU5HA9Gi5zE8AW5ARo01AMg28l8gAS/u2bEIANN7HqLdAOQEgM0zCF9Y+/6dAHei1INVA9mfx51hAT1ByVP8D/ANrAPuBasv2tM5AJFT2KB6AginPSpg",
     "n_shingles": 69,
-    "end_lineno": 314,
+    "end_lineno": 350,
     "loc": 7,
     "complexity": 1
   },
@@ -16829,6 +16956,34 @@
     "loc": 8,
     "complexity": 6
   },
+  "C-6b2fcc": {
+    "coord_id": "C-6b2fcc",
+    "kind": "method",
+    "qualname": "memway.edges.EdgeBuilder._in_scope",
+    "path": "memway/edges.py",
+    "lineno": 100,
+    "body_hash": "e8fa8d8b3a74a39c",
+    "parent": "C-cbc42e",
+    "signature": "_in_scope(self, src_ent, encloser)",
+    "shape_hash": "84b96120d880b3c0",
+    "logic_hash": "02d411e44d1576c0",
+    "param_types": {},
+    "return_type": "bool",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Is src_ent the encloser, or nested inside it? The scope test rule 1 always meant and never made. Walks UP from the caller, so a helper called from a sibling closure two levels down still resolves - le",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "8a98f2503cf027c5",
+    "comment_rot": false,
+    "sketch": "ACpLdq+MAj1XLE6tAFgkTzzxABvs/fd0AL8UqT31ADy8L9l3ABH7WJz6ASYANTWjBIUv3a4QADPoAKhaAQTefEL/Am4z7od4AHY4PIilA499p4OcAFdbEDn4AoLxFww1AjnYdn0EAjFMUX1pAUxbRb17AP4PW9ZjASX0pJKYAFFGDU89AQvF77YCActHP+A3AHvw1OgqAjDpUIAwAMRR7nm7BPQqa3yZAYP/neb/AiunbXstATiLgHdZAT7ZbCyaAm+6jfmPAJMEaOHzABRaSGfpAhtt8JtdABQ2Ynn1AA3j+3U7ADRadHWsABFPDxDTADVzy2v5ApkdOqgtACGKZlhLBZ2v2zrdAd7C0uSSAjov7qm5APPyxBfMAQFFx8JA",
+    "n_shingles": 182,
+    "end_lineno": 121,
+    "loc": 22,
+    "complexity": 7
+  },
   "C-6b835c": {
     "coord_id": "C-6b835c",
     "kind": "function",
@@ -17809,6 +17964,28 @@
     "end_lineno": 185,
     "loc": 16,
     "complexity": 6
+  },
+  "C-717aac": {
+    "coord_id": "C-717aac",
+    "kind": "method",
+    "qualname": "tests.test_corpus_recall._Scoped.__init__",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 58,
+    "body_hash": "35e302cb7ae955e1",
+    "parent": "C-c3af5d",
+    "signature": "__init__(self)",
+    "shape_hash": "cddca81bcf6d025d",
+    "logic_hash": "18e04f76e7f91bdf",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "CzNdbfOzDLCSpl7aJtxxNSyxB6AGbGBeI+DYaNZZChMHx3gID/Z0HzzlIRuW5UZcCM7fEsalLQkCLUjcARSqGSJNCaLxA/jCDs7Ex8w7HTH/+OE0AbNYLxzxEoT8bekeB6V29n9zGwEqA/QVEzhxbQdZA/cv6sY8Ej8G77SsKZn+vfkiAPkdiosBKq9K8APuA4YSDX1FICJOJOEbKd8AfLjtAz7jesKsJUABybCDCTxLEvF3KTCRCZ4XBwlZvxpMBHVgfy6FCpZbI+JyGfhu1NbvAmTfmwPcEEW/iLuEAp42j1OEGru4Y5itF3DmCVkQCqu6Uqo4C7yPAf2SLcBtmY/pByGMbvVIKN7Ar6yKDxcbpNvQCvpQw59dLAezQOUU",
+    "n_shingles": 17,
+    "end_lineno": 59,
+    "loc": 2,
+    "complexity": 1
   },
   "C-71b1e8": {
     "coord_id": "C-71b1e8",
@@ -18998,7 +19175,7 @@
     "kind": "function",
     "qualname": "memway.edges.event_pairs",
     "path": "memway/edges.py",
-    "lineno": 336,
+    "lineno": 372,
     "body_hash": "01691016cad1675a",
     "parent": "C-de4bf4",
     "signature": "event_pairs(edges)",
@@ -19019,7 +19196,7 @@
     "comment_rot": false,
     "sketch": "BICrwRV5AEnM9bgSAk4y/27fAOfNg9AyACZj8gMsATgUEoh2AHq6PDuqAtae5h7VAM41ah/IADJ3hmV4AIjvhkOoAuBDiZYSASzI/KvFALHnerB/ATgd3ZegArw8MEImAER6zGZYAuX7o6DrAKf8Bp+qBK1TuTFaAxDWnOuJANKaZF5nAwXWmBNDATnhe3oMAIy184LVBAfJqj7OAybKdH9wALMFm906AQ5gUxLqASb5QGlAAtJzW46BARAp2TuYCMD70vL4AK7Ax5MuALBZ+RfzAB3VncbBA4vMOycqAp42j1OEBjxtX/aQBO9rYsHjAHtIYnYxAAX5N3bWAEWNjrA3ARiitIS6AWlLRxJ7AqVnlot4Ak8/Tu8dAGK0F2GX",
     "n_shingles": 143,
-    "end_lineno": 347,
+    "end_lineno": 383,
     "loc": 12,
     "complexity": 6
   },
@@ -19774,11 +19951,11 @@
     "qualname": "tests.test_units_core2",
     "path": "tests/test_units_core2.py",
     "lineno": 1,
-    "body_hash": "396b44d309f76cf1",
+    "body_hash": "91512c4bd9f194df",
     "parent": null,
     "signature": "",
-    "shape_hash": "6e5d93147e74feb8",
-    "logic_hash": "c8782af2c458a7f7",
+    "shape_hash": "ac164ce3863e68ee",
+    "logic_hash": "d4d498f4973a71c8",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -20065,11 +20242,11 @@
     ],
     "comment_hash": "f1c89515e101a765",
     "comment_rot": true,
-    "sketch": "ACHSRMjUAApmxaMPAB+QMhsrAAi41plrAAiTUH0gABqIWbCsAAwU7+HGAAP61BdfACH+JQG4AAwdnWBzAAbTa5sCAAgT2Z6kAAJmZrnPAD9DksVEAAhERo4gAAF+zLofAAqBVtgZAAm4ii+BAA1IcSDpAAGSPeVzAASzK5j1AAzNPc1sAAhfqfeJAA4OSV20AC6xelkFAACPQSpeABppYnwVADng5iVHAATkT5VWABEK/6d6ABiAhg1nABtNfDBwAAGNEAmlACzPhVwUAAehxHFFAArGPkevABUxwazLAALpKdo8AAcNA5g7ACXAxfJgACa/DbFnACFTb9+qABlOUunFACTFsxwaAAw4qe1rAAqyyMi7AA6MVywPAC9+N33t",
-    "n_shingles": 3563,
-    "end_lineno": 561,
-    "loc": 562,
-    "complexity": 126
+    "sketch": "ACHSRMjUAApmxaMPAB+QMhsrAAi41plrAAiTUH0gABqIWbCsAAwU7+HGAAP61BdfACH+JQG4AAwdnWBzAAbTa5sCAAgT2Z6kAAJmZrnPAD9DksVEAAhERo4gAAF+zLofAAG1cqjbAAm4ii+BAA1IcSDpAAGSPeVzAASzK5j1AAzNPc1sAAhfqfeJAA4OSV20AC6xelkFAACPQSpeABppYnwVADng5iVHAATkT5VWABEK/6d6ABiAhg1nABtNfDBwAAGNEAmlAB6hxHeUAAehxHFFAArGPkevABGmYQJOAALpKdo8AAcNA5g7ACXAxfJgABVQ+qb5ACFTb9+qABlOUunFACTFsxwaAAw4qe1rAAqyyMi7AA6MVywPACDanLDz",
+    "n_shingles": 3945,
+    "end_lineno": 624,
+    "loc": 625,
+    "complexity": 145
   },
   "C-80d7fc": {
     "coord_id": "C-80d7fc",
@@ -21201,6 +21378,28 @@
     "loc": 9,
     "complexity": 2
   },
+  "C-8b99f0": {
+    "coord_id": "C-8b99f0",
+    "kind": "method",
+    "qualname": "tests.test_corpus_recall._Scoped._fn",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 61,
+    "body_hash": "6057cd8818a0a602",
+    "parent": "C-c3af5d",
+    "signature": "_fn(self, n)",
+    "shape_hash": "1a2bbd96c877ca68",
+    "logic_hash": "2679ddb83a5b7a5a",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "AvmKzz/0A1Egc1rIBZjzKo07B8mBKaiCCLhtqLtwBDaGSHFIGjjqhp36CZfNQsylDavra5UsAvWaP7TMAV7p0K1WDHXtw9JJCdJIiuSuGObjOMu/AbNYLxzxFKO52yEnABlYfPUXAL+OPI6DC85Hsm3eA/cv6sY8BrlFX2UACt18olioA6b+mH0nAff/MG7HA4YSDX1FDUD+x1UpAVNb2zIUFvB942OzCIq5Q+4TCmN6SHvlAmnjAdGWABXV8jLZAaJ8vwQOCYJ20T/KHC9yFPxkDcvJEyMIBIIHJWzFDEHJGNtOAV7li31+D4bQ1jOXBgJpbFy8BF091PmADoTvhi5jA/2k7NqvBbxwTBi4ATKaK9KQHzTOWj5CAc0LyruE",
+    "n_shingles": 26,
+    "end_lineno": 64,
+    "loc": 4,
+    "complexity": 1
+  },
   "C-8bbaf5": {
     "coord_id": "C-8bbaf5",
     "kind": "function",
@@ -22118,6 +22317,28 @@
     "end_lineno": 339,
     "loc": 340,
     "complexity": 92
+  },
+  "C-91bb26": {
+    "coord_id": "C-91bb26",
+    "kind": "attribute",
+    "qualname": "tests.test_corpus_recall._Scoped.visit_AsyncFunctionDef",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 66,
+    "body_hash": "ab7af9a7a65bf8cd",
+    "parent": "C-c3af5d",
+    "signature": "",
+    "shape_hash": "dde22707b28675f7",
+    "logic_hash": "85b7b3a100f8a552",
+    "param_types": {},
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "Blz+Ou8CJKoRNrqCINWX7IyGMD8To7KoNUKUUYT4PYwSCKr+Cf+SxpzSCQEVdaIEHmyTK5QEGpYX4poqEpmRkKx+PKSGCbvlZxaeBaRQKDeI8qITe4Ofar2KJ4KLZ6o5SDCd37X8Ew2NyNJnXK2aRM3WDpiMvdqNUdqYqcUIL5AYZFkVKOOeGm9ZPA0GyVFPNHCAh2dvMLoHPmqhAcWD7Fy1BTcFo2KbDVqCWVTbGaQCCHrNHq+ExkzhbtEDfXInMXMXdW2iY04B4YoZLP4Z3pXId/sOVoJzGEkYQ532RGgMu5ulF9QbNIQcWOUNIJOfAqcdmYxKI6YMkRnKK8mLQC/eLzsP/hEQOEaJtScwOIgOawkmDPO2Gj9qBB0w0AFM",
+    "n_shingles": 3,
+    "end_lineno": 66,
+    "loc": 1,
+    "complexity": 1
   },
   "C-920e4b": {
     "coord_id": "C-920e4b",
@@ -24105,11 +24326,11 @@
     "qualname": "memway.__init__",
     "path": "memway/__init__.py",
     "lineno": 1,
-    "body_hash": "8ff5e25a95eab3fd",
+    "body_hash": "7d958d33901c58c3",
     "parent": null,
     "signature": "",
     "shape_hash": "c97484f1ccd6973a",
-    "logic_hash": "2a70b047d53a1a35",
+    "logic_hash": "6015bab99b940daf",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -24141,7 +24362,7 @@
     ],
     "comment_hash": "95d6d9df472ca4e0",
     "comment_rot": true,
-    "sketch": "AL1DZOadAByAuOBMAH69eU3DATwfuQbTAHN+tGLjATeNSp0yAM6ZzgfLAbdEGOi2BB2aOySlANgFaMGyAvzwwV0KBBuwDKALAjUwIl/fAsvSwUw6BE/7ajqlApQ/KQBjAUqgP+MhAcZYgrlyB6UPg951AVGQPSGSAFHMzFZBAF+UrMCvAsGFiil3AMkpgQNHAsuBux0eAkEO45tCAkdKdD1lBpxzlpzwBezTNB5pAXCxvxp3A2lTjoLxASeAfD+fBBibKCb2AMByBhC0A9asMnz9AcoHzSfTAfDNMmoDBFeBzoq9APmlP++eA+2Y54A8ACqzkG2fA/Yjpr3xAZhJ+Er4ADWN/Q9jAJpz9z/4BDORKT7qAhu7TAcmAYSTOIi0",
+    "sketch": "AL1DZOadAByAuOBMAH69eU3DATwfuQbTAHN+tGLjATeNSp0yAM6ZzgfLAbdEGOi2BB2aOySlANgFaMGyAvzwwV0KAzpjaAz6AjUwIl/fAsvSwUw6BE/7ajqlApQ/KQBjAUqgP+MhAcZYgrlyB6UPg951AVGQPSGSAFHMzFZBAF+UrMCvAsGFiil3AMkpgQNHAsuBux0eAkEO45tCAkdKdD1lBpxzlpzwBezTNB5pAXCxvxp3A2lTjoLxASeAfD+fBBibKCb2AMByBhC0A9asMnz9AcoHzSfTAfDNMmoDBFeBzoq9APmlP++eA+2Y54A8ACqzkG2fA/Yjpr3xAZhJ+Er4ADWN/Q9jAJpz9z/4BDORKT7qAhu7TAcmB5/5SGCc",
     "n_shingles": 88,
     "end_lineno": 7,
     "loc": 8,
@@ -30377,6 +30598,34 @@
     "loc": 17,
     "complexity": 6
   },
+  "C-c3af5d": {
+    "coord_id": "C-c3af5d",
+    "kind": "class",
+    "qualname": "tests.test_corpus_recall._Scoped",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 55,
+    "body_hash": "cb69676ddac02d76",
+    "parent": "C-f1bc8f",
+    "signature": "",
+    "shape_hash": "686ccf7453113491",
+    "logic_hash": "a012a62ac49e258a",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "(enclosing def name, called bare name, was-attribute) per call.",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "fc0b691e3f3c7fd6",
+    "comment_rot": false,
+    "sketch": "ArnmoKmlA1Egc1rIActE5Y+FBV81wVMNAQmII14NBDaGSHFIAR5KgPfnASVr5mISAPrK4/VrAvWaP7TMAFRoLNc4AQMZHECTAI9bF/1pAn0axWM8AVs7T2kTABhktyBRABlYfPUXAL+OPI6DAKuLAQBEAViaWpV5BnNnbudRBVnkzEHWAPkdiosBATnhe3oMARCm5YbKAUmLagq3AHq8+7KIAHM8GxiHATx1RGW/BXV/HxYHAQq6K/tXABXV8jLZAKMdrDrNA8ssnp3UAS9dn6+GAmTfmwPcAXN3eqYSAp42j1OEAV7li31+BOMcZV4NAaJItFl+AGZdhVyNAQB36DcdAqt6B14QAW7KYXG3ATKaK9KQATQTN5n1AB3lHOYz",
+    "n_shingles": 138,
+    "end_lineno": 75,
+    "loc": 21,
+    "complexity": 5
+  },
   "C-c3b45b": {
     "coord_id": "C-c3b45b",
     "kind": "function",
@@ -30859,6 +31108,34 @@
     "loc": 4,
     "complexity": 2
   },
+  "C-c673de": {
+    "coord_id": "C-c673de",
+    "kind": "function",
+    "qualname": "tests.test_units_core2.test_a_sibling_closure_can_call_a_helper_of_the_same_parent",
+    "path": "tests/test_units_core2.py",
+    "lineno": 604,
+    "body_hash": "4decdbf01b543777",
+    "parent": "C-80b544",
+    "signature": "test_a_sibling_closure_can_call_a_helper_of_the_same_parent(tmp_path)",
+    "shape_hash": "f996bc653fa40db8",
+    "logic_hash": "3d0369e1980bf019",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "Scope is inherited, so the check walks UP from the caller. A nested `inner` calling its parent's `helper` is in scope by ordinary lexical rules. Stopping at the direct parent would trade one wrong ans",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "3375a1c8be79046a",
+    "comment_rot": false,
+    "sketch": "ACpLdq+MAF0m89p/AFgkTzzxABvs/fd0Af9axdCXAERoFwUeAns8wZL8AUjXtijnANoVOmdAACh2UzZUACZB/EyCABhpMWc5AJZ133YTAEpxdEbHAvQ8vhNmAAF+zLofAyyus1nVAQvyiUybAJK2N3JdADyiAjCLAFazfnDQAFpd2VMEACgb+HSyAUEJj7VfAamSqubwBAfJqj7OAJI+HDoRAPp9rOkDAQ7h+384APe0aUgUAdsFI7KVAt98ISQSAm+6jfmPAK7Ax5MuAEtYkSDSAG0X/2PqABGmYQJOACHU3xKDADRadHWsARgS/ky+ABVQ+qb5BT+FEAujAa+zHJtZAMJZnfVlAH4C2K9iAAqyyMi7ADT85iqJALyc1Zt0",
+    "n_shingles": 226,
+    "end_lineno": 624,
+    "loc": 21,
+    "complexity": 9
+  },
   "C-c6afd3": {
     "coord_id": "C-c6afd3",
     "kind": "function",
@@ -31229,6 +31506,30 @@
     "end_lineno": 437,
     "loc": 14,
     "complexity": 6
+  },
+  "C-c967a9": {
+    "coord_id": "C-c967a9",
+    "kind": "function",
+    "qualname": "tests.test_corpus_recall._load",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 78,
+    "body_hash": "696322ed99483c14",
+    "parent": "C-f1bc8f",
+    "signature": "_load(repo)",
+    "shape_hash": "3fcc7342403a66e5",
+    "logic_hash": "6632e2aeb57f9e85",
+    "param_types": {
+      "repo": "Path"
+    },
+    "return_type": "",
+    "comments": [],
+    "comment_hash": "",
+    "comment_rot": false,
+    "sketch": "Az6gK2rXAy4YqH8YAHiZHM7HAYNC6cKYBrSVTwzSBgwyZUlpAbJMTuqfAtae5h7VAAH2J9gbAsijHVdvAHixWHdXApKJxPmvAJCeVI4RAH2iGFfOAeMmHofAAWQY1huXAG3XkK7fALGXMYK3AOjoQxCqAzk+Sq6/AFazfnDQAGNJ5S1KAHIh6Y5+ATnhe3oMAWnWkuuQA0wGIOKLArezOmQkALrugwHdAW920uutAofOENFJBvEwOYGkAuFWMiXCATL7OcFxAK7Ax5MuAXlks1g3AQ3zJ/OzAjDTFjsAAS/u2bEIABlg66JdAciy5CK1ACatEu/+AbHX70+2Ae+o3lI7AFDhsfSDADwGPwEtAmZL+TfTATMlnJP0AOL/w+rL",
+    "n_shingles": 169,
+    "end_lineno": 93,
+    "loc": 16,
+    "complexity": 10
   },
   "C-c96c84": {
     "coord_id": "C-c96c84",
@@ -31688,11 +31989,11 @@
     "qualname": "memway.edges.EdgeBuilder",
     "path": "memway/edges.py",
     "lineno": 23,
-    "body_hash": "469ad13cc2e5dedf",
+    "body_hash": "e0c4dd3db288d925",
     "parent": "C-de4bf4",
     "signature": "",
-    "shape_hash": "36fc4831262acd99",
-    "logic_hash": "595c75f4fa109b88",
+    "shape_hash": "6e19781101d69767",
+    "logic_hash": "3e92a87a86df07ed",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -31722,348 +32023,403 @@
         "kind": "comment"
       },
       {
-        "line": 101,
+        "line": 124,
         "text": "1. FUNCTION-LOCAL targets. A class or def inside a function body",
         "kind": "comment"
       },
       {
-        "line": 102,
+        "line": 125,
         "text": "cannot be named from outside that body - it does not exist",
         "kind": "comment"
       },
       {
-        "line": 103,
+        "line": 126,
         "text": "until the function runs, and not by that path afterwards.",
         "kind": "comment"
       },
       {
-        "line": 112,
-        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
+        "line": 128,
+        "text": "FROM OUTSIDE is the whole rule, and until 0.55.3 the code did",
         "kind": "comment"
       },
       {
-        "line": 113,
-        "text": "cannot be a plain `def get` at module scope, however unique",
+        "line": 129,
+        "text": "not check it: any function-local target was dropped, including",
         "kind": "comment"
       },
       {
-        "line": 114,
-        "text": "that name is in the index. The parser knows the call was",
+        "line": 130,
+        "text": "when the CALLER was the very function containing it. That is",
         "kind": "comment"
       },
       {
-        "line": 115,
-        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "line": 131,
+        "text": "the ordinary closure idiom - a helper defined at the top of a",
         "kind": "comment"
       },
       {
-        "line": 116,
-        "text": "carries it now. This is what the first two rules could not",
+        "line": 132,
+        "text": "function and called from its body - and it is not a guess:",
         "kind": "comment"
       },
       {
-        "line": 117,
-        "text": "reach: tests calling dict.get() still landed on a test helper",
-        "kind": "comment"
-      },
-      {
-        "line": 118,
-        "text": "named get, because caller and target were both tests.",
-        "kind": "comment"
-      },
-      {
-        "line": 121,
-        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
-        "kind": "comment"
-      },
-      {
-        "line": 122,
-        "text": "is already relied on by metrics (fan_in excludes test sources)",
-        "kind": "comment"
-      },
-      {
-        "line": 123,
-        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
-        "kind": "comment"
-      },
-      {
-        "line": 124,
-        "text": "could never help here: these names have exactly one definition,",
-        "kind": "comment"
-      },
-      {
-        "line": 125,
-        "text": "and no competition was read as high confidence when it is the",
-        "kind": "comment"
-      },
-      {
-        "line": 126,
-        "text": "case that most deserves suspicion.",
+        "line": 133,
+        "text": "the target is lexically in scope and there is exactly one",
         "kind": "comment"
       },
       {
         "line": 134,
-        "text": "counted, not silent: dropping an edge is a claim about the",
+        "text": "candidate. Measured on three real repos at 0.55.2: 60 true",
         "kind": "comment"
       },
       {
         "line": 135,
-        "text": "graph and the number belongs where someone can see it.",
+        "text": "edges dropped, 50 of them in rich, including",
+        "kind": "comment"
+      },
+      {
+        "line": 136,
+        "text": "Tree.__rich_console__ -> make_guide, called six times inside",
+        "kind": "comment"
+      },
+      {
+        "line": 137,
+        "text": "the very function that defines it. Every hand-built fixture",
         "kind": "comment"
       },
       {
         "line": 138,
-        "text": "materialize class hierarchy as structural edges: until now the",
+        "text": "passed, because none of them had the caller be the encloser.",
         "kind": "comment"
       },
       {
-        "line": 139,
-        "text": "MRO data was consumed during resolution and thrown away - as",
+        "line": 148,
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
         "kind": "comment"
       },
       {
-        "line": 140,
-        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
+        "line": 149,
+        "text": "cannot be a plain `def get` at module scope, however unique",
         "kind": "comment"
       },
       {
-        "line": 141,
-        "text": "overrides) and knowledge can flow down the hierarchy.",
+        "line": 150,
+        "text": "that name is in the index. The parser knows the call was",
         "kind": "comment"
       },
       {
         "line": 151,
-        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 152,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 153,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 154,
+        "text": "named get, because caller and target were both tests.",
+        "kind": "comment"
+      },
+      {
+        "line": 157,
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
+        "kind": "comment"
+      },
+      {
+        "line": 158,
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
         "kind": "comment"
       },
       {
         "line": 159,
-        "text": "containment from the index itself (structural: certain)",
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
+        "kind": "comment"
+      },
+      {
+        "line": 160,
+        "text": "could never help here: these names have exactly one definition,",
+        "kind": "comment"
+      },
+      {
+        "line": 161,
+        "text": "and no competition was read as high confidence when it is the",
+        "kind": "comment"
+      },
+      {
+        "line": 162,
+        "text": "case that most deserves suspicion.",
         "kind": "comment"
       },
       {
         "line": 170,
-        "text": "dynamic dispatch: string-named events are the least",
+        "text": "counted, not silent: dropping an edge is a claim about the",
         "kind": "comment"
       },
       {
         "line": 171,
-        "text": "grounded edge kind we emit",
+        "text": "graph and the number belongs where someone can see it.",
+        "kind": "comment"
+      },
+      {
+        "line": 174,
+        "text": "materialize class hierarchy as structural edges: until now the",
+        "kind": "comment"
+      },
+      {
+        "line": 175,
+        "text": "MRO data was consumed during resolution and thrown away - as",
+        "kind": "comment"
+      },
+      {
+        "line": 176,
+        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
         "kind": "comment"
       },
       {
         "line": 177,
-        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
-        "kind": "comment"
-      },
-      {
-        "line": 178,
-        "text": "wrong. Checked here rather than inside resolve() because the",
-        "kind": "comment"
-      },
-      {
-        "line": 179,
-        "text": "rule needs the CALLER, which resolve() has no business knowing.",
-        "kind": "comment"
-      },
-      {
-        "line": 186,
-        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "text": "overrides) and knowledge can flow down the hierarchy.",
         "kind": "comment"
       },
       {
         "line": 187,
-        "text": "self.meth was attributed to the calling subclass, but meth",
-        "kind": "comment"
-      },
-      {
-        "line": 188,
-        "text": "is defined on an ancestor - walk the MRO to find it.",
-        "kind": "comment"
-      },
-      {
-        "line": 194,
-        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
         "kind": "comment"
       },
       {
         "line": 195,
-        "text": "ref's first segment is a parameter of the calling entity",
+        "text": "containment from the index itself (structural: certain)",
         "kind": "comment"
       },
       {
-        "line": 196,
-        "text": "with an annotation, resolve the method against that class",
+        "line": 206,
+        "text": "dynamic dispatch: string-named events are the least",
         "kind": "comment"
       },
       {
-        "line": 197,
-        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "line": 207,
+        "text": "grounded edge kind we emit",
         "kind": "comment"
       },
       {
-        "line": 198,
-        "text": "every edge this wins was previously a guess or a drop.",
+        "line": 213,
+        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
         "kind": "comment"
       },
       {
-        "line": 208,
-        "text": "guarded like the other short-name lookups: a",
+        "line": 214,
+        "text": "wrong. Checked here rather than inside resolve() because the",
         "kind": "comment"
       },
       {
-        "line": 209,
-        "text": "declared type is strong evidence, but the CLASS",
+        "line": 215,
+        "text": "rule needs the CALLER, which resolve() has no business knowing.",
         "kind": "comment"
       },
       {
-        "line": 210,
-        "text": "is still being found by bare name and can land",
+        "line": 222,
+        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
         "kind": "comment"
       },
       {
-        "line": 211,
-        "text": "on a function-local class no annotation could",
-        "kind": "comment"
-      },
-      {
-        "line": 212,
-        "text": "legally name.",
+        "line": 223,
+        "text": "self.meth was attributed to the calling subclass, but meth",
         "kind": "comment"
       },
       {
         "line": 224,
-        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "text": "is defined on an ancestor - walk the MRO to find it.",
         "kind": "comment"
       },
       {
-        "line": 225,
-        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "line": 230,
+        "text": "ANNOTATED receiver: the author declared the type. If the",
         "kind": "comment"
       },
       {
-        "line": 226,
-        "text": "drops the edge (conservatism preserved).",
+        "line": 231,
+        "text": "ref's first segment is a parameter of the calling entity",
         "kind": "comment"
       },
       {
-        "line": 237,
-        "text": "...and only when the PREFIX names something this repo",
+        "line": 232,
+        "text": "with an annotation, resolve the method against that class",
         "kind": "comment"
       },
       {
-        "line": 238,
-        "text": "actually has. Inheritance dispatch always does - the",
+        "line": 233,
+        "text": "(directly or up its MRO). Ground truth beats guessing:",
         "kind": "comment"
       },
       {
-        "line": 239,
-        "text": "ref was built from the calling class - whereas",
-        "kind": "comment"
-      },
-      {
-        "line": 240,
-        "text": "`subprocess.run` names a module we do not define, and",
-        "kind": "comment"
-      },
-      {
-        "line": 241,
-        "text": "guessing its last segment against our own entities is",
-        "kind": "comment"
-      },
-      {
-        "line": 242,
-        "text": "how 77 subprocess.run() call sites became edges into",
-        "kind": "comment"
-      },
-      {
-        "line": 243,
-        "text": "Harvester.run. Qualifying the receiver in the parser",
+        "line": 234,
+        "text": "every edge this wins was previously a guess or a drop.",
         "kind": "comment"
       },
       {
         "line": 244,
-        "text": "(schema 6) was only half the fix: this tier stripped",
+        "text": "guarded like the other short-name lookups: a",
         "kind": "comment"
       },
       {
         "line": 245,
-        "text": "the qualification straight back off.",
+        "text": "declared type is strong evidence, but the CLASS",
         "kind": "comment"
       },
       {
         "line": 246,
-        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "text": "is still being found by bare name and can land",
         "kind": "comment"
       },
       {
         "line": 247,
-        "text": "subclass, but meth is defined on an ancestor. Without",
+        "text": "on a function-local class no annotation could",
         "kind": "comment"
       },
       {
         "line": 248,
-        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "text": "legally name.",
         "kind": "comment"
       },
       {
-        "line": 249,
-        "text": "method name anywhere in the index - flagged as a guess.",
+        "line": 260,
+        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
         "kind": "comment"
       },
       {
-        "line": 250,
-        "text": "guarded like the other two short-name tiers - this",
-        "kind": "comment"
-      },
-      {
-        "line": 251,
-        "text": "one was missed on the first pass and kept feeding the",
-        "kind": "comment"
-      },
-      {
-        "line": 252,
-        "text": "same false hubs, which is the argument for the test",
-        "kind": "comment"
-      },
-      {
-        "line": 253,
-        "text": "below that enumerates every site rather than trusting",
-        "kind": "comment"
-      },
-      {
-        "line": 254,
-        "text": "that they were all found.",
+        "line": 261,
+        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
         "kind": "comment"
       },
       {
         "line": 262,
-        "text": "bare-name fallback: unique short-name match anywhere in",
+        "text": "drops the edge (conservatism preserved).",
         "kind": "comment"
       },
       {
-        "line": 263,
-        "text": "the index. Grounded enough to keep WITH a low score -",
+        "line": 273,
+        "text": "...and only when the PREFIX names something this repo",
         "kind": "comment"
       },
       {
-        "line": 264,
-        "text": "dropping it silently (old behavior) hides real coupling.",
+        "line": 274,
+        "text": "actually has. Inheritance dispatch always does - the",
+        "kind": "comment"
+      },
+      {
+        "line": 275,
+        "text": "ref was built from the calling class - whereas",
+        "kind": "comment"
+      },
+      {
+        "line": 276,
+        "text": "`subprocess.run` names a module we do not define, and",
+        "kind": "comment"
+      },
+      {
+        "line": 277,
+        "text": "guessing its last segment against our own entities is",
+        "kind": "comment"
+      },
+      {
+        "line": 278,
+        "text": "how 77 subprocess.run() call sites became edges into",
         "kind": "comment"
       },
       {
         "line": 279,
+        "text": "Harvester.run. Qualifying the receiver in the parser",
+        "kind": "comment"
+      },
+      {
+        "line": 280,
+        "text": "(schema 6) was only half the fix: this tier stripped",
+        "kind": "comment"
+      },
+      {
+        "line": 281,
+        "text": "the qualification straight back off.",
+        "kind": "comment"
+      },
+      {
+        "line": 282,
+        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "kind": "comment"
+      },
+      {
+        "line": 283,
+        "text": "subclass, but meth is defined on an ancestor. Without",
+        "kind": "comment"
+      },
+      {
+        "line": 284,
+        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "kind": "comment"
+      },
+      {
+        "line": 285,
+        "text": "method name anywhere in the index - flagged as a guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 286,
+        "text": "guarded like the other two short-name tiers - this",
+        "kind": "comment"
+      },
+      {
+        "line": 287,
+        "text": "one was missed on the first pass and kept feeding the",
+        "kind": "comment"
+      },
+      {
+        "line": 288,
+        "text": "same false hubs, which is the argument for the test",
+        "kind": "comment"
+      },
+      {
+        "line": 289,
+        "text": "below that enumerates every site rather than trusting",
+        "kind": "comment"
+      },
+      {
+        "line": 290,
+        "text": "that they were all found.",
+        "kind": "comment"
+      },
+      {
+        "line": 298,
+        "text": "bare-name fallback: unique short-name match anywhere in",
+        "kind": "comment"
+      },
+      {
+        "line": 299,
+        "text": "the index. Grounded enough to keep WITH a low score -",
+        "kind": "comment"
+      },
+      {
+        "line": 300,
+        "text": "dropping it silently (old behavior) hides real coupling.",
+        "kind": "comment"
+      },
+      {
+        "line": 315,
         "text": "Phase A: set dedup, was O(edges^2)",
         "kind": "comment"
       }
     ],
-    "comment_hash": "0dfdb5eb425e08da",
+    "comment_hash": "09b9f4f006a704a9",
     "comment_rot": false,
-    "sketch": "ABZ7DSrrAApxabm8ABLAd9EkABtCAcqxACZj8gMsAAZhy0J9AEfre+j6ABr/YBeHAAH2J9gbADJ3hmV4AAOCBt3dAAJlK38pAAEd1+M6ABx1myXoABr11PBdAAChVemcAAqBVtgZAAPr30i7ABRE+IZcAAo/9kgYAANQOvCBAAHQUM2hAA49QHuAACVlVZ9fAA9EwQWTAAQVymZiAARQgWgsAAEB3OhMAAiTbJfYACB2oL8tABCs6xKWACzDoKAfAAOi39t+ACOjzzUnAAk74GwQACyse2bXADqE7EbhAALpKdo8ABhPEa73ADfdedq9ABfQpUzWABwWQVIXAAp7eVkMAAAuZskjAA1u2rDWAAEga2hwAA6MVywPAB3lHOYz",
-    "n_shingles": 2558,
-    "end_lineno": 328,
-    "loc": 306,
-    "complexity": 80
+    "sketch": "ABZ7DSrrAApxabm8ABLAd9EkABtCAcqxACZj8gMsAAZhy0J9ABH7WJz6ABr/YBeHAAH2J9gbADJ3hmV4AAOCBt3dAAJlK38pAAEd1+M6ABx1myXoABr11PBdAAChVemcAAqBVtgZAAPr30i7ABRE+IZcAAo/9kgYAANQOvCBAAHQUM2hAA49QHuAACVlVZ9fAA9EwQWTAAQVymZiAARQgWgsAAEB3OhMAAiTbJfYACB2oL8tABCs6xKWACzDoKAfAAOi39t+ACOjzzUnAAk74GwQACyse2bXABQ2Ynn1AALpKdo8ABhPEa73ABFPDxDTABfQpUzWABwWQVIXAAp7eVkMAAAuZskjAA1u2rDWAAEga2hwAA6MVywPAALuR8pN",
+    "n_shingles": 2862,
+    "end_lineno": 364,
+    "loc": 342,
+    "complexity": 87
   },
   "C-cc3b13": {
     "coord_id": "C-cc3b13",
@@ -35069,11 +35425,11 @@
     "qualname": "memway.edges",
     "path": "memway/edges.py",
     "lineno": 1,
-    "body_hash": "ad1acb6c8bfd9169",
+    "body_hash": "292797f8c5022e15",
     "parent": null,
     "signature": "",
-    "shape_hash": "2d2e07b5216094b9",
-    "logic_hash": "969bfe2630248f77",
+    "shape_hash": "3c1073d37a3d5872",
+    "logic_hash": "b3f45761d7bcdff5",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -35103,348 +35459,403 @@
         "kind": "comment"
       },
       {
-        "line": 123,
+        "line": 146,
         "text": "1. FUNCTION-LOCAL targets. A class or def inside a function body",
         "kind": "comment"
       },
       {
-        "line": 124,
+        "line": 147,
         "text": "cannot be named from outside that body - it does not exist",
         "kind": "comment"
       },
       {
-        "line": 125,
+        "line": 148,
         "text": "until the function runs, and not by that path afterwards.",
         "kind": "comment"
       },
       {
-        "line": 134,
-        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
+        "line": 150,
+        "text": "FROM OUTSIDE is the whole rule, and until 0.55.3 the code did",
         "kind": "comment"
       },
       {
-        "line": 135,
-        "text": "cannot be a plain `def get` at module scope, however unique",
+        "line": 151,
+        "text": "not check it: any function-local target was dropped, including",
         "kind": "comment"
       },
       {
-        "line": 136,
-        "text": "that name is in the index. The parser knows the call was",
+        "line": 152,
+        "text": "when the CALLER was the very function containing it. That is",
         "kind": "comment"
       },
       {
-        "line": 137,
-        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "line": 153,
+        "text": "the ordinary closure idiom - a helper defined at the top of a",
         "kind": "comment"
       },
       {
-        "line": 138,
-        "text": "carries it now. This is what the first two rules could not",
+        "line": 154,
+        "text": "function and called from its body - and it is not a guess:",
         "kind": "comment"
       },
       {
-        "line": 139,
-        "text": "reach: tests calling dict.get() still landed on a test helper",
-        "kind": "comment"
-      },
-      {
-        "line": 140,
-        "text": "named get, because caller and target were both tests.",
-        "kind": "comment"
-      },
-      {
-        "line": 143,
-        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
-        "kind": "comment"
-      },
-      {
-        "line": 144,
-        "text": "is already relied on by metrics (fan_in excludes test sources)",
-        "kind": "comment"
-      },
-      {
-        "line": 145,
-        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
-        "kind": "comment"
-      },
-      {
-        "line": 146,
-        "text": "could never help here: these names have exactly one definition,",
-        "kind": "comment"
-      },
-      {
-        "line": 147,
-        "text": "and no competition was read as high confidence when it is the",
-        "kind": "comment"
-      },
-      {
-        "line": 148,
-        "text": "case that most deserves suspicion.",
+        "line": 155,
+        "text": "the target is lexically in scope and there is exactly one",
         "kind": "comment"
       },
       {
         "line": 156,
-        "text": "counted, not silent: dropping an edge is a claim about the",
+        "text": "candidate. Measured on three real repos at 0.55.2: 60 true",
         "kind": "comment"
       },
       {
         "line": 157,
-        "text": "graph and the number belongs where someone can see it.",
+        "text": "edges dropped, 50 of them in rich, including",
+        "kind": "comment"
+      },
+      {
+        "line": 158,
+        "text": "Tree.__rich_console__ -> make_guide, called six times inside",
+        "kind": "comment"
+      },
+      {
+        "line": 159,
+        "text": "the very function that defines it. Every hand-built fixture",
         "kind": "comment"
       },
       {
         "line": 160,
-        "text": "materialize class hierarchy as structural edges: until now the",
+        "text": "passed, because none of them had the caller be the encloser.",
         "kind": "comment"
       },
       {
-        "line": 161,
-        "text": "MRO data was consumed during resolution and thrown away - as",
+        "line": 170,
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
         "kind": "comment"
       },
       {
-        "line": 162,
-        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
+        "line": 171,
+        "text": "cannot be a plain `def get` at module scope, however unique",
         "kind": "comment"
       },
       {
-        "line": 163,
-        "text": "overrides) and knowledge can flow down the hierarchy.",
+        "line": 172,
+        "text": "that name is in the index. The parser knows the call was",
         "kind": "comment"
       },
       {
         "line": 173,
-        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 174,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 175,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 176,
+        "text": "named get, because caller and target were both tests.",
+        "kind": "comment"
+      },
+      {
+        "line": 179,
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
+        "kind": "comment"
+      },
+      {
+        "line": 180,
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
         "kind": "comment"
       },
       {
         "line": 181,
-        "text": "containment from the index itself (structural: certain)",
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
+        "kind": "comment"
+      },
+      {
+        "line": 182,
+        "text": "could never help here: these names have exactly one definition,",
+        "kind": "comment"
+      },
+      {
+        "line": 183,
+        "text": "and no competition was read as high confidence when it is the",
+        "kind": "comment"
+      },
+      {
+        "line": 184,
+        "text": "case that most deserves suspicion.",
         "kind": "comment"
       },
       {
         "line": 192,
-        "text": "dynamic dispatch: string-named events are the least",
+        "text": "counted, not silent: dropping an edge is a claim about the",
         "kind": "comment"
       },
       {
         "line": 193,
-        "text": "grounded edge kind we emit",
+        "text": "graph and the number belongs where someone can see it.",
+        "kind": "comment"
+      },
+      {
+        "line": 196,
+        "text": "materialize class hierarchy as structural edges: until now the",
+        "kind": "comment"
+      },
+      {
+        "line": 197,
+        "text": "MRO data was consumed during resolution and thrown away - as",
+        "kind": "comment"
+      },
+      {
+        "line": 198,
+        "text": "edges, agents can ASK about inheritance (bases, subclasses,",
         "kind": "comment"
       },
       {
         "line": 199,
-        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
-        "kind": "comment"
-      },
-      {
-        "line": 200,
-        "text": "wrong. Checked here rather than inside resolve() because the",
-        "kind": "comment"
-      },
-      {
-        "line": 201,
-        "text": "rule needs the CALLER, which resolve() has no business knowing.",
-        "kind": "comment"
-      },
-      {
-        "line": 208,
-        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
+        "text": "overrides) and knowledge can flow down the hierarchy.",
         "kind": "comment"
       },
       {
         "line": 209,
-        "text": "self.meth was attributed to the calling subclass, but meth",
-        "kind": "comment"
-      },
-      {
-        "line": 210,
-        "text": "is defined on an ancestor - walk the MRO to find it.",
-        "kind": "comment"
-      },
-      {
-        "line": 216,
-        "text": "ANNOTATED receiver: the author declared the type. If the",
+        "text": "O(1) lookup indexes (bare-name scan was O(raw_edges x entities))",
         "kind": "comment"
       },
       {
         "line": 217,
-        "text": "ref's first segment is a parameter of the calling entity",
+        "text": "containment from the index itself (structural: certain)",
         "kind": "comment"
       },
       {
-        "line": 218,
-        "text": "with an annotation, resolve the method against that class",
+        "line": 228,
+        "text": "dynamic dispatch: string-named events are the least",
         "kind": "comment"
       },
       {
-        "line": 219,
-        "text": "(directly or up its MRO). Ground truth beats guessing:",
+        "line": 229,
+        "text": "grounded edge kind we emit",
         "kind": "comment"
       },
       {
-        "line": 220,
-        "text": "every edge this wins was previously a guess or a drop.",
+        "line": 235,
+        "text": "A NAME-ONLY match is a guess, and some guesses are provably",
         "kind": "comment"
       },
       {
-        "line": 230,
-        "text": "guarded like the other short-name lookups: a",
+        "line": 236,
+        "text": "wrong. Checked here rather than inside resolve() because the",
         "kind": "comment"
       },
       {
-        "line": 231,
-        "text": "declared type is strong evidence, but the CLASS",
+        "line": 237,
+        "text": "rule needs the CALLER, which resolve() has no business knowing.",
         "kind": "comment"
       },
       {
-        "line": 232,
-        "text": "is still being found by bare name and can land",
+        "line": 244,
+        "text": "inheritance dispatch, resolved via REAL class hierarchy:",
         "kind": "comment"
       },
       {
-        "line": 233,
-        "text": "on a function-local class no annotation could",
-        "kind": "comment"
-      },
-      {
-        "line": 234,
-        "text": "legally name.",
+        "line": 245,
+        "text": "self.meth was attributed to the calling subclass, but meth",
         "kind": "comment"
       },
       {
         "line": 246,
-        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
+        "text": "is defined on an ancestor - walk the MRO to find it.",
         "kind": "comment"
       },
       {
-        "line": 247,
-        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
+        "line": 252,
+        "text": "ANNOTATED receiver: the author declared the type. If the",
         "kind": "comment"
       },
       {
-        "line": 248,
-        "text": "drops the edge (conservatism preserved).",
+        "line": 253,
+        "text": "ref's first segment is a parameter of the calling entity",
         "kind": "comment"
       },
       {
-        "line": 259,
-        "text": "...and only when the PREFIX names something this repo",
+        "line": 254,
+        "text": "with an annotation, resolve the method against that class",
         "kind": "comment"
       },
       {
-        "line": 260,
-        "text": "actually has. Inheritance dispatch always does - the",
+        "line": 255,
+        "text": "(directly or up its MRO). Ground truth beats guessing:",
         "kind": "comment"
       },
       {
-        "line": 261,
-        "text": "ref was built from the calling class - whereas",
-        "kind": "comment"
-      },
-      {
-        "line": 262,
-        "text": "`subprocess.run` names a module we do not define, and",
-        "kind": "comment"
-      },
-      {
-        "line": 263,
-        "text": "guessing its last segment against our own entities is",
-        "kind": "comment"
-      },
-      {
-        "line": 264,
-        "text": "how 77 subprocess.run() call sites became edges into",
-        "kind": "comment"
-      },
-      {
-        "line": 265,
-        "text": "Harvester.run. Qualifying the receiver in the parser",
+        "line": 256,
+        "text": "every edge this wins was previously a guess or a drop.",
         "kind": "comment"
       },
       {
         "line": 266,
-        "text": "(schema 6) was only half the fix: this tier stripped",
+        "text": "guarded like the other short-name lookups: a",
         "kind": "comment"
       },
       {
         "line": 267,
-        "text": "the qualification straight back off.",
+        "text": "declared type is strong evidence, but the CLASS",
         "kind": "comment"
       },
       {
         "line": 268,
-        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "text": "is still being found by bare name and can land",
         "kind": "comment"
       },
       {
         "line": 269,
-        "text": "subclass, but meth is defined on an ancestor. Without",
+        "text": "on a function-local class no annotation could",
         "kind": "comment"
       },
       {
         "line": 270,
-        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "text": "legally name.",
         "kind": "comment"
       },
       {
-        "line": 271,
-        "text": "method name anywhere in the index - flagged as a guess.",
+        "line": 282,
+        "text": "dotted ref from scope-aware parsing (\"Session.request\"):",
         "kind": "comment"
       },
       {
-        "line": 272,
-        "text": "guarded like the other two short-name tiers - this",
-        "kind": "comment"
-      },
-      {
-        "line": 273,
-        "text": "one was missed on the first pass and kept feeding the",
-        "kind": "comment"
-      },
-      {
-        "line": 274,
-        "text": "same false hubs, which is the argument for the test",
-        "kind": "comment"
-      },
-      {
-        "line": 275,
-        "text": "below that enumerates every site rather than trusting",
-        "kind": "comment"
-      },
-      {
-        "line": 276,
-        "text": "that they were all found.",
+        "line": 283,
+        "text": "accept a UNIQUE qualname-suffix match; ambiguity still",
         "kind": "comment"
       },
       {
         "line": 284,
-        "text": "bare-name fallback: unique short-name match anywhere in",
+        "text": "drops the edge (conservatism preserved).",
         "kind": "comment"
       },
       {
-        "line": 285,
-        "text": "the index. Grounded enough to keep WITH a low score -",
+        "line": 295,
+        "text": "...and only when the PREFIX names something this repo",
         "kind": "comment"
       },
       {
-        "line": 286,
-        "text": "dropping it silently (old behavior) hides real coupling.",
+        "line": 296,
+        "text": "actually has. Inheritance dispatch always does - the",
+        "kind": "comment"
+      },
+      {
+        "line": 297,
+        "text": "ref was built from the calling class - whereas",
+        "kind": "comment"
+      },
+      {
+        "line": 298,
+        "text": "`subprocess.run` names a module we do not define, and",
+        "kind": "comment"
+      },
+      {
+        "line": 299,
+        "text": "guessing its last segment against our own entities is",
+        "kind": "comment"
+      },
+      {
+        "line": 300,
+        "text": "how 77 subprocess.run() call sites became edges into",
         "kind": "comment"
       },
       {
         "line": 301,
+        "text": "Harvester.run. Qualifying the receiver in the parser",
+        "kind": "comment"
+      },
+      {
+        "line": 302,
+        "text": "(schema 6) was only half the fix: this tier stripped",
+        "kind": "comment"
+      },
+      {
+        "line": 303,
+        "text": "the qualification straight back off.",
+        "kind": "comment"
+      },
+      {
+        "line": 304,
+        "text": "inheritance dispatch: self.meth resolved to the CALLING",
+        "kind": "comment"
+      },
+      {
+        "line": 305,
+        "text": "subclass, but meth is defined on an ancestor. Without",
+        "kind": "comment"
+      },
+      {
+        "line": 306,
+        "text": "base-class info, accept a UNIQUE definition of the bare",
+        "kind": "comment"
+      },
+      {
+        "line": 307,
+        "text": "method name anywhere in the index - flagged as a guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 308,
+        "text": "guarded like the other two short-name tiers - this",
+        "kind": "comment"
+      },
+      {
+        "line": 309,
+        "text": "one was missed on the first pass and kept feeding the",
+        "kind": "comment"
+      },
+      {
+        "line": 310,
+        "text": "same false hubs, which is the argument for the test",
+        "kind": "comment"
+      },
+      {
+        "line": 311,
+        "text": "below that enumerates every site rather than trusting",
+        "kind": "comment"
+      },
+      {
+        "line": 312,
+        "text": "that they were all found.",
+        "kind": "comment"
+      },
+      {
+        "line": 320,
+        "text": "bare-name fallback: unique short-name match anywhere in",
+        "kind": "comment"
+      },
+      {
+        "line": 321,
+        "text": "the index. Grounded enough to keep WITH a low score -",
+        "kind": "comment"
+      },
+      {
+        "line": 322,
+        "text": "dropping it silently (old behavior) hides real coupling.",
+        "kind": "comment"
+      },
+      {
+        "line": 337,
         "text": "Phase A: set dedup, was O(edges^2)",
         "kind": "comment"
       }
     ],
-    "comment_hash": "3e41f532c1e63160",
+    "comment_hash": "9d8e5a42245626c9",
     "comment_rot": false,
-    "sketch": "AAOgommqAApxabm8ABLAd9EkABtCAcqxACZj8gMsAAZhy0J9AEfre+j6ABr/YBeHAAH2J9gbADJ3hmV4AAOCBt3dAAJlK38pAAEd1+M6ABx1myXoABr11PBdAAChVemcAAqBVtgZAAPr30i7ABRE+IZcAAo/9kgYAANQOvCBAAHQUM2hAA49QHuAACL7hHz6AA9EwQWTAAQVymZiAARQgWgsAAEB3OhMAAiTbJfYACB2oL8tABCs6xKWACzDoKAfAAOi39t+ACOjzzUnAAk74GwQAB3VncbBADqE7EbhAALpKdo8ABhPEa73ADfdedq9ABfQpUzWAAX5N3bWAAp7eVkMAAAuZskjAA1u2rDWAAEga2hwAA6MVywPAB3lHOYz",
-    "n_shingles": 2839,
-    "end_lineno": 347,
-    "loc": 348,
-    "complexity": 87
+    "sketch": "AAOgommqAApxabm8ABLAd9EkABtCAcqxACZj8gMsAAZhy0J9ABH7WJz6ABr/YBeHAAH2J9gbADJ3hmV4AAOCBt3dAAJlK38pAAEd1+M6ABx1myXoABr11PBdAAChVemcAAqBVtgZAAPr30i7ABRE+IZcAAo/9kgYAANQOvCBAAHQUM2hAA49QHuAACL7hHz6AA9EwQWTAAQVymZiAARQgWgsAAEB3OhMAAiTbJfYACB2oL8tABCs6xKWACzDoKAfAAOi39t+ACOjzzUnAAk74GwQAB3VncbBABQ2Ynn1AALpKdo8ABhPEa73ABFPDxDTABfQpUzWAAX5N3bWAAp7eVkMAAAuZskjAA1u2rDWAAEga2hwAA6MVywPAALuR8pN",
+    "n_shingles": 3143,
+    "end_lineno": 383,
+    "loc": 384,
+    "complexity": 94
   },
   "C-de813f": {
     "coord_id": "C-de813f",
@@ -37067,6 +37478,71 @@
     "loc": 8,
     "complexity": 1
   },
+  "C-e7ef2d": {
+    "coord_id": "C-e7ef2d",
+    "kind": "function",
+    "qualname": "tests.test_corpus_recall._measure",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 96,
+    "body_hash": "183e67edd4c27765",
+    "parent": "C-f1bc8f",
+    "signature": "_measure(repo)",
+    "shape_hash": "90b377a8bd4c0800",
+    "logic_hash": "34c20824f75587c7",
+    "param_types": {
+      "repo": "Path"
+    },
+    "return_type": "",
+    "comments": [
+      {
+        "line": 8,
+        "text": "Unambiguous targets only. A name with two definitions cannot be",
+        "kind": "comment"
+      },
+      {
+        "line": 9,
+        "text": "scored against a resolver whose whole job is refusing to guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 14,
+        "text": "RELATIVE to the repo, always. Filtering on the absolute path made",
+        "kind": "comment"
+      },
+      {
+        "line": 15,
+        "text": "every file match \"test_\" when the repo sat under pytest's",
+        "kind": "comment"
+      },
+      {
+        "line": 16,
+        "text": "tmp_path (.../test_edge_recall_floor_requests0/...), so the",
+        "kind": "comment"
+      },
+      {
+        "line": 17,
+        "text": "oracle saw zero call sites and the floor would have passed on no",
+        "kind": "comment"
+      },
+      {
+        "line": 18,
+        "text": "data at all. The checked > 50 assertion below is what caught it.",
+        "kind": "comment"
+      },
+      {
+        "line": 38,
+        "text": "the closure case",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "9a844ad847b2d9e7",
+    "comment_rot": false,
+    "sketch": "AQT2x0WdAHqDYlPgAHCz9Uw8AA5vaFIgAFE4gdyzAao9DHkQAEOaYK1VAE2Zivn6AGcOGxfdAAMdJ1YkAATWKGUmAAGIvZnPAPoaNF+dAKXxzUfOAHjYalhjABhktyBRABVoxViqAStVFWoNABRE+IZcABLddYIvAFazfnDQALbi2a3KAGpM/HiUAEMoUazSAAZKWl9EACw0hYPHABBKPnp3ALo0EsnVABvMIbWPAJ6KvbYqADxmsfEGARqkJgNMALGkGXG3AB9ah54EALBZ+RfzACVVAKxVARhrd7VlAKrwzkhCAH9/+PgdAP5myuQsAS3lvxrQABGohOTJAEWNjrA3AOFYmHMIAEExwV5YAL/9OIbqAHOWbBOUABzTfU/R",
+    "n_shingles": 394,
+    "end_lineno": 134,
+    "loc": 39,
+    "complexity": 19
+  },
   "C-e7f5c8": {
     "coord_id": "C-e7f5c8",
     "kind": "function",
@@ -38024,12 +38500,12 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder._unreachable_target",
     "path": "memway/edges.py",
-    "lineno": 100,
-    "body_hash": "d95ff114fc0239ef",
+    "lineno": 123,
+    "body_hash": "3a03425497734fd4",
     "parent": "C-cbc42e",
     "signature": "_unreachable_target(self, src_ent, dst_ent)",
-    "shape_hash": "2f13ba3a3157e541",
-    "logic_hash": "6ac3017c39d30bb3",
+    "shape_hash": "843c81a3c0b13d36",
+    "logic_hash": "ce3fe69b06afb02c",
     "param_types": {},
     "return_type": "str",
     "comments": [
@@ -38054,78 +38530,133 @@
         "kind": "comment"
       },
       {
+        "line": 28,
+        "text": "FROM OUTSIDE is the whole rule, and until 0.55.3 the code did",
+        "kind": "comment"
+      },
+      {
+        "line": 29,
+        "text": "not check it: any function-local target was dropped, including",
+        "kind": "comment"
+      },
+      {
+        "line": 30,
+        "text": "when the CALLER was the very function containing it. That is",
+        "kind": "comment"
+      },
+      {
+        "line": 31,
+        "text": "the ordinary closure idiom - a helper defined at the top of a",
+        "kind": "comment"
+      },
+      {
+        "line": 32,
+        "text": "function and called from its body - and it is not a guess:",
+        "kind": "comment"
+      },
+      {
+        "line": 33,
+        "text": "the target is lexically in scope and there is exactly one",
+        "kind": "comment"
+      },
+      {
+        "line": 34,
+        "text": "candidate. Measured on three real repos at 0.55.2: 60 true",
+        "kind": "comment"
+      },
+      {
         "line": 35,
-        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
+        "text": "edges dropped, 50 of them in rich, including",
         "kind": "comment"
       },
       {
         "line": 36,
-        "text": "cannot be a plain `def get` at module scope, however unique",
+        "text": "Tree.__rich_console__ -> make_guide, called six times inside",
         "kind": "comment"
       },
       {
         "line": 37,
-        "text": "that name is in the index. The parser knows the call was",
+        "text": "the very function that defines it. Every hand-built fixture",
         "kind": "comment"
       },
       {
         "line": 38,
-        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
-        "kind": "comment"
-      },
-      {
-        "line": 39,
-        "text": "carries it now. This is what the first two rules could not",
-        "kind": "comment"
-      },
-      {
-        "line": 40,
-        "text": "reach: tests calling dict.get() still landed on a test helper",
-        "kind": "comment"
-      },
-      {
-        "line": 41,
-        "text": "named get, because caller and target were both tests.",
-        "kind": "comment"
-      },
-      {
-        "line": 44,
-        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
-        "kind": "comment"
-      },
-      {
-        "line": 45,
-        "text": "is already relied on by metrics (fan_in excludes test sources)",
-        "kind": "comment"
-      },
-      {
-        "line": 46,
-        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
-        "kind": "comment"
-      },
-      {
-        "line": 47,
-        "text": "could never help here: these names have exactly one definition,",
+        "text": "passed, because none of them had the caller be the encloser.",
         "kind": "comment"
       },
       {
         "line": 48,
-        "text": "and no competition was read as high confidence when it is the",
+        "text": "2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`",
         "kind": "comment"
       },
       {
         "line": 49,
+        "text": "cannot be a plain `def get` at module scope, however unique",
+        "kind": "comment"
+      },
+      {
+        "line": 50,
+        "text": "that name is in the index. The parser knows the call was",
+        "kind": "comment"
+      },
+      {
+        "line": 51,
+        "text": "written `receiver.name(...)` and used to discard it; RawEdge",
+        "kind": "comment"
+      },
+      {
+        "line": 52,
+        "text": "carries it now. This is what the first two rules could not",
+        "kind": "comment"
+      },
+      {
+        "line": 53,
+        "text": "reach: tests calling dict.get() still landed on a test helper",
+        "kind": "comment"
+      },
+      {
+        "line": 54,
+        "text": "named get, because caller and target were both tests.",
+        "kind": "comment"
+      },
+      {
+        "line": 57,
+        "text": "3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry",
+        "kind": "comment"
+      },
+      {
+        "line": 58,
+        "text": "is already relied on by metrics (fan_in excludes test sources)",
+        "kind": "comment"
+      },
+      {
+        "line": 59,
+        "text": "and by D11b - which only fires on AMBIGUOUS names, and so",
+        "kind": "comment"
+      },
+      {
+        "line": 60,
+        "text": "could never help here: these names have exactly one definition,",
+        "kind": "comment"
+      },
+      {
+        "line": 61,
+        "text": "and no competition was read as high confidence when it is the",
+        "kind": "comment"
+      },
+      {
+        "line": 62,
         "text": "case that most deserves suspicion.",
         "kind": "comment"
       }
     ],
-    "comment_hash": "7962be8952550a61",
+    "comment_hash": "efb9273f1b5644c7",
     "comment_rot": false,
-    "sketch": "ADxDrsIqAITm2HcNABLAd9EkAFguqoFLAGeiYVZyACzC9dBQAGYQfYEnAEEPKZAtAQyMca3KAHIBCuN4AAOCBt3dAKpUkqO3AAEd1+M6ACjWd2CFAI0o/TqEAK8CPp9tAJh3HmK+AAlxUwabAR+Nx17KAAo/9kgYAEeRgAgtADMmQFXsAS3T3FyOADNSdBdJAeXkf3pVAEHo+wM7AIie/ec1ARgqAxfRAAiTbJfYANiT7ZPtAEhQClFAAJHVprPVAAOi39t+ALspeU7LALBZ+RfzANxGL4QtAc5nfDw/AALpKdo8AB4tuO0tADwvkC+FAVa5TWdGAGUtlNJoASWehsrGARbuCYIkACBU2lN/AAEga2hwAA6MVywPACPn1wC+",
-    "n_shingles": 618,
-    "end_lineno": 152,
-    "loc": 53,
-    "complexity": 9
+    "sketch": "ADxDrsIqAITm2HcNABLAd9EkAFguqoFLAGeiYVZyACzC9dBQAGYQfYEnAEEPKZAtAG3cHgo7AHIBCuN4AAOCBt3dAKpUkqO3AAEd1+M6ACjWd2CFAI0o/TqEAK8CPp9tAJh3HmK+AAlxUwabADzRNisLAAo/9kgYAEeRgAgtADMmQFXsAIRWtumbADNSdBdJAIxb07PBAEHo+wM7AIie/ec1ARgqAxfRAAiTbJfYACGj7iFXAEhQClFAAJHVprPVAAOi39t+ALspeU7LALBZ+RfzANxGL4QtAOVFsZocAALpKdo8AB4tuO0tADwvkC+FAVAGssZDAGUtlNJoASWehsrGAFssAtWVACBU2lN/AAEga2hwAA6MVywPAALuR8pN",
+    "n_shingles": 782,
+    "end_lineno": 188,
+    "loc": 66,
+    "complexity": 10
   },
   "C-ebdd88": {
     "coord_id": "C-ebdd88",
@@ -38193,7 +38724,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder._add",
     "path": "memway/edges.py",
-    "lineno": 299,
+    "lineno": 335,
     "body_hash": "33f2aa6c2fa11d37",
     "parent": "C-cbc42e",
     "signature": "_add(self, src, dst, kind)",
@@ -38212,7 +38743,7 @@
     "comment_rot": false,
     "sketch": "Cbvz9B0FC6nENG4WAIl9MLIKBUnjviUPBprmjs5FBSaiSuthAO+SwlFtAihgWSvgBCfKnQyOAEziQCDMA2OZ5GMBAvcdK496AUPpnQWpANitAniVAXdNetELBz3mAQhBABlYfPUXADi57fwKAcW2qejSAX+BcyiKAGlkdzC7AtR3E2CPAGW/M4EoAK1GZvKQAQZwmvDIA2J14SAcA35Hl21tAaiagz5tAg7A7iiJA+9bvuJHBHVxZPYHBrhfHRpQAUDPGHP/AK7Ax5MuATWmdI3XAc8ubYuhAXN3eqYSAwm+7Dp7ACpOAO5KAQn5cko3CJx9nP4nCIQCxpiiAC4ZzLiyADja/MWEA/LC5BzkACK+KUi5AVvtYGIQAjASM567",
     "n_shingles": 94,
-    "end_lineno": 306,
+    "end_lineno": 342,
     "loc": 8,
     "complexity": 2
   },
@@ -39587,6 +40118,94 @@
     "loc": 10,
     "complexity": 3
   },
+  "C-f1bc8f": {
+    "coord_id": "C-f1bc8f",
+    "kind": "module",
+    "qualname": "tests.test_corpus_recall",
+    "path": "tests/test_corpus_recall.py",
+    "lineno": 1,
+    "body_hash": "c823ea75ea9f8de5",
+    "parent": null,
+    "signature": "",
+    "shape_hash": "70955e323738cc6d",
+    "logic_hash": "a229038dab4858f5",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 1,
+        "text": "Edge-resolution recall against real repositories, at pinned shas. WHY THIS EXISTS AND WHY IT IS SEPARATE. Fixtures encode what you thought of; corpora contain what you didn't (CLAUDE.md lesson 5). The",
+        "kind": "docstring"
+      },
+      {
+        "line": 46,
+        "text": "Pinned shas: a floor measured against a moving target is not a floor.",
+        "kind": "comment"
+      },
+      {
+        "line": 48,
+        "text": "repo url, name, sha, min overall recall %, max missing local edges",
+        "kind": "comment"
+      },
+      {
+        "line": 103,
+        "text": "Unambiguous targets only. A name with two definitions cannot be",
+        "kind": "comment"
+      },
+      {
+        "line": 104,
+        "text": "scored against a resolver whose whole job is refusing to guess.",
+        "kind": "comment"
+      },
+      {
+        "line": 109,
+        "text": "RELATIVE to the repo, always. Filtering on the absolute path made",
+        "kind": "comment"
+      },
+      {
+        "line": 110,
+        "text": "every file match \"test_\" when the repo sat under pytest's",
+        "kind": "comment"
+      },
+      {
+        "line": 111,
+        "text": "tmp_path (.../test_edge_recall_floor_requests0/...), so the",
+        "kind": "comment"
+      },
+      {
+        "line": 112,
+        "text": "oracle saw zero call sites and the floor would have passed on no",
+        "kind": "comment"
+      },
+      {
+        "line": 113,
+        "text": "data at all. The checked > 50 assertion below is what caught it.",
+        "kind": "comment"
+      },
+      {
+        "line": 133,
+        "text": "the closure case",
+        "kind": "comment"
+      },
+      {
+        "line": 141,
+        "text": "Partial clone: every sha stays reachable (unlike --depth) while the",
+        "kind": "comment"
+      },
+      {
+        "line": 142,
+        "text": "blobs arrive on demand, so pinning a sha costs seconds, not minutes.",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "193a4219803cd3b1",
+    "comment_rot": false,
+    "sketch": "AB0x1fpdAHqDYlPgAHCz9Uw8AA5vaFIgADjOcloqALxsl8OjACnoY5XbAE2Zivn6AAH2J9gbAAMdJ1YkAATWKGUmAAGIvZnPAI9bF/1pAA+xkE0sAAdYe+nqABhktyBRABVoxViqAGYrcQaoAAW7PGEiABLddYIvAA0e4O30AAtLKKpfAGENH52/AADkEenfAAZKWl9EACDgPgCxABBKPnp3AHM8GxiHAA7avKneAJ6KvbYqACLxerxpABXV8jLZAEbhkv4pAB9ah54EAB/WsyZ9ABg5lhqYABTUxiJLAB3Ps6OnABlg66JdAFAyHs9QACatEu/+AAxQm2S5AEWNjrA3ACRl03zwADwGPwEtAEIdy0P8AA6MVywPABzTfU/R",
+    "n_shingles": 1500,
+    "end_lineno": 165,
+    "loc": 166,
+    "complexity": 39
+  },
   "C-f1ee17": {
     "coord_id": "C-f1ee17",
     "kind": "function",
@@ -40957,7 +41576,7 @@
     "kind": "method",
     "qualname": "memway.edges.EdgeBuilder.load",
     "path": "memway/edges.py",
-    "lineno": 317,
+    "lineno": 353,
     "body_hash": "61040655cb2995d5",
     "parent": "C-cbc42e",
     "signature": "load(coord_dir, write_cache)",
@@ -40979,7 +41598,7 @@
     "comment_rot": false,
     "sketch": "AX9VUvC+AR9HUCOGA+qUzncpAB31HSoyAqy2UKwKABqZ9BS6Ans8wZL8AxIC2h7UAS+hB0HbB9gGcjJtBFOtiL/1Ayt9C6rfAOxUTb5QAIftDjVHAnyAh843BCDwWk+zAH43+8THALGXMYK3AcMAuwtnAByZBAQXAtXC60RpA+76ho+1AA49QHuAADtmxhc3A5+jsbp+AlUzsQNYBZq6pzi6AGgTzCBcAg/UdCyTAb6il177A+GVVuSmA39VpPCFAJ/8NrHGAQ/ooh97A9Gi5zE8AkaS+Rq7A4vMOycqAS/u2bEIAM733MYyAOQEgM0zABfQpUzWAHei1INVB7dpovl+AHk7SctlBHDpumFIAaEvsTmZAQ7uGlLFAEIJm2VD",
     "n_shingles": 124,
-    "end_lineno": 328,
+    "end_lineno": 364,
     "loc": 12,
     "complexity": 2
   },

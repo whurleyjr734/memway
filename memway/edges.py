@@ -97,6 +97,29 @@ class EdgeBuilder:
             q.extend(self._bases.get(anc, []))
         return None
 
+    def _in_scope(self, src_ent, encloser) -> bool:
+        """Is src_ent the encloser, or nested inside it?
+
+        The scope test rule 1 always meant and never made. Walks UP from
+        the caller, so a helper called from a sibling closure two levels
+        down still resolves - lexical scoping is inherited, and stopping
+        at the direct parent would trade one wrong answer for a smaller
+        one. Bounded by the same 12 hops as the walk it serves; a chain
+        deeper than that is pathological and the honest answer there is
+        the conservative one.
+        """
+        if src_ent is None or encloser is None:
+            return False
+        e, hops = src_ent, 0
+        while e is not None and hops < 12:
+            if e.coord_id == encloser.coord_id:
+                return True
+            pid = getattr(e, "parent", None)
+            if not pid:
+                return False
+            e, hops = self.ix.entities.get(pid), hops + 1
+        return False
+
     def _unreachable_target(self, src_ent, dst_ent) -> str:
         """Why a NAME-ONLY match cannot be the real callee. '' if it can be.
 
@@ -123,13 +146,26 @@ class EdgeBuilder:
         # 1. FUNCTION-LOCAL targets. A class or def inside a function body
         #    cannot be named from outside that body - it does not exist
         #    until the function runs, and not by that path afterwards.
+        #
+        #    FROM OUTSIDE is the whole rule, and until 0.55.3 the code did
+        #    not check it: any function-local target was dropped, including
+        #    when the CALLER was the very function containing it. That is
+        #    the ordinary closure idiom - a helper defined at the top of a
+        #    function and called from its body - and it is not a guess:
+        #    the target is lexically in scope and there is exactly one
+        #    candidate. Measured on three real repos at 0.55.2: 60 true
+        #    edges dropped, 50 of them in rich, including
+        #    Tree.__rich_console__ -> make_guide, called six times inside
+        #    the very function that defines it. Every hand-built fixture
+        #    passed, because none of them had the caller be the encloser.
         e, hops = dst_ent, 0
         while getattr(e, "parent", None) and hops < 12:
             parent = self.ix.entities.get(e.parent)
             if parent is None:
                 break
             if parent.kind in ("function", "method"):
-                return "function-local"
+                return "" if self._in_scope(src_ent, parent) else \
+                    "function-local"
             e, hops = parent, hops + 1
         # 2. AN ATTRIBUTE CALL IS NOT A MODULE-LEVEL FUNCTION. `d.get(x)`
         #    cannot be a plain `def get` at module scope, however unique

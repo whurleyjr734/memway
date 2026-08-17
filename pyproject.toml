@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memway"
-version = "0.55.2"
+version = "0.55.3"
 description = "A coordinate system for code: stable entity identity through refactors, lineage, and a self-auditing memory layer for coding agents. A cache answers what the code is; the map knows what we've learned about it."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,4 +49,7 @@ memway = ["lens_template.html", "viz_template.html",
 [tool.pytest.ini_options]
 markers = [
     "slow: builds real venvs (editable + wheel installs). Kept in the default\n    run on purpose - the editable --version bug survived for weeks precisely\n    because the only install test used a wheel.",
+    "network: clones real repositories at pinned shas. Deselected by default\n    (see addopts) because a normal run must work offline; run at release with\n    `pytest -m network`. These are the corpus floors - fixtures encode what\n    you thought of, corpora catch what you didn't, so both layers exist.",
 ]
+# Offline by default. The corpus floors are a RELEASE gate, not a save gate.
+addopts = "-m 'not network'"

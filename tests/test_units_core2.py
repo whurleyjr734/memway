@@ -559,3 +559,66 @@ def test_inheritance_dispatch_still_resolves(tmp_path):
                   if q.endswith("Base.shared"))
     assert [e for e in edges if e["src"] == go and e["dst"] == shared], \
         "inheritance dispatch was lost - the gate is too tight"
+
+
+def test_a_function_CAN_call_a_helper_it_defines_itself(tmp_path):
+    """The closure idiom. Rule 1 always said "from OUTSIDE that body";
+    until 0.55.3 it never checked, and dropped this edge too.
+
+    THIS IS THE CASE NO EXISTING FIXTURE EXERCISED, which is exactly why
+    every one of them passed while 60 true edges went missing across
+    three real repos - 50 in rich alone, including
+    Tree.__rich_console__ -> make_guide, called six times inside the
+    function that defines it.
+
+    The fixture holds both directions on purpose. `render` calls the
+    helper it owns (must resolve); `outsider` names the same helper from
+    another module (must still be refused). A fixture with only the first
+    would pass against a rule that dropped guard 1 altogether.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "r.py": "def render(items):\n"
+                "    def make_guide(i):\n"
+                "        return str(i)\n"
+                "    return [make_guide(i) for i in items]\n",
+        "o.py": "def outsider(i):\n    return make_guide(i)\n",
+    })
+    helper = next((cid for q, cid in ix.by_qualname.items()
+                   if q.endswith("render.make_guide")), None)
+    assert helper, "fixture did not produce the nested helper"
+    render = ix.by_qualname[next(q for q in ix.by_qualname
+                                 if q.endswith("r.render"))]
+    outsider = ix.by_qualname[next(q for q in ix.by_qualname
+                                   if q.endswith("o.outsider"))]
+
+    good = [e for e in edges if e["src"] == render and e["dst"] == helper
+            and e.get("kind") == "calls"]
+    assert good, ("a function may call a helper defined inside itself - "
+                  "the target is lexically in scope and unambiguous")
+
+    bad = [e for e in edges if e["src"] == outsider and e["dst"] == helper]
+    assert not bad, ("guard 1 was dropped rather than scoped: a foreign "
+                     "module resolved into a function-local scope")
+
+
+def test_a_sibling_closure_can_call_a_helper_of_the_same_parent(tmp_path):
+    """Scope is inherited, so the check walks UP from the caller.
+
+    A nested `inner` calling its parent's `helper` is in scope by ordinary
+    lexical rules. Stopping at the direct parent would trade one wrong
+    answer for a smaller one.
+    """
+    ix, eb, edges = _edges_for(tmp_path, {
+        "s.py": "def outer(xs):\n"
+                "    def helper_fn(v):\n        return v + 1\n"
+                "    def inner(v):\n        return helper_fn(v)\n"
+                "    return [inner(x) for x in xs]\n",
+    })
+    helper = next((cid for q, cid in ix.by_qualname.items()
+                   if q.endswith("outer.helper_fn")), None)
+    inner = next((cid for q, cid in ix.by_qualname.items()
+                  if q.endswith("outer.inner")), None)
+    assert helper and inner, "fixture did not produce both closures"
+    good = [e for e in edges if e["src"] == inner and e["dst"] == helper
+            and e.get("kind") == "calls"]
+    assert good, "a sibling closure is in scope and must resolve"

@@ -7,6 +7,80 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.55.3] - 2026-08-16
+
+Theme: **the closure idiom.** A function may call a helper it defines
+itself, and until now memway dropped that edge.
+
+### Fixed
+
+`_unreachable_target` rule 1 says, in its own docstring, that a
+function-local def "cannot be named from **outside** that body". The code
+never checked where the caller was: it walked the target's parents, found
+a function, and refused the edge — including when the caller *was* that
+function. That is the ordinary Python closure idiom, and it is not a
+guess: the target is lexically in scope with exactly one candidate.
+
+Measured against three real repositories at pinned shas, ground truth
+from stdlib `ast` with real scope tracking:
+
+| repo | recall before | after | closure edges missing |
+|---|---|---|---|
+| psf/requests @ 8068356 | 97% | 97% | 2 → 1 |
+| pallets/click @ cbd7a41 | 68% | 69% | 8 → 2 |
+| Textualize/rich @ 9d8f9a3 | 90% | **98%** | 50 → **0** |
+
+60 → 3 across the three. rich carried 50 of them, including
+`Tree.__rich_console__ -> make_guide`, called six times inside the very
+function that defines it — its core render path showed no edge.
+
+The scope check walks **up** from the caller, so a sibling closure calling
+its parent's helper resolves too; lexical scope is inherited, and stopping
+at the direct parent would trade one wrong answer for a smaller one.
+
+**Rules 2 and 3 are untouched, deliberately.** 111 of the 184 oracle
+"misses" in this measurement are `receiver.method()` attribute calls that
+memway refuses to guess. That refusal is the 0.54.3 fix doing its job —
+it is what removed 369 false edges — and it is load-bearing. The recall
+numbers above are *lower* than the tool's true accuracy for exactly that
+reason.
+
+### Pinned, in two layers
+
+- **Fixture** (`test_units_core2.py`, every run): caller-is-encloser, plus
+  a sibling closure, plus a foreign module that must **still** be refused.
+  Falsified in both directions — reverting the scope check fails it, and
+  so does removing guard 1 altogether.
+- **Corpus floors** (`test_corpus_recall.py`, `pytest -m network`): the
+  three repos above at pinned shas, with a recall floor and a
+  closure-miss ceiling each. Deselected by default so a normal run stays
+  offline; run at release.
+
+Both exist because neither suffices. Every hand-built fixture in this
+suite passed on the day the bug shipped — none of them had the caller be
+the encloser. Fixtures encode what you thought of; corpora catch what you
+didn't.
+
+### Schema and bundles
+
+**`PARSE_SCHEMA_VERSION` does not bump**, and this was verified rather
+than reasoned: the cache holds *parse* output, while edge resolution runs
+after it. Indexing a repo under 0.55.2, upgrading in place without
+touching `.coord`, and running a plain `memway index` produces the new
+edge from the warm cache. No half-migrated-map trap here.
+
+Existing maps do keep their old edges until re-indexed, and nothing
+prompts for it — an upgrade is not a code change, so freshness stays
+silent. **Run `memway index` once after upgrading** to pick up closure
+edges.
+
+**Bundle regeneration is NOT required.** Improved edge derivation
+invalidates no stamp and no knowledge: hashes are computed from source,
+not from edges, so every note in the gen-2 bundles remains exactly as
+fresh as it was. The published `itsdangerous`, `flask` and `httpx` maps
+stay true at their shas — they simply lack closure edges in code that
+uses the idiom. They will pick them up at their next rebuild.
+
 ## [0.55.2] - 2026-08-16
 
 Theme: **one rule, one implementation - and every sentence derives.**
