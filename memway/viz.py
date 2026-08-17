@@ -35,6 +35,14 @@ import re
 from pathlib import Path
 
 from .verify import is_test_entity
+# ONE import of the metadata rules. viz spelled `from .metadata import ...`
+# in four separate function bodies, which is how the render summary came
+# to count raw stale entries while the ring three lines above it asked
+# unsuperseded_stale - the rule was available and simply not in scope.
+# query.py had the same four-way split and it was collapsed in 0.55.2 for
+# the same reason.
+from .metadata import (MetaStore, accepted_for, for_display,
+                       unsuperseded_stale)
 
 VIZ_WARN_ENTITIES = 1500
 TEMPLATE = Path(__file__).with_name("viz_template.html")
@@ -107,8 +115,6 @@ def _knowledge_for(meta, e) -> list:
     it mark an entry stale. Both tiers go in: an entry stamped with
     either the logic hash or the body hash is current.
     """
-    from .metadata import accepted_for
-    from .metadata import for_display
     md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
     out = []
     for en in for_display(md):
@@ -152,7 +158,6 @@ def has_unsuperseded_stale(knowledge: list) -> bool:
     report must never be able to disagree about what "stale" means, and
     two copies of this rule is exactly how they would.
     """
-    from .metadata import unsuperseded_stale
     return bool(unsuperseded_stale(knowledge))
 
 
@@ -160,7 +165,6 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
     """Build the render payload. Reads only; writes nothing."""
     from .indexer import Indexer
     from .edges import EdgeBuilder
-    from .metadata import MetaStore
 
     repo_p = Path(repo).resolve()
     coord = repo_p / ".coord"
@@ -212,7 +216,18 @@ def export(repo: str, *, filter_prefix: str = "", force: bool = False) -> dict:
         row["knowledge_stale"] = has_unsuperseded_stale(kn)
         row["knowledge"] = kn
         kn_n += len(kn)
-        stale_n += sum(1 for k in kn if k["stale"])
+        # THE RING RULE, for the counter too. This summed every entry
+        # carrying k["stale"], so the render line announced "81 stale" on a
+        # repo whose decisive queue was ZERO - 81 being the superseded
+        # history somebody had already answered. The rings beside it were
+        # right the whole time, because the line above asks
+        # has_unsuperseded_stale; only the number a human reads was raw.
+        #
+        # Fourth appearance of this exact shape: attention hand-counted it
+        # (0.55.2), the queue truncated without a total (0.55.4), modules
+        # were counted at all (0.56.1), and now the render summary. Same
+        # rule, one implementation, asked everywhere.
+        stale_n += len(unsuperseded_stale(kn))
         if cid in boundary:
             row["boundary"] = True
             row["qualname"] = row["qualname"] + "  [boundary]"

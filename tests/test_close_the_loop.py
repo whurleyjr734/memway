@@ -160,8 +160,16 @@ def test_the_ring_rule_has_one_implementation():
     exclusion the dirty check already had."""
     import ast
     src = (HERE / "memway" / "viz.py").read_text()
-    assert "from .metadata import unsuperseded_stale" in src, \
-        "viz no longer delegates the ring rule"
+    # THE PROPERTY, not the spelling. This matched the literal string
+    # "from .metadata import unsuperseded_stale" and broke the moment viz
+    # collapsed its four scattered metadata imports into one parenthesised
+    # module-level import - a refactor that STRENGTHENED the delegation it
+    # was guarding. A pin that fails on correct code gets deleted.
+    imported = any(
+        isinstance(n, ast.ImportFrom) and n.module == "metadata"
+        and any(a.name == "unsuperseded_stale" for a in n.names)
+        for n in ast.walk(ast.parse(src)))
+    assert imported, "viz no longer delegates the ring rule"
     tree = ast.parse((HERE / "memway" / "viz.py").read_text())
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "has_unsuperseded_stale":

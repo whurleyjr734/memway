@@ -7,6 +7,57 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.56.2] - 2026-08-17
+
+Theme: **the shop window is derived too.**
+
+`docs/map.html` had drifted **nine releases**. Last rendered at `abc5cf7`,
+it was still being served while v0.54.3 through v0.56.1 shipped. On
+`memway.parsers` the live site showed:
+
+```
+memway/parsers.py:1-731    complexity 143
+confirm: "PARSE_SCHEMA_VERSION is 6, not 5"   <- badged FRESH
+```
+
+All three wrong. The constant had been 7 since 0.56.0, that entry was
+stale **and** superseded in the committed map, and the confirm saying so
+was absent from the page entirely — a superseded note presented as
+current, with a freshness badge earned against a hash that had moved.
+Found by a human reading the page, not by any check.
+
+Same root as lesson 10: `.coord` rides every commit through the
+pre-commit hook, and this rendered artifact rode nothing.
+
+### Added
+
+- **`pytest -m release`** — a new marker for gates comparing a DERIVED
+  artifact against the committed map. Deselected by default, because
+  `.coord` moves on nearly every commit and running these per-save would
+  keep the suite red for ordinary work and train everyone to ignore it.
+- Three gates: the page's entity/edge counts must match the committed
+  map; no rendered entry may lack a `superseded` flag or claim two
+  unsuperseded entries in one channel; and the render summary must ask
+  the ring rule.
+- CLAUDE.md's close ceremony regenerates `docs/map.html` and runs
+  `pytest -m release`, with the reason recorded beside it.
+
+### Fixed
+
+- **The render summary counted raw stale entries.** It announced
+  "81 stale" on a repo whose decisive queue was **zero** — 81 being
+  superseded history somebody had already answered. The rings were right
+  the whole time (`has_unsuperseded_stale`); only the number a human
+  reads was raw. Fourth appearance of this exact shape after `attention`
+  (0.55.2), the queue truncation (0.55.4) and module rot (0.56.1).
+- `viz.py` spelled `from .metadata import ...` in **four** separate
+  function bodies, which is how the summary came to miss a rule that was
+  three lines above it. Collapsed to one module-level import, as
+  `query.py` was in 0.55.2.
+- The ring-rule pin matched an exact import *string* and broke on the
+  refactor that strengthened what it guards. It now checks the property
+  via AST. A pin that fails on correct code gets deleted, not obeyed.
+
 ## [0.56.1] - 2026-08-17
 
 Theme: **a signal must have a boundary.**

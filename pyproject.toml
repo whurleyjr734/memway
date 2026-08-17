@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memway"
-version = "0.56.1"
+version = "0.56.2"
 description = "A coordinate system for code: stable entity identity through refactors, lineage, and a self-auditing memory layer for coding agents. A cache answers what the code is; the map knows what we've learned about it."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -50,6 +50,7 @@ memway = ["lens_template.html", "viz_template.html",
 markers = [
     "slow: builds real venvs (editable + wheel installs). Kept in the default\n    run on purpose - the editable --version bug survived for weeks precisely\n    because the only install test used a wheel.",
     "network: clones real repositories at pinned shas. Deselected by default\n    (see addopts) because a normal run must work offline; run at release with\n    `pytest -m network`. These are the corpus floors - fixtures encode what\n    you thought of, corpora catch what you didn't, so both layers exist.",
+    "release: gates that compare a DERIVED artifact against the committed map.\n    Deselected by default because .coord moves on nearly every commit, so\n    running these per-save would keep the suite red for ordinary work and\n    train everyone to ignore it. Run at release: `pytest -m release`.",
 ]
 # Offline by default. The corpus floors are a RELEASE gate, not a save gate.
-addopts = "-m 'not network'"
+addopts = "-m 'not network and not release'"

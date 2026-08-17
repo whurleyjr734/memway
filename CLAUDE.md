@@ -90,6 +90,16 @@ ever asked. So the close now runs, before the commit:
 
     memway --json verify-change .    # staled_knowledge AND
                                      # rotted_comments must be empty
+    memway index .                             # then, and only then:
+    memway viz . --out docs/map.html --force   # the shop window
+    pytest -m release                          # and the gate that proves it
+
+ORDER MATTERS HERE TOO, in the opposite direction to verify-change. The
+notes you just wrote are stamped against the WORKING TREE, so they read
+stale until the index catches up - render before indexing and you publish
+a page announcing staleness you created and already answered. Caught
+immediately: the first run of this very step rendered "5 stale" for the
+five confirms written moments earlier.
 
 BOTH LISTS, since 0.55.4. A change invalidates two things: the knowledge
 attached to the map, and the comments sitting in the source. The second
@@ -100,6 +110,13 @@ you cannot fix now takes a `confirm` ("read it, the logic moved, the
 comment is still accurate"), which clears it honestly by suppression
 until the logic moves again. Accepting it sends it to `attention`. What
 the ceremony refuses is walking past it in silence.
+
+THE SHOP WINDOW IS DERIVED AND NOTHING ELSE KEEPS IT HONEST. `.coord`
+rides every commit through the pre-commit hook; `docs/map.html` does not,
+and it drifted NINE releases before a human noticed - serving a
+superseded note badged fresh, against a hash that had moved. Regenerate
+it in the close and let `pytest -m release` prove it, rather than
+trusting that somebody remembered.
 
 If staled_knowledge is not empty, supersede in the SAME channel first - a
 confirm does not answer a stale note. Detection without a prompt at the right moment
