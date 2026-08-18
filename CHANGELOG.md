@@ -7,6 +7,117 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.57.1] - 2026-08-17
+
+Theme: **a refusal is not a gap.**
+
+Found by pointing memway at a repo it had never seen - SQLAlchemy, 668
+files, 632k lines, 53,476 entities.
+
+### Fixed
+
+`before_edit` on `Session.execute` reported:
+
+    DOWNSTREAM REACH IS A LOWER BOUND: 3294 call references to this
+    name could not be resolved to any entity
+
+`execute` names **41 entities** in SQLAlchemy. The resolver was correctly
+declining to guess which one a bare `execute` meant - and
+`_unresolved_refs_to` counted every decline as a hole in the map, because
+it asked `resolve(ref) is None`, and `resolve` returns `None` for two
+unrelated situations: nothing matched, and too many did.
+
+`Indexer.candidates()` now answers that question directly. **Zero
+candidates is blind** - the reference is spelled one way and the
+registration another, the class `refs.py` exists to prevent. **Two or
+more is ambiguous**, and refusing is the entire point of the 0.54.3
+guards.
+
+On that entity: **3294 -> 1**, and the survivor is real -
+`_PostSortRec.execute` is referenced, but that class declares only
+`__new__` and `execute_aggregate`.
+
+`candidates()` is also the only lookup: `resolve()` now calls it rather
+than keeping a second copy of the matching rule, pinned by
+`test_candidates_and_resolve_share_one_lookup`.
+
+### Second time, same counter
+
+0.55.5 shipped this counter *with* a guard against exactly this. 0.56.0
+removed the guard on the reasoning that a per-reference `resolve()` check
+made it redundant, leaving a comment claiming "the loop already knows the
+difference." It did not. Asking `candidates()` answers the question
+instead of inferring it from a `None`.
+
+Every repo in the corpus floors is small enough that ambiguity at this
+scale never occurs, which is why two releases and a hand-built fixture
+missed it and one unfamiliar repo found it in a single command.
+(CLAUDE.md lesson 5.)
+
+### Added
+
+- `tests/test_release_artifacts.py` now pins that the version in
+  `pyproject.toml` has a matching `## [x.y.z]` section in CHANGELOG.md.
+  0.57.0 shipped without one; see below.
+
+### Trial results on SQLAlchemy, for the record
+
+| | |
+|---|---|
+| cold index | 53,476 entities, 113,895 edges, 106s |
+| incremental, unchanged | 19s, 53,476 memoized, 0 recomputed |
+| recall, correct refusals excluded | **98%** |
+| closure misses | **0** - the 0.55.3 fix holds at scale |
+
+## [0.57.0] - 2026-08-17
+
+*Written retroactively during the 0.57.1 ceremony: 0.57.0 shipped with no
+CHANGELOG entry. Nothing checked, so nothing complained - the same shape
+as the release-gate finding filed against 0.56.2 (#16). 0.57.1 adds the
+check.*
+
+Theme: **knowledge replay.**
+
+### Added
+
+`memway pull <name> --replay` - install a published bundle's **knowledge**
+onto **your** checkout instead of adopting its index.
+
+A bundle records `upstream_sha`, the exact commit it was built from, and
+`pull` installed that bundle's index whole. At any other commit you were
+left holding a map of code you do not have, with `drifted: true` as the
+entire response.
+
+But a bundle is two things of very different value. Its index (871 KB for
+flask) regenerates locally in seconds and is worth nothing shipped. Its
+authored knowledge - somebody's reason for something, written once - is
+the part nobody can reconstruct. So `--replay` indexes YOUR tree and
+carries only the knowledge across.
+
+Coordinates are `sha256(qualname)`, so anything unrenamed matches
+exactly - the common case across a minor release. What moved falls to
+`lineage.score_pair`, the same name/shape/signature/size/sketch mix used
+to follow renames inside one repo. Bundles were already shipping every
+one of those signals and ignoring them.
+
+**The property that makes it safe**, and the one not to break: replayed
+entries keep their ORIGINAL `body_hash`. A note authored against flask
+3.0 and replayed onto 3.1 carries a stamp that no longer matches, so it
+reads STALE and asks to be checked. Re-stamping would silently assert it
+still holds, which is the exact lie this project exists to prevent.
+Version skew becomes an honest question rather than a confident claim,
+and nothing new had to be invented for it.
+
+Replay never deletes and never re-stamps; an entry already present on the
+target coordinate is not duplicated, so replaying twice is a no-op.
+Coordinates it cannot place are reported as orphans with their best
+score, not dropped.
+
+- `memway/replay.py`, `tests/test_replay.py` (6 tests)
+- `--replay` added to the `pull` usage text as well as `BOOL_FLAGS`; a
+  flag that exists but cannot be discovered is pinned against in
+  `tests/test_cli_usage.py`
+
 ## [0.56.2] - 2026-08-17
 
 Theme: **the shop window is derived too.**

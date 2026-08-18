@@ -329,3 +329,22 @@ def test_the_version_check_survives_a_stale_pyc(tmp_path, monkeypatch):
             pyc.unlink()
         if saved is not None:
             pyc.write_bytes(saved)
+
+
+def test_the_released_version_has_a_changelog_section():
+    """A release that changed the version must say what it changed.
+
+    0.57.0 - knowledge replay, a new module and six tests - shipped with
+    no CHANGELOG entry at all. Nothing was checked, so nothing complained,
+    and the omission was found only because the NEXT release's script
+    happened to anchor on the missing heading. Same shape as the release
+    gate that fires only when remembered (memway-tasks #16): the fix is a
+    check, not a sterner checklist.
+    """
+    import re
+    ver = re.search(r'^version = "([^"]+)"', (HERE / "pyproject.toml").read_text(),
+                    re.M).group(1)
+    heads = re.findall(r"^## \[([^\]]+)\]", (HERE / "CHANGELOG.md").read_text(), re.M)
+    assert ver in heads, (
+        f"pyproject is at {ver} but CHANGELOG.md has no '## [{ver}]' section. "
+        f"Newest headings: {heads[:4]}")

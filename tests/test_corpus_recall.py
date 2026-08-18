@@ -171,3 +171,72 @@ def test_edge_recall_floor(tmp_path, url, name, sha, floor, max_local):
         f"{name}@{sha}: {local_missing} closure edges missing (ceiling "
         f"{max_local}). A function calling a helper it defines itself must "
         f"resolve - this is the 0.55.3 regression.")
+
+
+# ---------------------------------------------------------------------
+# AMBIGUITY AT SCALE. The three repos above are small enough that a bare
+# name almost always has one definition, so they could never exercise the
+# branch where the resolver refuses because SEVERAL match. That gap cost
+# two releases: 0.55.5 shipped a guard, 0.56.0 removed it, and 0.57.1
+# found the result only by pointing memway at an unfamiliar repository.
+# SQLAlchemy is here to be big and ambiguous, not to be representative.
+SQLA_URL = "https://github.com/sqlalchemy/sqlalchemy"
+SQLA_SHA = "eb5ef2a"
+
+
+@pytest.fixture(scope="module")
+def sqlalchemy_repo(tmp_path_factory):
+    """Cloned and indexed ONCE - a cold index here is ~100s."""
+    repo = tmp_path_factory.mktemp("sqla") / "sqlalchemy"
+    clone = subprocess.run(["git", "clone", "-q", "--filter=blob:none",
+                            SQLA_URL, str(repo)], capture_output=True, text=True)
+    if clone.returncode != 0:
+        pytest.skip(f"clone unavailable: {clone.stderr[-160:]}")
+    co = subprocess.run(["git", "-C", str(repo), "checkout", "-q", SQLA_SHA],
+                        capture_output=True, text=True)
+    if co.returncode != 0:
+        pytest.skip(f"sha {SQLA_SHA} unreachable: {co.stderr[-160:]}")
+    r = subprocess.run([sys.executable, "-m", "memway.cli", "init", str(repo)],
+                       capture_output=True, text=True, cwd=str(HERE))
+    assert r.returncode == 0, r.stdout + r.stderr
+    return repo
+
+
+def test_sqlalchemy_recall_floor(sqlalchemy_repo):
+    """Measured 2026-08-17 at eb5ef2a: 76% (3250/4228), 0 closure misses."""
+    checked, hit, local_missing = _measure(sqlalchemy_repo)
+    assert checked > 1000, f"oracle found too few call sites: {checked}"
+    pct = 100 * hit // checked
+    assert pct >= 72, (
+        f"sqlalchemy@{SQLA_SHA}: edge recall {pct}% is below the 72% floor "
+        f"({hit}/{checked}). Measured 76%.")
+    assert local_missing <= 1, (
+        f"sqlalchemy@{SQLA_SHA}: {local_missing} closure edges missing. "
+        f"Measured 0 - the 0.55.3 rule holds at 53k entities.")
+
+
+def test_ambiguity_at_scale_is_not_reported_as_blindness(sqlalchemy_repo):
+    """A refusal is not a gap - the 0.57.1 defect, at the scale that
+    produced it.
+
+    THE FIXTURE MUST HAVE THE PROPERTY, checked first and loudly. A
+    version of this assertion that quietly passes on a repo where
+    `execute` happens to be unique would be exactly the failure this
+    release also found in test_cli_units (a guard that became the
+    outcome). Measured at eb5ef2a: 41 candidates, old rule 3294, new
+    rule 1.
+    """
+    from memway.query import _ctx, _unresolved_refs_to
+    _, _, ix, eb, _ = _ctx(str(sqlalchemy_repo))
+    assert len(ix.candidates("execute")) >= 20, (
+        "this repo no longer exhibits ambiguity at scale, so the test below "
+        "would pass without exercising anything - repin the sha")
+
+    ent = ix.entities[ix.by_qualname[
+        "lib.sqlalchemy.orm.session.Session.execute"]]
+    n = _unresolved_refs_to(ix, getattr(eb, "edges", []), ent)
+    assert n <= 5, (
+        f"{n} references to `execute` reported as unresolvable. Ambiguous "
+        f"names are being counted as blind spots again: the resolver "
+        f"declines to guess between {len(ix.candidates('execute'))} "
+        f"candidates, and declining is not a gap. Measured 1.")

@@ -105,19 +105,22 @@ def _unresolved_refs_to(ix, edges, ent) -> int:
     raw = getattr(ix, "_raw_edges", None) or []
     if not raw:
         return 0
-    # REFUSALS ARE NOT GAPS, and the loop below already knows the
-    # difference: a reference the guards refused RESOLVED first, so
-    # resolve(ref) is not None and it is never counted. Only a reference
-    # the resolver could not place at all reaches the counter.
+    # ZERO CANDIDATES IS A BLIND SPOT. Several candidates is a REFUSAL,
+    # and refusing to guess is the entire point of the 0.54.3 guards.
     #
-    # 0.55.5 carried an extra bail here - skip entities whose name has no
-    # KNOWN disambiguator - written when the count was emitted-minus-landed
-    # and did fire on healthy Python. Once the loop started asking
-    # resolve() per reference that bail became redundant, and worse than
-    # redundant: it assumed refs knows every convention that will ever
-    # exist, so an unfamiliar spelling read as "no suffix" and silenced the
-    # one case this counter still guards. Removed, and the rich and gson
-    # fixtures below prove silence is still kept where it belongs.
+    # This asked `resolve(ref) is None`, and resolve returns None for both
+    # - so an ambiguous name counted as a gap in the map. The comment here
+    # claimed "the loop already knows the difference"; it did not. Found on
+    # SQLAlchemy, where `execute` names 41 entities and before_edit
+    # announced "3294 call references could not be resolved to any entity"
+    # about a name the resolver was correctly declining. Every repo pinned
+    # in the corpus floors is small enough that ambiguity at that scale
+    # never appeared.
+    #
+    # Second time this counter has confused a decision for a gap: 0.55.5
+    # shipped with a guard against it, and 0.56.0 removed the guard on the
+    # reasoning quoted above. Asking candidates() answers the question
+    # directly instead of inferring it from a None.
     target = _short(ent.qualname)
     # The entity's name is spelled one way in the index and another in the
     # emitted reference, so the resolver never had a candidate to judge.
@@ -132,7 +135,7 @@ def _unresolved_refs_to(ix, edges, ent) -> int:
         if _short(ref) != target:
             continue
         if ref not in seen:
-            seen[ref] = ix.resolve(ref) is None
+            seen[ref] = not ix.candidates(ref)
         if seen[ref]:
             n += 1
     return n

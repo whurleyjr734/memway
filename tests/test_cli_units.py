@@ -47,6 +47,21 @@ def fmt_b(v):
     amount = str(v)
     joined = label + amount
     return joined
+
+
+# TWO ENTITIES SHARING A SHORT NAME, on purpose. The ambiguous-ref test
+# below skipped itself for want of one, so the branch that reports "N
+# entities match" instead of "no entity matches" was never executed here
+# - the exact branch whose absence cost 0.55.5 and 0.56.0. Deliberately
+# a name no other test resolves, so `price` stays unambiguous for them.
+class Aisle:
+    def restock(self, n):
+        return n + 1
+
+
+class Depot:
+    def restock(self, n):
+        return n + 2
 ''')
     (tmp_path / "web" ).mkdir()
     (tmp_path / "web" / "ui.js").write_text(

@@ -783,3 +783,63 @@ def test_the_lower_bound_warning_names_its_actual_cause(tmp_path):
         assert "LOWER BOUND" not in c.value, (
             "the event cause is welded to the warning header again - it "
             "must be one reason among several, not the sentence")
+
+
+def test_an_ambiguous_name_is_a_refusal_not_a_blind_spot(tmp_path):
+    """resolve() returns None for two different reasons and the counter
+    conflated them.
+
+    Found on SQLAlchemy, where `execute` names 41 entities: before_edit
+    announced "3294 call references to this name could not be resolved to
+    any entity" about a name the resolver was correctly DECLINING to guess
+    at. Every repo in the corpus floors is small enough that ambiguity at
+    that scale never appeared.
+
+    Zero candidates is blind - the reference is spelled one way and the
+    registration another. Two or more is ambiguous, and refusing is the
+    entire point of the 0.54.3 guards.
+    """
+    from memway.query import _ctx, _unresolved_refs_to
+
+    r = tmp_path / "p"
+    r.mkdir()
+    # `run` is defined on TWO classes and called bare from a third place:
+    # ambiguous, so the resolver refuses. That refusal is a decision.
+    (r / "m.py").write_text(
+        "class A:\n    def runner(self, x):\n        return x\n\n\n"
+        "class B:\n    def runner(self, x):\n        return x + 1\n\n\n"
+        "def caller(o, x):\n    return o.runner(x)\n")
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    _, _, ix, edges, _ = _ctx(str(r))
+    assert len(ix.candidates("runner")) >= 2, (
+        f"fixture is not ambiguous: {ix.candidates('runner')}")
+    assert ix.resolve("runner") is None, \
+        "an ambiguous bare name must not resolve"
+
+    a = ix.entities[ix.by_qualname[
+        next(q for q in ix.by_qualname if q.endswith("A.runner"))]]
+    assert _unresolved_refs_to(ix, edges, a) == 0, (
+        "an ambiguous name is a REFUSAL - counting it as a gap made "
+        "before_edit report 3294 phantom blind spots on SQLAlchemy")
+
+
+def test_candidates_and_resolve_share_one_lookup():
+    """Structural: the counter must not re-derive what matching means.
+
+    Two copies of the suffix-index rule is how the counter came to
+    disagree with the resolver in the first place.
+    """
+    import ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent
+           / "memway" / "indexer.py").read_text()
+    tree = ast.parse(src)
+    fns = {n.name: n for n in ast.walk(tree)
+           if isinstance(n, ast.FunctionDef)}
+    assert "candidates" in fns, "the shared lookup disappeared"
+    assert "_suffix_index" in ast.dump(fns["candidates"]), \
+        "candidates() no longer owns the suffix index"
+    assert "_suffix_index" not in ast.dump(fns["resolve"]), \
+        "resolve() rebuilt its own copy of the lookup"

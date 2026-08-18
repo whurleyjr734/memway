@@ -870,11 +870,53 @@ class Indexer:
 
     # ---------------------------------------------------------------- lookup
 
+    def candidates(self, ref: str) -> list:
+        """Coordinate ids a bare reference could name. THE one lookup.
+
+        Split out of resolve() in 0.57.1 so callers can tell WHY a
+        reference did not resolve. resolve() returns None for two
+        completely different situations - nothing matched the name, and
+        too many things did - and a caller that cannot distinguish them
+        will report a deliberate refusal as a gap in the map.
+
+        That is not hypothetical: `_unresolved_refs_to` counted every
+        `resolve(...) is None` as a blind spot, so on SQLAlchemy, where
+        `execute` names 41 entities, before_edit announced "3294 call
+        references could not be resolved to any entity" about a name the
+        resolver was correctly declining to guess at. Every small repo we
+        pin hid it, because ambiguity at that scale is rare.
+
+        Zero candidates means blind - the reference is spelled one way and
+        the registration another, which is the class refs.py exists to
+        prevent. Two or more means ambiguous, and refusing is the whole
+        point of the 0.54.3 guards.
+
+        INDEXED BY THE BASE NAME, so a reference and a registration meet
+        even when one carries a disambiguator. Keyed on the raw last
+        segment, `separateCamelCase` could never find
+        `FieldNamingPolicy.separateCamelCase/2` - which is why gson had
+        zero method-level call edges. refs.short_of strips /arity and #N
+        from both ends of the comparison; refs is the only module that
+        knows what a suffix looks like.
+        """
+        if not hasattr(self, "_suffix_index") or \
+                len(self._suffix_seen) != len(self.by_qualname):
+            from collections import defaultdict
+            self._suffix_index = defaultdict(list)
+            for q, cid in self.by_qualname.items():
+                self._suffix_index[refs.short_of(q)].append((q, cid))
+            self._suffix_seen = dict(self.by_qualname)
+        base_ref = refs.base_of(ref)
+        return [cid for q, cid in self._suffix_index.get(refs.short_of(ref), [])
+                if refs.base_of(q).endswith(base_ref)]
+
     def resolve(self, ref: str) -> Optional[Entity]:
-        """Resolve a coordinate ID or qualname (or suffix of one).
-        Phase A: suffix lookups go through a last-segment index instead
-        of scanning all qualnames (O(1) vs O(entities) per call - the
-        difference between 45s and unbounded on 59k-entity repos).
+        """Resolve a coordinate ID or qualname (or suffix of one), or None.
+
+        Returns None for two DIFFERENT reasons - nothing matched, and too
+        many did - which is why `candidates()` exists and why any caller
+        reporting on the map's coverage must ask it rather than reading a
+        None. Suffix lookup and its O(1) index live there.
 
         Hybrid refs (file.py:name or path/file.py:name): strip the leading
         path component ending in .py and resolve the remainder against
@@ -913,23 +955,7 @@ class Indexer:
             return self.entities[ref]
         if ref in self.by_qualname:
             return self.entities[self.by_qualname[ref]]
-        # INDEXED BY THE BASE NAME, so a reference and a registration meet
-        # even when one carries a disambiguator. Keyed on the raw last
-        # segment, `separateCamelCase` could never find
-        # `FieldNamingPolicy.separateCamelCase/2` - which is why gson had
-        # zero method-level call edges. refs.short_of strips /arity and #N
-        # from both ends of the comparison; refs is the only module that
-        # knows what a suffix looks like.
-        if not hasattr(self, "_suffix_index") or \
-                len(self._suffix_seen) != len(self.by_qualname):
-            from collections import defaultdict
-            self._suffix_index = defaultdict(list)
-            for q, cid in self.by_qualname.items():
-                self._suffix_index[refs.short_of(q)].append((q, cid))
-            self._suffix_seen = dict(self.by_qualname)
-        base_ref = refs.base_of(ref)
-        matches = [cid for q, cid in self._suffix_index.get(refs.short_of(ref), [])
-                   if refs.base_of(q).endswith(base_ref)]
+        matches = self.candidates(ref)
         if len(matches) == 1:
             return self.entities[matches[0]]
         # ARITY BREAKS AN OVERLOAD TIE. `g/2` at the call site means the
