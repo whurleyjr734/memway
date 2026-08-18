@@ -60,42 +60,57 @@ def test_version_falls_back_to_package_when_metadata_is_missing(monkeypatch):
 
 
 def test_package_version_matches_pyproject():
-    """Two places hold a version, so pin them together - otherwise the
-    fallback silently reports a different release than the wheel.
+    """The version has ONE source, and this pins that it is derived.
 
-    READS BOTH AS TEXT. This asserted against the IMPORTED memway, and
-    that made it the longest-lived flake in the project: ~3 sightings in
-    ~40 runs, never reproducible in isolation, no useful traceback.
+    HISTORY, because it explains the shape. Two files used to hold the
+    version and this asserted they agreed. That made it the project's
+    longest-lived flake: ~3 sightings in ~40 runs, never reproducible in
+    isolation. Python's timestamp .pyc invalidation compares only the
+    source's mtime and size at one-second granularity, and a version bump
+    changes neither - "0.55.3" and "0.55.4" are the same byte length, and
+    the edit lands in the same second as the preceding run's .pyc. The
+    cache stayed valid while serving the old string, so two correct files
+    on disk failed the assertion. It fired on four consecutive releases.
 
-    THE MECHANISM, finally caught on 2026-08-16 and then reproduced
-    deterministically. Python's timestamp .pyc invalidation compares only
-    the source's mtime and size, at one-second granularity. A version
-    bump changes NEITHER: "0.55.3" and "0.55.4" are the same byte length,
-    and the edit lands in the same second as the .pyc written by the test
-    run or build that preceded it. The cache is then considered valid
-    forever, so the imported module keeps serving the OLD version while
-    tomllib reads the new one straight off disk - and the assertion below
-    fails with two correct files on disk.
+    0.55.5 fixed the TEST, by reading both files as text. Correct, and it
+    left the cause in place: a second string that had to be kept in step.
 
-    It is not hypothetical and not rare: it fired naturally on 0.55.3 and
-    again on 0.55.4, two consecutive releases, and both times a fresh
-    `import memway` reported a version its own __file__ did not contain.
-    That is also why it clustered on release runs and never reproduced
-    standalone - any later edit moves the mtime and clears it.
+    0.57.2 removes the second string. memway/__init__.py derives the
+    version from pyproject.toml, so there is nothing left to drift and
+    nothing a stale cache can hold. This therefore asserts the DERIVATION,
+    not an agreement - lesson 11 says pin that the value comes from the
+    source, not that two sentences read alike today.
 
-    Reading the file is not a workaround for a test problem; it is the
-    correct assertion. This compares two FILES, and routing one of them
-    through an import cache was the bug.
+    It also ended a running cost nobody had counted: the literal moved
+    every release, which moved this module's logic hash, which staled
+    every note attached to the coordinate. Seven consecutive releases
+    answered that with a hand-written confirm saying the comments were
+    still fine.
     """
-    import re
+    import ast
 
     data = tomllib.loads((HERE / "pyproject.toml").read_text())
     src = (HERE / "memway" / "__init__.py").read_text()
-    m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', src, re.M)
-    assert m, "memway/__init__.py no longer declares __version__ as a literal"
-    assert data["project"]["version"] == m.group(1), (
-        f"pyproject.toml says {data['project']['version']!r} and "
-        f"memway/__init__.py says {m.group(1)!r} - they have drifted")
+
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id == "__version__":
+                    assert not isinstance(node.value, ast.Constant), (
+                        "memway/__init__.py restates the version as a "
+                        f"literal ({node.value.value!r}). Derive it from "
+                        "pyproject.toml - a constant naming a version is "
+                        "invisible to a test that checks behaviour.")
+
+    # The derived value, executed in a FRESH interpreter so that no import
+    # cache in this process can answer for it.
+    out = subprocess.run(
+        [sys.executable, "-c", "import memway; print(memway.__version__)"],
+        capture_output=True, text=True, cwd=str(HERE))
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == data["project"]["version"], (
+        f"pyproject.toml says {data['project']['version']!r} but the "
+        f"package derived {out.stdout.strip()!r}")
 
 
 # --------------------------------------------------------------- shallow
@@ -222,20 +237,28 @@ def test_editable_and_wheel_installs_both_report_correctly(tmp_path):
     if r.returncode != 0:
         pytest.skip(f"editable install unavailable: {r.stderr[-200:]}")
 
-    init = HERE / "memway" / "__init__.py"
-    original = init.read_text()
-    sentinel = '__version__ = "9.9.9-source"'
-    assert '__version__ = ' in original
+    # DRIFT pyproject.toml, not __init__.py: since 0.57.2 the package
+    # derives its version from that file, so pyproject IS the source
+    # version and there is no literal left to falsify. This is also the
+    # realistic scenario - you bump pyproject and expect your editable
+    # checkout to report the new number immediately.
+    pp = HERE / "pyproject.toml"
+    original = pp.read_text()
+    import re as _re
+    drifted, n = _re.subn(r'^version = "[^"]+"', 'version = "9.9.9"',
+                          original, count=1, flags=_re.M)
+    assert n == 1, "fixture did not find the version line to drift"
     try:
-        import re as _re
-        init.write_text(_re.sub(r'__version__ = "[^"]+"', sentinel, original))
+        pp.write_text(drifted)
+        assert 'version = "9.9.9"' in pp.read_text(), "[sabotage not applied]"
         for cwd in (str(HERE), str(tmp_path)):
             out = run(ed_py, "-m", "memway.cli", "--version", cwd=cwd)
             assert out.returncode == 0, out.stderr
-            assert "9.9.9-source" in out.stdout, \
+            assert "9.9.9" in out.stdout, \
                 f"editable install ignored the source version (cwd={cwd}): {out.stdout!r}"
     finally:
-        init.write_text(original)
+        pp.write_text(original)
+        assert pp.read_text() == original
 
     # --- wheel
     # Built from the CURRENT tree, never from a prebuilt dist/*.whl: a
@@ -251,9 +274,12 @@ def test_editable_and_wheel_installs_both_report_correctly(tmp_path):
 
     site = list((wh / "lib").glob("python*/site-packages/memway/__init__.py"))
     assert site, "installed package not found"
-    import re as _re
-    site[0].write_text(_re.sub(r'__version__ = "[^"]+"',
-                               '__version__ = "0.0.0-wrong"', site[0].read_text()))
+    # Replace the installed module's version machinery outright with a
+    # wrong constant. Nothing is left to regex now that the source derives,
+    # and this is the stronger sabotage anyway: if the wheel consults the
+    # package at all, it reports 0.0.0-wrong.
+    site[0].write_text('__version__ = "0.0.0-wrong"\n')
+    assert '0.0.0-wrong' in site[0].read_text(), "[sabotage not applied]"
     for cwd in (str(tmp_path), str(HERE)):
         out = run(wh_py, "-m", "memway.cli", "--version", cwd=cwd)
         assert out.returncode == 0, out.stderr
@@ -265,44 +291,59 @@ def test_editable_and_wheel_installs_both_report_correctly(tmp_path):
             f"wheel reported {out.stdout!r}, expected metadata {expected}"
 
 
-def test_the_version_check_survives_a_stale_pyc(tmp_path, monkeypatch):
-    """THE regression, executed. Recreates the exact cache state that
-    fired on 0.55.3 and again on 0.55.4.
+def test_a_stale_pyc_cannot_serve_a_stale_version(tmp_path):
+    """The flake, closed at the root rather than worked around.
 
-    A .pyc compiled from the previous version, whose recorded source
-    mtime and size both still match the current source - which Python
-    accepts as valid, because a version bump changes neither. Under that
-    state `import memway` yields the OLD string while the file on disk
-    holds the new one.
+    THE OLD MECHANISM. Python's timestamp .pyc invalidation compares only
+    the source's mtime and size, at one-second granularity. A version bump
+    changes NEITHER - "0.55.3" and "0.55.4" are the same byte length, and
+    the edit lands in the same second as the .pyc written by the preceding
+    run. The cache stays valid forever while serving the OLD literal. It
+    fired naturally on four consecutive releases.
+
+    WHY IT IS NOW IMPOSSIBLE. There is no literal. __init__.py derives the
+    version from pyproject.toml at import, so stale BYTECODE still executes
+    a function that reads today's file. The bytecode can be as old as you
+    like; it cannot hold a version, because none was ever compiled into it.
+
+    So this pins the inverse of what it used to: pyproject moves, the
+    module's own source does not, the cache is provably still valid, and a
+    fresh interpreter must report the NEW number.
     """
     import os
     import py_compile
     import re
     import struct
-    import subprocess
+    import sys as _sys
 
     src = HERE / "memway" / "__init__.py"
-    orig = src.read_text()
-    cur = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', orig).group(1)
-    # A DIFFERENT version of the SAME LENGTH - which is the whole point,
-    # since the cache compares only mtime and size. Built by flipping the
-    # last digit rather than decrementing: subtracting one turns 0.56.0
-    # into 0.56.-1, so the first version of this fixture worked for patch
-    # bumps and broke on the very next minor release.
-    prev = cur[:-1] + ("0" if cur[-1] != "0" else "9")
-    assert len(prev) == len(cur) and prev != cur, (
-        f"this fixture needs a same-LENGTH neighbour; {cur!r} -> {prev!r}")
+    pp = HERE / "pyproject.toml"
+    orig_pp = pp.read_text()
+    cur = re.search(r'^version = "([^"]+)"', orig_pp, re.M).group(1)
+    # A DIFFERENT version of the SAME LENGTH, since the cache compares
+    # size. Flip the last digit rather than decrement: subtracting one
+    # turns 0.56.0 into 0.56.-1, which broke the first version of this
+    # fixture on the very next minor release.
+    other = cur[:-1] + ("0" if cur[-1] != "0" else "9")
+    assert len(other) == len(cur) and other != cur, (
+        f"this fixture needs a same-LENGTH neighbour; {cur!r} -> {other!r}")
 
-    pyc = HERE / "memway" / "__pycache__" / "__init__.cpython-313.pyc"
+    tag = _sys.implementation.cache_tag          # derived, not "cpython-313"
+    pyc = HERE / "memway" / "__pycache__" / f"__init__.{tag}.pyc"
     saved = pyc.read_bytes() if pyc.exists() else None
+    st = src.stat()
     try:
-        src.write_text(orig.replace(f'"{cur}"', f'"{prev}"'))
-        st = src.stat()
+        # Bytecode compiled NOW, while pyproject still says `cur`.
         py_compile.compile(
             str(src), cfile=str(pyc),
             invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
-        src.write_text(orig)
-        os.utime(src, (st.st_atime, st.st_mtime))     # same second, same size
+
+        # Move the version. __init__.py is untouched, so its cache stays
+        # valid - that is the condition the flake needed.
+        pp.write_text(re.sub(r'^version = "[^"]+"', f'version = "{other}"',
+                             orig_pp, count=1, flags=re.M))
+        assert f'version = "{other}"' in pp.read_text(), "[sabotage not applied]"
+        os.utime(src, (st.st_atime, st.st_mtime))
 
         rec_mtime, rec_size = struct.unpack("<II", pyc.read_bytes()[8:16])
         assert (rec_mtime == int(src.stat().st_mtime)
@@ -312,19 +353,12 @@ def test_the_version_check_survives_a_stale_pyc(tmp_path, monkeypatch):
         seen = subprocess.run(
             [sys.executable, "-c", "import memway; print(memway.__version__)"],
             capture_output=True, text=True, cwd=str(HERE)).stdout.strip()
-        assert seen == prev, (
-            f"fixture did not reproduce the stale cache: import saw {seen!r}, "
-            f"expected the stale {prev!r}")
-
-        r = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q", "-p", "no:randomly",
-             "tests/test_version.py::test_package_version_matches_pyproject"],
-            capture_output=True, text=True, cwd=str(HERE))
-        assert r.returncode == 0, (
-            "the version check still consults the import cache - this is "
-            f"the flake:\n{r.stdout[-600:]}")
+        assert seen == other, (
+            f"a stale .pyc served {seen!r} while pyproject.toml says "
+            f"{other!r} - the version is being carried in bytecode again")
     finally:
-        src.write_text(orig)
+        pp.write_text(orig_pp)
+        assert pp.read_text() == orig_pp
         if pyc.exists():
             pyc.unlink()
         if saved is not None:

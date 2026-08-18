@@ -7,6 +7,68 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.57.2] - 2026-08-18
+
+Theme: **stop generating your own work.**
+
+Two fixes that both remove something rather than add a check.
+
+### Fixed - the version is derived, not restated
+
+`memway/__init__.py` held `__version__ = "x.y.z"`, pinned to
+`pyproject.toml` by a test. That literal cost two things:
+
+**The project's longest-lived flake.** Python's timestamp `.pyc`
+invalidation compares only source mtime and size at one-second
+granularity, and a version bump changes neither - `"0.55.3"` and
+`"0.55.4"` are the same length, and the edit lands in the same second as
+the preceding run's cache write. The cache stayed valid while serving the
+old string. It fired on **four consecutive releases**. 0.55.5 fixed the
+TEST by reading both files as text, which was correct and left the cause
+in place.
+
+**Seven consecutive hand-written confirms.** The literal moved every
+release, which moved the module's logic hash, which staled every note on
+that coordinate. Seven releases in a row answered that by writing a
+paragraph saying the comments were still accurate. That is the tool
+generating work for itself, and `#13` had been open across all of it.
+
+Now `__init__.py` derives the version from `pyproject.toml` when it sits
+in a source tree or editable install, and from distribution metadata
+otherwise. There is no second string to drift and none compiled into
+bytecode, so a stale `.pyc` cannot serve a stale version - it executes a
+function that reads today's file. **One place to bump at release.**
+
+The tests moved with it: the drift check became an AST assertion that no
+version literal exists plus a fresh-interpreter check of the derived
+value; the editable leg now drifts `pyproject.toml`, which is the real
+scenario; and the stale-`.pyc` test asserts the inverse of what it used
+to - pyproject moves, `__init__.py` does not, the cache is provably still
+valid, and the reported version is the new one.
+
+### Fixed - `_resolve_error` was the third surface
+
+Refusal-vs-absence had three surfaces. The resolver was fixed in 0.56.0,
+the unresolved-reference counter in 0.57.1, and this one was never
+converted - found on the 0.57.1 verify leg, against the published wheel.
+
+It kept its own copy of the lookup, `qn.rsplit(".", 1)[-1] == tail`, a
+raw last segment that cannot see a disambiguated registration:
+
+| | before | after |
+|---|---|---|
+| `show sqlalchemy execute` | "29 entities match" | **41**, agreeing with `candidates()` |
+| `show <repo> handle` (vs `handle#2`) | "no entity matches" | **"'handle' is ambiguous - 2 entities match"** |
+
+In the second case it printed both candidates one line below, under
+`closest:` - the answer on screen, beneath a sentence saying there was
+none. It now calls `Indexer.candidates()`, the single lookup.
+
+The existing guard could not have caught this: it probes `save`, a name
+carrying no disambiguator, so it only exercised the path that already
+worked. The new test builds the disambiguator and asserts the fixture has
+it before asserting anything about the message.
+
 ## [0.57.1] - 2026-08-17
 
 Theme: **a refusal is not a gap.**

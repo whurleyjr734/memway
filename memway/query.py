@@ -275,9 +275,20 @@ def _resolve_error(ref: str, ix, coord=None) -> dict:
     # `get_signature` matched 5 entities in itsdangerous, `save` matched 3
     # here, and both answered "no entity matches". The candidates are in
     # hand at the moment of failure; only the message was wrong.
-    tail = str(ref).rsplit(".", 1)[-1]
-    matches = sorted(qn for qn in all_qualnames
-                     if qn == ref or qn.rsplit(".", 1)[-1] == tail)
+    # THROUGH candidates(), not a second copy of the rule. This asked
+    # `qn.rsplit(".", 1)[-1] == tail`, a RAW last segment, which cannot see
+    # a disambiguated registration: `handle` never matched `handle#2` and
+    # `separateCamelCase` never matched `separateCamelCase/2`. So the third
+    # surface of the refusal-vs-absence bug outlived the two that were
+    # fixed - on sqlalchemy this said "29 entities match" where the
+    # resolver had 41, and on a repo with two same-named functions it said
+    # "no entity matches" while printing both under "closest:".
+    # refs.short_of is the only thing that knows what a suffix looks like,
+    # and candidates() is the only thing that applies it.
+    matches = sorted(ix.entities[cid].qualname for cid in ix.candidates(ref)
+                     if cid in ix.entities)
+    if str(ref) in ix.by_qualname and str(ref) not in matches:
+        matches = sorted(matches + [str(ref)])
     if len(matches) > 1:
         return {
             "error": f"{ref!r} is ambiguous - {len(matches)} entities match",

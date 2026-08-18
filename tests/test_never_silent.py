@@ -843,3 +843,52 @@ def test_candidates_and_resolve_share_one_lookup():
         "candidates() no longer owns the suffix index"
     assert "_suffix_index" not in ast.dump(fns["resolve"]), \
         "resolve() rebuilt its own copy of the lookup"
+
+
+def test_a_disambiguated_name_is_ambiguous_not_absent(tmp_path):
+    """The THIRD surface of refusal-vs-absence, found on the 0.57.1 verify
+    leg against the published wheel.
+
+    _resolve_error kept its own copy of the lookup - `qn.rsplit(".", 1)[-1]
+    == tail`, a RAW last segment - so it could not see a registration
+    carrying a disambiguator. `handle` never matched `handle#2`, exactly as
+    `separateCamelCase` never matched `separateCamelCase/2` before 0.56.0.
+    On sqlalchemy it announced "29 entities match" where the resolver had
+    41; on the fixture below it announced NO match while printing both
+    candidates one line down under "closest:".
+
+    The repo's existing guard could not catch it: it probes `save`, a name
+    with no disambiguator, so it only ever exercised the path that worked.
+    THIS fixture is built to carry the disambiguator, and asserts it does
+    before asserting anything about the message.
+    """
+    import subprocess as sp
+    repo = tmp_path / "r"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "__init__.py").write_text("")
+    # Two defs of one name in one scope: the second registers as name#2.
+    (repo / "src" / "dup.py").write_text(
+        "def handle(x):\n    return x + 1\n\n\n"
+        "def handle(x):\n    return x + 2\n\n\n"
+        "def caller(y):\n    return handle(y)\n")
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(repo)],
+           capture_output=True, cwd=str(HERE))
+
+    from memway.query import _ctx, _resolve_error
+    _, _, ix, _, _ = _ctx(str(repo))
+    quals = sorted(q for q in ix.by_qualname if q.endswith(("handle", "handle#2")))
+    assert len(quals) >= 2 and any("#" in q for q in quals), (
+        f"FIXTURE has no disambiguated registration, so this would pass "
+        f"without exercising anything: {quals}")
+
+    cands = ix.candidates("handle")
+    assert len(cands) >= 2, cands
+
+    err = _resolve_error("handle", ix)
+    assert "ambiguous" in err.get("error", ""), (
+        f"the resolver knows {len(cands)} candidates and the error says "
+        f"{err.get('error')!r} - a refusal reported as absence")
+    assert len(err["matches"]) == len(cands), (
+        f"error lists {len(err['matches'])} but candidates() has "
+        f"{len(cands)} - two implementations of one lookup")
+    assert any("#" in m for m in err["matches"]), err["matches"]
