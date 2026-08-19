@@ -22,6 +22,7 @@ Minhash sketches enable fast similarity estimation without storing source.
 import hashlib
 import os
 import json
+import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
@@ -583,9 +584,17 @@ class Indexer:
         from .parsers import PARSE_SCHEMA_VERSION
         if cache.get("_schema") != PARSE_SCHEMA_VERSION:
             if cache:
+                # STDERR, because this is progress and stdout is a
+                # contract. `memway --json verify-change` is a machine
+                # surface, and this line landed in the middle of its
+                # payload - JSON parse error, on the FIRST run after any
+                # upgrade that bumps the schema. That is exactly when an
+                # automated caller is least able to cope, and the schema
+                # bumped three times in one release.
                 print(f"  parse cache: schema "
                       f"{cache.get('_schema', 0)} -> "
-                      f"{PARSE_SCHEMA_VERSION}, re-parsing all files")
+                      f"{PARSE_SCHEMA_VERSION}, re-parsing all files",
+                      file=sys.stderr)
             cache = {}
         self._cache_hits = self._cache_misses = 0
         self._parse_errors = []

@@ -31,6 +31,7 @@ Skipped by default so a normal run stays offline and fast.
 """
 
 import ast
+import builtins
 import json
 import subprocess
 import sys
@@ -44,6 +45,10 @@ HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
 pytestmark = [pytest.mark.slow, pytest.mark.network]
+
+# Names Python defines itself. Derived from the interpreter, never typed
+# out - the same source memway.parsers.PythonParser reads.
+_PY_BUILTINS = frozenset(dir(builtins))
 
 # Pinned shas: a floor measured against a moving target is not a floor.
 CORPUS = [
@@ -112,6 +117,7 @@ def _measure(repo: Path):
     # scored against a resolver whose whole job is refusing to guess.
     uniq = {k: v[0] for k, v in short.items()
             if len(v) == 1 and len(k) >= 5 and not k.startswith("_")}
+    kind_of = {refs.short_of(e["qualname"]): e.get("kind") for e in ents}
     checked = hit = local_missing = 0
     for f in repo.rglob("*.py"):
         # RELATIVE to the repo, always. Filtering on the absolute path made
@@ -128,8 +134,24 @@ def _measure(repo: Path):
             continue
         v = _Scoped()
         v.visit(tree)
-        for src, tgt, _via in v.out:
+        for src, tgt, via in v.out:
             if tgt not in uniq or src not in short or src == tgt:
+                continue
+            # THE ORACLE MUST NOT SHARE THE TOOL'S BLIND SPOT. A bare
+            # `isinstance(x, y)` is the BUILTIN, not sqlalchemy's
+            # Options.isinstance - and this oracle happily attributed it
+            # to the method, exactly as the resolver used to. They were
+            # wrong in the same way, so they agreed, and the agreement
+            # read as 76% recall.
+            #
+            # When 0.57.2 taught the resolver to refuse those, recall
+            # "fell" to 44% - 1,702 edges on three names in sqlalchemy
+            # alone (isinstance 1,150, getattr 367, tuple 185). Nothing
+            # regressed; the oracle simply kept scoring the old error as
+            # correct. A second opinion that shares the blind spot is a
+            # mirror, not a check.
+            if not via and tgt in _PY_BUILTINS \
+                    and kind_of.get(tgt) == "method":
                 continue
             checked += 1
             if any(refs.short_of(s) == src and d == uniq[tgt]
@@ -203,7 +225,19 @@ def sqlalchemy_repo(tmp_path_factory):
 
 
 def test_sqlalchemy_recall_floor(sqlalchemy_repo):
-    """Measured 2026-08-17 at eb5ef2a: 76% (3250/4228), 0 closure misses."""
+    """Measured at eb5ef2a with the BUILTIN-AWARE oracle: 74%
+    (1868/2519), 0 closure misses.
+
+    The earlier reading of 76% (3250/4228) was inflated on both sides of
+    the comparison. sqlalchemy declares Options.isinstance, Row.tuple and
+    BaseRow.getattr as methods, and every bare builtin call resolved to
+    them - isinstance 1,150, getattr 367, tuple 185. The resolver counted
+    those as hits and the oracle counted them as expectations, so they
+    agreed, and the agreement looked like recall.
+
+    0.57.2 refuses them. The denominator falls by 1,709 and the honest
+    figure is 74%.
+    """
     checked, hit, local_missing = _measure(sqlalchemy_repo)
     assert checked > 1000, f"oracle found too few call sites: {checked}"
     pct = 100 * hit // checked

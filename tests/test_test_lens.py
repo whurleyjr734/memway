@@ -252,7 +252,15 @@ def test_viz_origin_toggle_markup_is_present(mapped, tmp_path):
     assert 'origins.has(' in html, "the filter predicate ignores origin"
     assert "originBoxes.forEach" in html, "no change listener on the toggle"
     assert ".node.is-test circle.core" in html, "no visual distinction"
-    assert 'd.is_test===true?" is-test":""' in html, "class never applied"
+    # THE CLASS BECAME STATE. Nodes are drawn on canvas since 0.57.2, so
+    # is_test can no longer be applied as an SVG class - draw() reads the
+    # datum and the .node.is-test rule is read back through
+    # getComputedStyle. Assert the distinction is still consumed, not the
+    # markup that used to carry it.
+    assert "n.is_test ? STYLE.node.test" in html, \
+        "the drawn node ignores is_test"
+    assert 'circle({g:"node is-test"' in html, \
+        "the is-test rule is not read back from the stylesheet"
 
 
 def test_both_origins_default_to_on(mapped, tmp_path):
@@ -488,9 +496,16 @@ def test_the_template_has_ONE_ring_rule():
     exclusion the dirty check already had."""
     tpl = (HERE / "memway" / "viz_template.html").read_text()
     assert "function ringStale(d)" in tpl
-    assert tpl.count("ringStale(d)") >= 3, "both ring sites must call the helper"
+    # WAS >= 3, FOR THREE CALL SITES. The canvas renderer derives the ring
+    # every frame from n.knowledge, so the initial render, the live
+    # refresh and the console pulse all reach it through ONE call inside
+    # draw(). Fewer sites is the direction this test wants; what it must
+    # still forbid is a second copy of the RULE.
+    assert tpl.count("ringStale(") >= 1, "the ring rule lost its only caller"
     assert 'stamp-ring"+(d.knowledge.some(k=>k.stale)' not in tpl, \
         "an inline copy of the ring rule came back"
+    assert tpl.count("knowledge.some(k=>k.stale)") <= 1, \
+        "the stale test is expressed in more than one place"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="no JS runtime")
@@ -524,3 +539,159 @@ console.log(JSON.stringify(d.entities.map(e=>[e.qualname, ringStale(e)])));
     got = dict(json.loads(r.stdout))
     assert got["a"] is False, "a re-confirmed coordinate stayed coral"
     assert got["b"] is True, "an unanswered stale entry lost its ring"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="no JS runtime")
+def test_the_shipped_canvas_renderer_actually_draws(mapped, tmp_path):
+    """THE witness for the canvas. A green suite proves the template
+    parses; it does not prove a single pixel is issued.
+
+    0.57.2 moved 13k-node maps off SVG (57k elements on prometheus) onto a
+    canvas. Every test around it reads the file as text, which is exactly
+    the trap this repo keeps rediscovering - the origin toggle shipped
+    inert under tests that all passed. So this lifts draw() and its
+    batching out of the SHIPPED template, runs them against a real emitted
+    payload with a recording 2d context, and asserts marks were issued.
+    """
+    # THIS REPO'S OWN MAP, not the 6-entity fixture. The batching claim
+    # ("one stroke per bucket, not per edge") is only falsifiable at a
+    # scale where the two differ by orders of magnitude.
+    from memway.viz import export as _export
+    payload = _export(str(HERE))
+    (tmp_path / "p.json").write_text(json.dumps(
+        {k: v for k, v in payload.items() if not k.startswith("_")}))
+    probe = tmp_path / "canvas.js"
+    probe.write_text(r"""
+const fs = require("fs");
+const tpl = fs.readFileSync(process.argv[2], "utf8");
+const payload = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+
+// A recording 2d context. Every call is logged; nothing is rendered.
+const log = {stroke:0, fill:0, arc:0, moveTo:0, lineTo:0, fillText:0,
+             edgeStrokes:0, widths:[], alphas:[],
+             strokeStyles:new Set(), fillStyles:new Set()};
+const ctx = new Proxy({}, {get:(t,k)=>{
+  if (k === "strokeStyle" || k === "fillStyle" || k === "globalAlpha" ||
+      k === "lineWidth" || k === "font" || k === "textAlign") return t[k];
+  return (...a)=>{ if (k in log) log[k]++;
+    if (k === "stroke"){ log.strokeStyles.add(t.strokeStyle);
+      if (log.arc === 0){ log.edgeStrokes++;
+        // EDGE strokes only, in SCREEN units: lineWidth is in graph
+        // units because the context is scaled by k, so the thing the
+        // reader sees is lineWidth * k.
+        log.widths.push(t.lineWidth * view.k); log.alphas.push(t.globalAlpha); } }
+    if (k === "fill")   log.fillStyles.add(t.fillStyle); };
+}, set:(t,k,v)=>{ t[k]=v; return true; }});
+
+const nm = tpl.match(/function normalize\(raw\)\{[\s\S]*?\n\}/);
+const rm = tpl.match(/function r\(d\)\{[^\n]*\}/);
+const sm = tpl.match(/function ringStale\(d\)\{[\s\S]*?\n\}/);
+const bm = tpl.match(/^function buckets\(\)\{[\s\S]*?\n\}/m);
+const dm = tpl.match(/^function draw\(\)\{[\s\S]*?\n\}\n/m);
+for (const [n,m] of Object.entries({normalize:nm, r:rm, ringStale:sm,
+                                    buckets:bm, draw:dm}))
+  if (!m) { console.error(n + "() not found in the shipped template"); process.exit(2); }
+
+const data = normalizeShim();
+function normalizeShim(){ eval(nm[0]); return normalize(payload); }
+eval(rm[0]); eval(sm[0]);
+
+let nodes = data.entities.map((d,i)=>Object.assign({}, d,
+  {x:(i%80)*13, y:Math.floor(i/80)*13, _vis:true}));
+const byId = new Map(nodes.map(n=>[n.id,n]));
+let links = data.edges.map(e=>({source:byId.get(e.source), target:byId.get(e.target),
+                                kind:e.kind, _vis:true})).filter(l=>l.source&&l.target);
+const EDGE_KINDS = ["calls","inherits","imports","contains"];
+const STYLE = {edge:{}, kind:{}, node:{}, text:{font:"10px m", fill:"#fff"}};
+EDGE_KINDS.forEach(k=>{ const s={stroke:"rgb(1,2,3)",opacity:.3,width:1,dash:"none"};
+  STYLE.edge[k]={base:s, lit:{...s,stroke:"rgb(4,5,6)"}, dim:s}; });
+["module","class","function","method","attribute"].forEach(k=>STYLE.kind[k]="rgb(9,9,9)");
+STYLE.node.core={stroke:"#a",width:1.5,fillOpacity:1,opacity:1,dash:"none"};
+STYLE.node.test={...STYLE.node.core, fillOpacity:.22};
+STYLE.node.selected={...STYLE.node.core};
+STYLE.node.dimOpacity=.14;
+STYLE.node.ring={stroke:"#b",width:1.6,dash:"none"};
+STYLE.node.ringStale={stroke:"#c",width:1.6,dash:"3 3"};
+const view={x:0,y:0,k:1};
+let W=1000,H=800,DPR=1,hovered=null;
+eval(bm[0]); eval(dm[0]);
+
+draw();
+const all = {arcs:log.arc, strokes:log.stroke, fills:log.fill,
+             edgeStrokes:log.edgeStrokes,
+             buckets:Object.keys(buckets()).length,
+             segs:log.moveTo, labels:log.fillText,
+             nodes:nodes.length, links:links.length};
+
+// selection state must change what is drawn
+const target = nodes[0];
+nodes.forEach(n=>{ n._sel = n===target; n._dim = n!==target; });
+links.forEach(l=>{ l._lit = l.source===target||l.target===target; l._dim=!l._lit; });
+const before = log.strokeStyles.size;
+log.arc=0; log.stroke=0; log.moveTo=0;
+draw();
+all.after_select_segs = log.moveTo;
+all.stroke_styles = log.strokeStyles.size;
+
+// filtering to nothing must draw no marks
+// INK SCALING, measured: the same draw at 1:1 and zoomed far out.
+function inkAt(k){
+  view.k = k; log.widths = []; log.alphas = []; log.arc = 0;
+  draw();
+  return {w:+Math.max(...log.widths).toFixed(4),
+          a:+Math.max(...log.alphas).toFixed(4)};
+}
+nodes.forEach(n=>{ n._sel=false; n._dim=false; });
+links.forEach(l=>{ l._lit=false; l._dim=false; });
+all.ink_1x   = inkAt(1);
+all.ink_out  = inkAt(0.06);
+view.k = 1;
+
+nodes.forEach(n=>n._vis=false); links.forEach(l=>l._vis=false);
+log.arc=0; log.moveTo=0; log.fill=0;
+draw();
+all.hidden_arcs = log.arc; all.hidden_segs = log.moveTo;
+console.log(JSON.stringify(all));
+""")
+    r = subprocess.run(["node", str(probe), str(TEMPLATE), str(tmp_path / "p.json")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-600:]
+    g = json.loads(r.stdout)
+
+    assert g["nodes"] > 500 and g["links"] > 1000, f"payload too thin: {g}"
+    # One arc per visible node for the fill, one for the stroke.
+    assert g["arcs"] >= 2 * g["nodes"], \
+        f"nodes were not drawn: {g['arcs']} arcs for {g['nodes']} nodes"
+    assert g["segs"] == g["links"], \
+        f"every visible edge must issue a segment: {g['segs']} vs {g['links']}"
+    # THE BATCHING CLAIM, executed. Edges stroke ONCE per (kind, state)
+    # bucket; node outlines are legitimately per node, so they are counted
+    # separately - conflating the two is what made the first version of
+    # this assertion read 1223 strokes and call it a failure.
+    assert g["buckets"] <= 12, f"more buckets than kinds x states: {g}"
+    assert g["edgeStrokes"] <= g["buckets"], \
+        (f"{g['edgeStrokes']} stroke calls for {g['buckets']} buckets and "
+         f"{g['links']} links - the batching is not happening, which is the "
+         f"entire performance argument")
+    assert g["links"] > 20 * g["edgeStrokes"], \
+        f"batching gains nothing at this scale: {g}"
+    assert g["labels"] == 0, "labels drawn for unhovered, unselected nodes"
+    assert g["after_select_segs"] == g["segs"], "selection lost edges"
+    assert g["stroke_styles"] >= 2, "lit edges are not styled differently"
+    assert g["hidden_arcs"] == 0 and g["hidden_segs"] == 0, \
+        f"filtered-out marks were still drawn: {g}"
+
+    # INK MUST SHRINK WITH THE VIEW, measured at two zooms rather than
+    # asserted from the source. Every stroke used to be divided by view.k,
+    # holding it at a CONSTANT SCREEN WIDTH however far you zoomed out: at
+    # k=0.06 a node is a 0.6px dot inside a 1.5px outline and 31k edges
+    # each lay down a full pixel, so an overview reads as a solid mass.
+    # The reader's words were "the edge thickness makes it look so dense
+    # when zooming out".
+    near, far = g["ink_1x"], g["ink_out"]
+    assert far["w"] * far["a"] < near["w"] * near["a"] / 3, (
+        f"zooming out does not thin the ink: 1:1 {near} vs 0.06x {far} - "
+        f"a stroke divided by view.k stays screen-constant and fills the "
+        f"overview with ink")
+    assert far["a"] < near["a"], f"edges do not fade when zoomed out: {near} {far}"
+    assert near["w"] >= far["w"], f"strokes got thicker zoomed out: {near} {far}"

@@ -138,7 +138,16 @@
   .rail .kn-toggle{margin-top:6px}
 
   /* the chart */
-  #chart{position:fixed; inset:0; z-index:5; cursor:grab}
+  /* CANVAS DRAWS, SVG LISTENS. 13k nodes and 31k edges is 57k SVG
+     elements, ~11x this repo's own map and far past where a browser keeps
+     interaction smooth. The canvas carries every mark; the svg above it
+     keeps its box and its pointer handling so zoom, drag and hit-testing
+     stay in one coordinate system. Both are fixed to the same inset, and
+     the rules below are still the ONLY source of colour - the renderer
+     reads them back through getComputedStyle rather than restating any
+     value in JS (lesson 11). */
+  #cv{position:fixed; inset:0; z-index:4}
+  #chart{position:fixed; inset:0; z-index:5; cursor:grab; background:transparent}
   #chart:active{cursor:grabbing}
   .link{stroke:var(--e-calls); stroke-width:1px; stroke-opacity:.28}
   .link.inherits{stroke:var(--e-inherits); stroke-dasharray:4 3; stroke-opacity:.34}
@@ -319,6 +328,7 @@
   <label class="kind-row"><input type="checkbox" data-ekind="contains"><span class="swatch" style="background:var(--e-contains);border-radius:1px;height:3px"></span>contains</label>
 </div>
 
+<canvas id="cv" aria-hidden="true"></canvas>
 <svg id="chart" role="img" aria-label="Force-directed graph of code entities and call edges"></svg>
 
 <aside id="panel" aria-live="polite">
@@ -354,10 +364,121 @@ const SAMPLE = __MEMWAY_DATA__;
 
 const KIND_COLOR = {module:"var(--module)", class:"var(--class)", function:"var(--func)", method:"var(--method)", attribute:"var(--attribute)"};
 const svg = d3.select("#chart");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
 let W = innerWidth, H = innerHeight;
+let DPR = Math.min(2, window.devicePixelRatio || 1);
+let view = d3.zoomIdentity, hovered = null, userMoved = false;
 svg.attr("viewBox", [0,0,W,H]);
-const zoomLayer = svg.append("g");
-svg.call(d3.zoom().scaleExtent([.3, 4]).on("zoom", e => zoomLayer.attr("transform", e.transform)));
+function sizeCanvas(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  cv.style.width = W+"px"; cv.style.height = H+"px";
+}
+sizeCanvas();
+// The zoom transform is applied to the CANVAS CONTEXT rather than to a
+// <g>, which is the only structural change zooming needed.
+// ZOOM AND NODE-DRAG SHARE ONE ELEMENT, so zoom must stand aside when the
+// press lands on a node. d3.zoom calls stopImmediatePropagation on
+// mousedown, which swallowed every drag: nodes could not be moved at all.
+// The filter asks the same hit-test the click handler uses.
+//
+// The range matters as much. [.3, 4] could not zoom out far enough to see
+// a 13k-node layout, so the graph read as an immovable clot in the middle
+// of the screen no matter what you did.
+const zoomBehavior = d3.zoom().scaleExtent([0.02, 8])
+  .filter(e => {
+    if (e.type === "wheel") return true;
+    if (e.button) return false;
+    const q = d3.pointer(e, svg.node());
+    return !pick(q[0], q[1]);
+  })
+  .on("zoom", e => { if (e.sourceEvent) userMoved = true;
+                     view = e.transform; draw(); });
+svg.call(zoomBehavior);
+
+// Frame the graph once it has settled. Without this the view sits at 1:1
+// on the centre of a layout thousands of pixels across, which is what
+// "everything clusters in the middle" actually was.
+function fitView(){
+  const vis = nodes.filter(n=>n._vis !== false);
+  if (!vis.length) return;
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+  for (const n of vis){
+    if (!isFinite(n.x) || !isFinite(n.y)) continue;
+    if (n.x<x0) x0=n.x; if (n.x>x1) x1=n.x;
+    if (n.y<y0) y0=n.y; if (n.y>y1) y1=n.y;
+  }
+  if (!isFinite(x0)) return;
+  const pad = 70, w = Math.max(1, x1-x0), h = Math.max(1, y1-y0);
+  const k = Math.max(0.02, Math.min(4, (W-2*pad)/w, (H-2*pad)/h));
+  svg.call(zoomBehavior.transform, d3.zoomIdentity
+    .translate(W/2 - k*(x0+x1)/2, H/2 - k*(y0+y1)/2).scale(k));
+}
+
+// Edge kinds come from the legend checkboxes, so a kind added to the UI
+// is a kind the renderer styles - no second list to keep in step.
+const EDGE_KINDS = [...document.querySelectorAll("[data-ekind]")]
+                     .map(b=>b.dataset.ekind);
+
+/* STYLE IS READ BACK FROM THE STYLESHEET, never restated here. The CSS
+   rules above are the single source of colour - the legend, the resting
+   line and the lit line all read one variable, and three tests assert
+   that. A canvas cannot use `var(--e-calls)` directly, so rather than
+   copy the palette into JS (which is how a legend comes to describe a
+   colour the graph no longer draws) we mount one throwaway element per
+   rule and ask the browser what it computed. */
+const STYLE = (function(){
+  const probe = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  probe.setAttribute("width","0"); probe.setAttribute("height","0");
+  probe.style.position="absolute"; probe.style.visibility="hidden";
+  document.body.appendChild(probe);
+  function line(cls){
+    const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+    l.setAttribute("class", cls); probe.appendChild(l);
+    const c = getComputedStyle(l);
+    const out = {stroke:c.stroke, opacity:+c.strokeOpacity,
+                 width:parseFloat(c.strokeWidth)||1,
+                 dash:(c.strokeDasharray||"none")};
+    probe.removeChild(l); return out;
+  }
+  function circle(cls){
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class", cls.g);
+    const c0 = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c0.setAttribute("class", cls.c); g.appendChild(c0); probe.appendChild(g);
+    const c = getComputedStyle(c0), gc = getComputedStyle(g);
+    const out = {stroke:c.stroke, width:parseFloat(c.strokeWidth)||1,
+                 fillOpacity:+c.fillOpacity, opacity:+gc.opacity,
+                 dash:(c.strokeDasharray||"none")};
+    probe.removeChild(g); return out;
+  }
+  const css = getComputedStyle(document.documentElement);
+  const v = n => css.getPropertyValue(n).trim();
+  const S = {edge:{}, node:{}, text:{}, kind:{}};
+  EDGE_KINDS.forEach(k=>{
+    S.edge[k] = {base:line("link "+k), lit:line("link lit "+k),
+                 dim:line("link dimmed "+k)};
+  });
+  ["module","class","function","method","attribute"].forEach(k=>{
+    S.kind[k] = v("--"+k) || v("--func");
+  });
+  S.node.core     = circle({g:"node", c:"core"});
+  S.node.test     = circle({g:"node is-test", c:"core"});
+  S.node.selected = circle({g:"node selected", c:"core"});
+  S.node.dimOpacity = circle({g:"node dimmed", c:"core"}).opacity;
+  S.node.ring      = circle({g:"node", c:"stamp-ring"});
+  S.node.ringStale = circle({g:"node", c:"stamp-ring stale"});
+  const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("class",""); const holder=document.createElementNS("http://www.w3.org/2000/svg","g");
+  holder.setAttribute("class","node selected"); holder.appendChild(t); probe.appendChild(holder);
+  const tc = getComputedStyle(t);
+  S.text = {font:`${tc.fontSize} ${tc.fontFamily}`, fill:tc.fill || v("--bone")};
+  probe.removeChild(holder);
+  document.body.removeChild(probe);
+  return S;
+})();
+
 
 let nodes=[], links=[], sim, selected=null;
 
@@ -393,24 +514,286 @@ function ringStale(d){
     : d.knowledge_stale===true;
 }
 
+
+/* THE RENDERER IS MODULE SCOPE, and that is not cosmetic. draw(), its
+   buckets and the hit-test operate purely on module state (nodes, links,
+   view, STYLE), and applyFilters - which is module scope - has to call
+   draw. Defining them inside render() put `draw` out of reach of every
+   caller outside it: applyFilters threw "draw is not defined" on the
+   first filter change AND at the end of every render. Found by executing
+   the emitted page under jsdom, not by reading it. The pointer handlers
+   move with them so they are bound ONCE rather than re-bound per render,
+   which was quietly stacking a new d3.drag listener each time. */
+// ---- canvas layers -------------------------------------------------
+// Links first, batched by (kind, state) so the context is configured a
+// dozen times instead of 31,000. One beginPath per bucket is the whole
+// performance story: per-edge state changes are what made SVG crawl.
+function buckets(){
+  const b = {};
+  for (const l of links){
+    if (!l._vis) continue;
+    const k = l.kind || "calls";
+    const st = l._lit ? "lit" : (l._dim ? "dim" : "base");
+    (b[k+"|"+st] || (b[k+"|"+st] = [])).push(l);
+  }
+  return b;
+}
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(view.x, view.y);
+  ctx.scale(view.k, view.k);
+
+  // INK MUST SHRINK WITH THE VIEW. Every stroke was divided by view.k,
+  // which holds it at a constant SCREEN width however far you zoom out -
+  // so at k=0.065 a node is a 0.6px dot wearing a 1.5px outline, and 31k
+  // edges each still lay down a full pixel. The picture fills with ink
+  // and reads as a solid mass, which is precisely what a zoomed-out
+  // overview must not do.
+  //
+  // Dividing by max(k,1) keeps the screen-constant behaviour while zoomed
+  // IN, where it is right, and lets strokes thin honestly as you pull
+  // back. Sub-pixel lines already alpha-blend, but thousands of them
+  // still accumulate, so edge opacity falls with the zoom as well. Nodes
+  // keep their alpha: they are the content, the edges are the texture.
+  const pen = Math.max(view.k, 1);
+  const inkFade = Math.min(1, 0.3 + 0.7 * view.k);
+
+  const bk = buckets();
+  for (const key in bk){
+    const [kind, st] = key.split("|");
+    const sty = (STYLE.edge[kind] || STYLE.edge.calls)[st === "lit" ? "lit"
+               : st === "dim" ? "dim" : "base"];
+    ctx.strokeStyle = sty.stroke;
+    ctx.globalAlpha = sty.opacity * inkFade;
+    ctx.lineWidth = sty.width / pen;
+    if (sty.dash && sty.dash !== "none"){
+      ctx.setLineDash(sty.dash.split(/[\s,]+/).map(Number)
+                        .filter(n=>!isNaN(n)).map(n=>n/pen));
+    } else ctx.setLineDash([]);
+    ctx.beginPath();
+    for (const l of bk[key]){
+      ctx.moveTo(l.source.x, l.source.y);
+      ctx.lineTo(l.target.x, l.target.y);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Nodes. Fill batched per kind; strokes and rings are per node but
+  // only for what is actually on screen.
+  const vis = nodes.filter(n=>n._vis);
+  const byKind = {};
+  for (const n of vis) (byKind[n.kind] || (byKind[n.kind] = [])).push(n);
+  for (const kind in byKind){
+    ctx.fillStyle = STYLE.kind[kind] || STYLE.kind.function;
+    for (const n of byKind[kind]){
+      ctx.globalAlpha = (n._dim ? STYLE.node.dimOpacity : 1)
+                      * (n.is_test ? STYLE.node.test.fillOpacity : 1);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r(n), 0, 6.283185307179586);
+      ctx.fill();
+    }
+  }
+  for (const n of vis){
+    const core = n._sel ? STYLE.node.selected
+               : n.is_test ? STYLE.node.test : STYLE.node.core;
+    ctx.globalAlpha = n._dim ? STYLE.node.dimOpacity : 1;
+    ctx.strokeStyle = core.stroke;
+    ctx.lineWidth = core.width / pen;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r(n), 0, 6.283185307179586);
+    ctx.stroke();
+    if (n.knowledge.length){
+      const ring = ringStale(n) ? STYLE.node.ringStale : STYLE.node.ring;
+      ctx.strokeStyle = ring.stroke;
+      ctx.lineWidth = ring.width / pen;
+      if (ring.dash && ring.dash !== "none"){
+        ctx.setLineDash(ring.dash.split(/[\s,]+/).map(Number)
+                          .filter(v=>!isNaN(v)).map(v=>v/pen));
+      } else ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r(n)+4.5, 0, 6.283185307179586);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // The console's write-confirmation pulse. State, not a DOM node
+    // with an animationend listener, so nothing can be left behind.
+    if (n._pulse){
+      ctx.globalAlpha = n._pulse;
+      ctx.strokeStyle = STYLE.node.ring.stroke;
+      ctx.lineWidth = 2 / pen;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r(n) + 6 + (1 - n._pulse) * 22, 0, 6.283185307179586);
+      ctx.stroke();
+    }
+  }
+
+  // Labels only where the SVG stylesheet showed them: hover, selected,
+  // search hit. Drawing 13k of them is both illegible and slow.
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = STYLE.text.fill;
+  ctx.font = STYLE.text.font;
+  ctx.textAlign = "center";
+  for (const n of vis){
+    if (!(n._sel || n._hit || n === hovered)) continue;
+    ctx.fillText(n.qualname.split(".").slice(-1)[0], n.x,
+                 n.y - (r(n) + 9));
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+// ---- hit testing ---------------------------------------------------
+// A quadtree over CURRENT positions, rebuilt lazily: while the
+// simulation runs the coordinates move every tick, so caching one would
+// hand back stale hits.
+let qt = null, qtStamp = -1, tickCount = 0;
+function pick(px, py){
+  const [gx, gy] = view.invert([px, py]);
+  if (qtStamp !== tickCount){
+    qt = d3.quadtree().x(d=>d.x).y(d=>d.y)
+           .addAll(nodes.filter(n=>n._vis));
+    qtStamp = tickCount;
+  }
+  const found = qt.find(gx, gy, 30 / view.k);
+  return (found && Math.hypot(found.x-gx, found.y-gy) <= r(found)+6/view.k)
+         ? found : null;
+}
+
+// Pointer handling lives on the transparent svg above the canvas, so
+// hit-testing, zoom and drag all share one coordinate system.
+let dragging = null;
+svg.on("mousemove", (e)=>{
+  if (dragging) return;
+  const [px,py] = d3.pointer(e);
+  const h = pick(px,py);
+  if (h !== hovered){ hovered = h; svg.style("cursor", h?"pointer":"grab"); draw(); }
+});
+// ONE FRAME, THROUGHOUT. d3.drag keeps the grab offset by differencing
+// the subject's position against the pointer, so the subject MUST be
+// expressed in the same units as the pointer. Returning the node itself
+// mixed the two - node.x is a GRAPH coordinate, the pointer is a SCREEN
+// coordinate - so event.x began as a nonsense value and the node shot
+// away from the cursor on mousedown. And because it had "moved", d3
+// suppressed the click that followed, so selecting did nothing either:
+// one frame error, both symptoms.
+//
+// The subject now carries screen coordinates and a reference to the node.
+let gestureMoved = false, gestureStart = null;
+svg.call(d3.drag()
+  .subject(e=>{
+    const q = d3.pointer(e, svg.node());
+    const n = pick(q[0], q[1]);
+    return n ? {node:n, x:view.applyX(n.x), y:view.applyY(n.y)} : null;
+  })
+  .on("start",(e)=>{
+    if(!e.subject) return;
+    dragging = e.subject.node;
+    gestureMoved = false;
+    gestureStart = [e.x, e.y];
+    if(!e.active) sim.alphaTarget(.25).restart();
+    const g = view.invert([e.x, e.y]);
+    dragging.fx = g[0]; dragging.fy = g[1];
+  })
+  .on("drag",(e)=>{
+    if(!dragging) return;
+    if (Math.hypot(e.x-gestureStart[0], e.y-gestureStart[1]) > 3)
+      gestureMoved = true;
+    const g = view.invert([e.x, e.y]);
+    dragging.fx = g[0]; dragging.fy = g[1];
+  })
+  .on("end",(e)=>{
+    if(!dragging) return;
+    if(!e.active) sim.alphaTarget(0);
+    const n = dragging;
+    dragging.fx = null; dragging.fy = null; dragging = null;
+    // A PRESS THAT DID NOT MOVE IS A CLICK. d3.drag swallows the real
+    // click event after any gesture, so selection has to happen here or
+    // a node press would never select anything.
+    if (!gestureMoved) select(n);
+  }));
+// Empty space only: when subject() returns null no gesture starts, so
+// this click is never swallowed and never competes with the above.
+svg.on("click",(e)=>{
+  const q = d3.pointer(e);
+  if (!pick(q[0], q[1])) clearSel();
+});
+
 function render(data){
   document.getElementById("repoChip").textContent = data.repo;
-  zoomLayer.selectAll("*").remove();
+  // hovered is module-scoped; the quadtree cursor is NOT reset here. It is
+  // declared with `let` further down in this same function, so touching it
+  // above the declaration is a temporal-dead-zone ReferenceError - which
+  // threw on the first line of render() and served a blank canvas. The
+  // declaration already initialises it per render.
+  hovered=null;
   selected=null; document.getElementById("panel").classList.remove("open");
   nodes = data.entities.map(d=>Object.assign({},d));
   links = data.edges.map(d=>Object.assign({},d));
 
+  // HOMING SCALES WITH THE GRAPH. forceX/forceY pull every node toward
+  // one point, so their total is a spring holding the layout inside a
+  // disc - at HOME_BASE a 13k-node graph is squeezed to an RMS radius of
+  // 3738 when it wants ~6000. Small maps keep the original value exactly,
+  // so the shop window does not move; large ones relax as sqrt(N),
+  // because a layout's radius grows as sqrt of its node count.
+  const HOME = nodes.length > 1500
+    ? HOME_BASE * Math.sqrt(1500 / nodes.length)
+    : HOME_BASE;
   sim = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d=>d.id).distance(52).strength(.6))
-    .force("charge", d3.forceManyBody().strength(-200))
+    // LAYOUT FOLLOWS THE PROJECT'S NESTING, not its call traffic.
+    //
+    // Every edge used to pull with the same strength over the same
+    // distance, and on any real repo `calls` and `imports` outnumber the
+    // structural edges: prometheus is 53% calls, 8% imports, 39%
+    // contains. Uniform links therefore let call traffic dictate
+    // position, dragging every subtree into one mass - 13k nodes at a
+    // median 31px apart, structurally meaningless and impossible to read.
+    //
+    // `contains` IS the tree the reader already has in their head -
+    // module holds class holds method - so it lays the graph out. Calls
+    // and imports still attract, weakly and at a distance, so a caller
+    // sits NEAR what it calls without collapsing onto it. Unknown kinds
+    // fall back to the calls weighting: a new edge kind must not silently
+    // become a structural force.
+    .force("link", d3.forceLink(links).id(d=>d.id)
+      .distance(l => (LINK_LAYOUT[l.kind] || LINK_LAYOUT.calls).distance)
+      .strength(l => (LINK_LAYOUT[l.kind] || LINK_LAYOUT.calls).strength))
+    // APPROXIMATE ONLY ABOVE THE READABILITY LIMIT, and not before.
+    // An earlier version set .theta(0.9) and called it tuning; 0.9 is
+    // d3's DEFAULT, so that line did nothing at all. It also set
+    // distanceMax(600) unconditionally, which was worse than nothing: it
+    // cut repulsion off at 600px, so a 13k-node graph could not push
+    // itself apart and collapsed into the clot the reader saw.
+    //
+    // Below the limit the forces are left exactly as they were, so the
+    // shop window's layout does not move. Above it, the cutoff scales
+    // with the graph instead of being a constant.
+    .force("charge", (function(){
+      const c = d3.forceManyBody().strength(-200);
+      // THE CUTOFF WAS THE CAGE. distanceMax stops a node computing a
+      // vanishing force against a far-off one - a real Barnes-Hut saving -
+      // but set too tight it also stops the graph pushing itself apart,
+      // and the layout settles into a disc whose radius IS the cutoff.
+      // Measured on prometheus, 400 ticks, RMS radius of the layout:
+      //   60*sqrt(N) = 6.8k -> rms 4574     150*sqrt(N) = 17k -> rms 6044
+      //   no cutoff at all               -> rms 6541  (i.e. 150 is already
+      //   within 8% of unbounded, so it costs spread almost nothing)
+      if (nodes.length > 1500) c.theta(1.2)
+                                .distanceMax(150 * Math.sqrt(nodes.length));
+      return c;
+    })())
     .force("center", d3.forceCenter(W/2, H/2))
     .force("collide", d3.forceCollide().radius(d=>r(d)+8))
     // forceCenter moves the CENTROID; it does not attract nodes. Without
     // these, a component with no links to the main mass is pushed away
     // by charge and nothing pulls it back - it ends up as debris at the
     // edge. Weak, so the connected core still lays itself out freely.
-    .force("x", d3.forceX(W/2).strength(.045))
-    .force("y", d3.forceY(H/2).strength(.045));
+    .force("x", d3.forceX(W/2).strength(HOME))
+    .force("y", d3.forceY(H/2).strength(HOME));
 
   // Components: a node with no path to the main mass is telling you
   // something real (nothing imports it). Label it rather than leaving
@@ -435,60 +818,62 @@ function render(data){
     nodes.forEach(n=>{ n.detached=!main.has(n.id); n.island=size.get(n.id)||1; });
   })();
 
-  const link = zoomLayer.append("g").selectAll("line").data(links).join("line").attr("class",d=>"link "+(d.kind||"calls"));
-
-  const node = zoomLayer.append("g").selectAll("g").data(nodes).join("g")
-    .attr("class",d=>"node"+(d.is_test===true?" is-test":""))
-    .call(d3.drag()
-      .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(.25).restart();d.fx=d.x;d.fy=d.y;})
-      .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
-      .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}))
-    .on("click",(e,d)=>{e.stopPropagation();select(d,link,node);});
-
-  node.append("circle").attr("class","core")
-    .attr("r",d=>r(d)).attr("fill",d=>KIND_COLOR[d.kind]||"var(--func)");
-  node.filter(d=>d.knowledge.length).append("circle")
-    .attr("class",d=>"stamp-ring"+(ringStale(d)?" stale":""))
-    .attr("r",d=>r(d)+4.5);
-  node.append("text").attr("dy",d=>-(r(d)+9)).attr("text-anchor","middle")
-    .text(d=>d.qualname.split(".").slice(-1)[0]);
-
-  svg.on("click",()=>{clearSel(link,node);});
   sim.on("tick",()=>{
-    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
-        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
-    node.attr("transform",d=>`translate(${d.x},${d.y})`);
+    tickCount++;
+    // One early frame so a large graph is usable before it fully settles,
+    // then the real one on end. Guarded so it cannot fight the reader:
+    // any manual zoom or pan cancels the pending auto-fit.
+    if (tickCount === 90 && !userMoved) fitView();
+    draw();
   });
-  window._refs={link,node};
+  sim.on("end", ()=>{ if (!userMoved) fitView(); });
+  // viewNow() exposes the live zoom transform so a harness can turn a
+  // graph coordinate into a screen coordinate and click it. Selection
+  // is otherwise untestable without a real browser.
+  window._refs={draw, nodes, links, viewNow:()=>view, pick,
+                selectedId:()=>selected};
   // Live refresh: the console POSTs a note, re-fetches /api/map, and
   // calls this. Structure is NOT re-laid-out - only knowledge changes,
   // so the graph must not jump under the reader's cursor.
   window._applyLive=function(raw){
     const fresh=normalize(raw), by=new Map(fresh.entities.map(e=>[e.id,e]));
     nodes.forEach(n=>{ const f=by.get(n.id); if(f) n.knowledge=f.knowledge; });
-    node.each(function(d){
-      const sel=d3.select(this), has=d.knowledge.length,
-            ring=sel.select("circle.stamp-ring");
-      if(has && ring.empty()){
-        sel.insert("circle",":first-child").attr("class","stamp-ring").attr("r",13);
-      }else if(has){
-        ring.attr("class","stamp-ring"+(ringStale(d)?" stale":""));
-      }else if(!ring.empty()){ ring.remove(); }
-    });
-    if(selected){ const d=nodes.find(n=>n.id===selected); if(d) select(d,link,node); }
+    // The ring used to be inserted, restyled or removed as a DOM node
+    // here. draw() derives it from n.knowledge and ringStale() every
+    // frame, so updating the data IS updating the ring - which removes
+    // the second place the ring rule was expressed.
+    if(selected){ const d=nodes.find(n=>n.id===selected); if(d) select(d); }
+    else draw();
   };
   applyFilters();
 }
 
+// The homing strength for a graph inside the readability limit. Weak on
+// purpose: forceCenter moves the CENTROID and applies no force to any
+// individual node, so without this a component with no link to the main
+// mass feels only repulsion and drifts off as debris.
+const HOME_BASE = 0.045;
+
+const LINK_LAYOUT = {
+  contains: {distance: 30, strength: 0.85},   // the skeleton
+  inherits: {distance: 55, strength: 0.35},
+  calls:    {distance: 110, strength: 0.05},  // near, not fused
+  imports:  {distance: 150, strength: 0.02},
+};
+
 function r(d){ return 6 + Math.min(14, d.complexity*0.9); }
 
-function select(d, link, node){
+/* SELECTION IS STATE, NOT CLASSES. The canvas has no DOM to hang a
+   class on, so the same three facts - selected, dimmed, lit - live on
+   the datum and draw() reads them. One writer, one reader. */
+function select(d){
   selected=d.id;
   const hood=new Set([d.id]);
   links.forEach(l=>{ if(l.source.id===d.id)hood.add(l.target.id); if(l.target.id===d.id)hood.add(l.source.id); });
-  node.classed("selected",n=>n.id===d.id).classed("dimmed",n=>!hood.has(n.id));
-  link.classed("lit",l=>l.source.id===d.id||l.target.id===d.id)
-      .classed("dimmed",l=>l.source.id!==d.id&&l.target.id!==d.id);
+  nodes.forEach(n=>{ n._sel = n.id===d.id; n._dim = !hood.has(n.id); });
+  links.forEach(l=>{ l._lit = l.source.id===d.id||l.target.id===d.id;
+                     l._dim = !l._lit; });
+  draw();
   const callers=links.filter(l=>l.target.id===d.id).length;
   const callees=links.filter(l=>l.source.id===d.id).length;
   const c=document.getElementById("card");
@@ -515,10 +900,10 @@ function select(d, link, node){
   }
   document.getElementById("panel").classList.add("open");
 }
-function clearSel(link,node){
+function clearSel(){
   selected=null;
-  node.classed("selected",false).classed("dimmed",false);
-  link.classed("lit",false).classed("dimmed",false);
+  nodes.forEach(n=>{ n._sel=false; n._dim=false; });
+  links.forEach(l=>{ l._lit=false; l._dim=false; });
   document.getElementById("panel").classList.remove("open");
   applyFilters();
 }
@@ -539,11 +924,12 @@ function applyFilters(){
   const minCx=+cxSlider.value, kOnly=knOnly.checked, q=searchIn.value.trim().toLowerCase();
   cxVal.textContent=minCx;
   const visible=d=>kinds.has(d.kind)&&origins.has(d.is_test===true?"tests":"source")&&d.complexity>=minCx&&(!kOnly||d.knowledge.length);
-  window._refs.node
-    .style("display",d=>visible(d)?null:"none")
-    .classed("hit",d=>q&&(d.qualname.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)));
+  nodes.forEach(d=>{ d._vis=visible(d);
+    d._hit=!!(q&&(d.qualname.toLowerCase().includes(q)||d.id.toLowerCase().includes(q))); });
   const ekinds=new Set(edgeBoxes.filter(b=>b.checked).map(b=>b.dataset.ekind));
-  window._refs.link.style("display",l=>visible(l.source)&&visible(l.target)&&ekinds.has(l.kind||"calls")?null:"none");
+  links.forEach(l=>{ l._vis=visible(l.source)&&visible(l.target)&&ekinds.has(l.kind||"calls"); });
+  qtStamp=-1;
+  draw();
 }
 kindBoxes.forEach(b=>b.addEventListener("change",applyFilters));
 originBoxes.forEach(b=>b.addEventListener("change",applyFilters));
@@ -566,7 +952,7 @@ wrap.addEventListener("click",e=>{ if(e.target===wrap) closeLoad(); });
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(wrap.classList.contains("open")){ closeLoad(); return; }
-  if(selected && window._refs) clearSel(window._refs.link,window._refs.node);
+  if(selected && window._refs) clearSel();
 });
 document.getElementById("doLoad").onclick=()=>{
   const err=document.getElementById("jsonErr");
@@ -578,9 +964,11 @@ document.getElementById("doLoad").onclick=()=>{
     render(data);
   }catch(ex){ err.textContent="Could not parse: "+ex.message; err.style.display="block"; }
 };
-document.getElementById("closePanel").onclick=()=>{ if(window._refs) clearSel(window._refs.link,window._refs.node); };
+document.getElementById("closePanel").onclick=()=>{ if(window._refs) clearSel(); };
 
-addEventListener("resize",()=>{W=innerWidth;H=innerHeight;svg.attr("viewBox",[0,0,W,H]);});
+// ONE resize handler. The canvas is a raster and needs its backing
+// store resized too - the SVG viewBox alone will not do it.
+addEventListener("resize",()=>{W=innerWidth;H=innerHeight;svg.attr("viewBox",[0,0,W,H]);sizeCanvas();if(window._refs)draw();});
 render(normalize(SAMPLE));
 </script>
 </body>

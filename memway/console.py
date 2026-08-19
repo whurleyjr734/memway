@@ -87,30 +87,57 @@ def _tool_call(repo: str, name: str, ref: str) -> dict:
     return {"error": f"unknown tool {name!r}"}
 
 
-def _map_payload(repo: str) -> dict:
+def _map_payload(repo: str, filter_prefix: str = "",
+                 force: bool = False) -> dict:
+    """The map, through viz's own policy - INCLUDING its readability limit.
+
+    This called export(force=True) unconditionally, which silently
+    overrode the guard at viz.VIZ_WARN_ENTITIES. The CLI refuses a
+    1500+ entity map and tells you to filter; the console rendered
+    12,987 of them (prometheus) as 56,888 SVG elements and simply went
+    slow, with no way for the reader to know a considered limit had been
+    skipped on their behalf. The guard's own message ends "Nothing is
+    ever sampled silently" - and this was the one caller that did.
+
+    Same policy, one implementation: pass --filter or --force, exactly
+    as `memway viz` takes them.
+    """
     from . import query
     from .viz import export
     with query.read_only():
-        p = export(repo, force=True)
+        p = export(repo, filter_prefix=filter_prefix, force=force)
     p.pop("_census", None)
     return p
 
 
-def build_page(repo: str, token: str) -> str:
-    """viz's template, plus the console shell, with the token baked in."""
-    # Always via viz's loader, never by reading the template file directly:
-    # the served page must be as airgap-clean as the written file, and one
-    # reader is what keeps the two paths from drifting apart.
-    from .viz import load_template, PLACEHOLDER
-    html_doc = load_template()
-    blob = json.dumps(_map_payload(repo)).replace("</", "<\\/")
-    html_doc = html_doc.replace(PLACEHOLDER, blob)
+def build_page(repo: str, token: str, filter_prefix: str = "",
+               force: bool = False) -> str:
+    """viz's rendered page, plus the console shell, with the token baked in.
+
+    THROUGH viz.render, not through viz's loader. This used to call
+    load_template() and substitute PLACEHOLDER itself - half of render() -
+    which meant the OTHER half, the title substitution, never ran here.
+    Every console page served a browser tab reading literally
+    `memway - __MEMWAY_TITLE__` while the exported file got the repo name,
+    and the comment that used to sit here claimed one reader was what kept
+    the two paths from drifting. It was one LOADER and two renderers, and
+    they had already drifted.
+
+    Same class as the 0.54.1 defect where every generated map's tab
+    claimed to be "itsdangerous": a title that does not derive from the
+    thing it names. One call now, so the console cannot lose a
+    substitution the export performs.
+    """
+    from .viz import render
+    html_doc = render(_map_payload(repo, filter_prefix, force))
     js = _CONSOLE_JS.replace("__TOKEN__", json.dumps(token))
     return html_doc.replace("</body>", js + "\n</body>")
 
 
 class Handler(BaseHTTPRequestHandler):
     repo = "."
+    filter_prefix = ""
+    force = False
     token = ""
 
     def log_message(self, *a):
@@ -145,10 +172,13 @@ class Handler(BaseHTTPRequestHandler):
         if not self._authorised(q):
             return self._send(401, {"error": "missing or bad session token"})
         if u.path in ("/", "/index.html"):
-            return self._send(200, build_page(self.repo, self.token),
+            return self._send(200, build_page(self.repo, self.token,
+                                              self.filter_prefix,
+                                              self.force),
                               "text/html; charset=utf-8")
         if u.path == "/api/map":
-            return self._send(200, _map_payload(self.repo))
+            return self._send(200, _map_payload(self.repo, self.filter_prefix,
+                                                self.force))
         m = re.fullmatch(r"/api/tool/([a-z_]+)", u.path)
         if m:
             name = m.group(1)
@@ -220,11 +250,21 @@ def _write_meta(repo: str, data: dict):
     }
 
 
-def serve(repo: str, port: int = 0, open_browser: bool = True):
-    """Start the console. Returns (server, url, thread)."""
+def serve(repo: str, port: int = 0, open_browser: bool = True,
+          filter_prefix: str = "", force: bool = False):
+    """Start the console. Returns (server, url, thread).
+
+    Raises the same error viz raises when the map is too large to read,
+    BEFORE binding a port - so the console cannot come up serving a view
+    the CLI would have refused.
+    """
     token = secrets.token_urlsafe(32)
+    probe = _map_payload(repo, filter_prefix, force)
+    if probe.get("error"):
+        raise ValueError(probe["error"] + "\n  " + probe.get("hint", ""))
     handler = type("BoundHandler", (Handler,),
-                   {"repo": str(Path(repo).resolve()), "token": token})
+                   {"repo": str(Path(repo).resolve()), "token": token,
+                    "filter_prefix": filter_prefix, "force": force})
     httpd = ThreadingHTTPServer((HOST, port), handler)
     url = f"http://{HOST}:{httpd.server_address[1]}/?token={token}"
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -277,12 +317,6 @@ _CONSOLE_JS = r"""
      stamp would have reported nothing at all. */
   .mw-ok{color:var(--fresh);font-size:11px}
   .mw-err{color:var(--beacon);font-size:11px}
-  @keyframes stamppulse{0%{r:0;opacity:.9}100%{r:26;opacity:0}}
-  .pulse{fill:none;stroke:var(--amber);stroke-width:2;
-    animation:stamppulse .7s ease-out forwards}
-  @media (prefers-reduced-motion: reduce){
-    .pulse{animation:none;opacity:0}
-  }
   .console-foot{color:#8a8272;font-size:11px;margin-top:6px}
 </style>
 <script>
@@ -355,21 +389,28 @@ function renderTool(tool,body){
 }
 
 function pulseRing(id){
-  const g=window._refs&&window._refs.node;
-  if(!g) return;
-  g.filter(d=>d.id===id).each(function(){
-    const sel=d3.select(this);
-    if(sel.select("circle.stamp-ring").empty()){
-      sel.insert("circle",":first-child").attr("class","stamp-ring")
-         .attr("r",13);
-    }
-    // remove on animationend: without this every stamp leaves an
-    // invisible circle behind for the life of the page.
-    const p=sel.append("circle").attr("class","pulse").attr("r",0);
-    const el=p.node();
-    el.addEventListener("animationend",()=>el.remove(),{once:true});
-    setTimeout(()=>{ if(el.isConnected) el.remove(); },1200);
-  });
+  // CANVAS, SO THE PULSE IS STATE AND A REDRAW - not an appended <circle>
+  // with an animationend listener. The ring itself needs nothing here at
+  // all: draw() derives it from n.knowledge every frame, so the note that
+  // was just written IS the ring the moment the data lands. This only has
+  // to draw attention to it, then stop.
+  const R = window._refs;
+  if (!R || !R.nodes) return;
+  const n = R.nodes.find(d=>d.id===id);
+  if (!n) return;
+  // The CSS used to own this via @media (prefers-reduced-motion), and
+  // deleting that rule would have silently dropped the honouring with it.
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches){
+    n._pulse = 0; R.draw(); return;
+  }
+  const t0 = performance.now(), DUR = 1100;
+  (function step(now){
+    const k = (now - t0) / DUR;
+    if (k >= 1){ n._pulse = 0; R.draw(); return; }
+    n._pulse = 1 - k;              // read by draw(); 0 means "not pulsing"
+    R.draw();
+    requestAnimationFrame(step);
+  })(t0);
 }
 
 window._consoleRail=railFor;

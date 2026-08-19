@@ -27,6 +27,7 @@ in node.
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -493,9 +494,24 @@ def test_layout_pulls_every_node_home():
     tpl = vizmod.TEMPLATE.read_text()
     assert 'd3.forceX(W/2)' in tpl and 'd3.forceY(H/2)' in tpl
     assert 'd3.forceCenter' in tpl, "centering still applies to the system"
-    import re
-    sx = float(re.search(r'forceX\(W/2\)\.strength\(([\d.]+)\)', tpl).group(1))
-    assert 0 < sx <= 0.1, f"{sx} would overpower the link layout"
+
+    # THE STRENGTH IS NOW SCALED, so this reads the base constant and the
+    # scaling rule instead of a literal in the force chain. forceX/forceY
+    # are a spring toward one point: their total holds the layout inside a
+    # disc, and at the small-graph value a 13k-node graph was squeezed to
+    # an RMS radius of 3738 when it wanted ~6000. Small maps keep the
+    # original number exactly; large ones relax as sqrt(N), because a
+    # layout's radius grows as the square root of its node count.
+    base = float(re.search(r'const HOME_BASE = ([\d.]+);', tpl).group(1))
+    assert 0 < base <= 0.1, f"{base} would overpower the link layout"
+    assert re.search(r'forceX\(W/2\)\.strength\(HOME\)', tpl), \
+        "the homing force no longer reads the scaled strength"
+    m = re.search(r'const HOME = nodes\.length > (\d+)\s*\?\s*'
+                  r'HOME_BASE \* Math\.sqrt\((\d+) / nodes\.length\)', tpl)
+    assert m, "the homing strength does not scale with the graph"
+    # and it must only ever WEAKEN, never strengthen
+    limit = int(m.group(1))
+    assert base * (limit / 12987) ** 0.5 < base, "scaling does not relax"
 
 
 def test_detached_components_are_labelled_not_hidden():
@@ -755,3 +771,269 @@ def test_the_second_half_of_the_wordmark_carries_the_gradient():
             f"{prop}: map {map_grad.get(prop)!r} vs site {site_grad.get(prop)!r}")
     assert "<h1>mem<b>way</b></h1>" in mapp, \
         "the wordmark is not split, so the gradient has nothing to fill"
+
+
+def test_the_renderer_and_its_helpers_are_module_scope():
+    """draw() must be reachable from applyFilters(), which is module scope.
+
+    THE BUG, shipped for exactly one session: draw/buckets/pick were
+    defined inside render(), so every module-scope caller threw
+    "draw is not defined". applyFilters is module scope, so filters were
+    dead AND render() threw on its own last line. The page still painted,
+    because the tick handler closes over render's scope - which is why it
+    looked fine in a screenshot and was broken in the hand.
+    """
+    tpl = vizmod.TEMPLATE.read_text()
+    for fn in ("draw", "buckets", "pick"):
+        assert re.search(rf"^function {fn}\(", tpl, re.M), (
+            f"{fn}() is not declared at module scope - a nested definition "
+            f"is invisible to applyFilters and to the console shell")
+
+
+def test_render_does_not_touch_the_quadtree_cursor():
+    """A temporal-dead-zone ReferenceError on the first line of render().
+
+    render() opened by resetting qtStamp, which is declared with `let`
+    LATER in the same scope. Touching a let-binding above its declaration
+    throws, so render() died immediately and the canvas stayed blank -
+    the page served nothing at all. Caught by a human opening it, not by
+    the suite, which is why the jsdom witness now exists.
+    """
+    tpl = vizmod.TEMPLATE.read_text()
+    body = tpl[tpl.index("function render(data){"):]
+    body = body[:body.index("\nfunction ")] if "\nfunction " in body else body
+    assert "qtStamp" not in body, (
+        "render() references the quadtree cursor; it is declared with let "
+        "at module scope and assigning it from here risks the TDZ error "
+        "that blanked the canvas")
+
+
+
+@pytest.fixture(scope="module")
+def jsdom_env(tmp_path_factory):
+    """node + jsdom, installed ONCE for every page-execution test.
+
+    These are the only tests that run the emitted page rather than read
+    it, and they are the only ones that caught the two fatal renderer
+    bugs of 0.57.2. Marked network because of the install.
+    """
+    node = shutil.which("node")
+    npm = shutil.which("npm")
+    if not node or not npm:
+        pytest.skip("no JS runtime / npm")
+    d = tmp_path_factory.mktemp("jsdom")
+    r = subprocess.run([npm, "install", "jsdom", "--silent", "--no-audit",
+                        "--no-fund", "--prefix", str(d)],
+                       capture_output=True, text=True, timeout=900)
+    if r.returncode != 0:
+        pytest.skip(f"jsdom install unavailable: {r.stderr[-200:]}")
+    return node, str(d / "node_modules" / "jsdom")
+
+@pytest.mark.slow
+@pytest.mark.network
+def test_the_emitted_page_runs_without_error(tmp_path, jsdom_env):
+    """THE witness. Loads the whole emitted page in a DOM and runs it.
+
+    Two fatal bugs shipped in one session behind a green suite, because
+    every other test around the renderer reads the file as TEXT:
+
+      1. render() reset a `let` binding declared later in its own scope -
+         a temporal-dead-zone ReferenceError on the FIRST line. The canvas
+         stayed blank. The user opened it and said "its empty".
+      2. draw() was defined inside render(), so applyFilters - module
+         scope - threw "draw is not defined" on every filter change.
+
+    Neither is detectable by grepping, and the canvas witness in
+    test_test_lens.py missed both because it eval's draw() directly and
+    never runs render(). Nothing short of executing the page finds this
+    class, which is the whole lesson.
+
+    Marked network because it npm-installs jsdom; run at release.
+    """
+    node, jsdom_path = jsdom_env
+    from memway.viz import export, render
+    page = tmp_path / "page.html"
+    page.write_text(render(export(str(HERE))))
+
+    runner = tmp_path / "run.js"
+    runner.write_text(r"""
+const fs = require("fs");
+const { JSDOM } = require(process.argv[4]);
+const calls = {arc:0, stroke:0, fill:0, moveTo:0, fillText:0, clearRect:0};
+const errors = [];
+const dom = new JSDOM(fs.readFileSync(process.argv[2], "utf8"), {
+  runScripts: "dangerously", pretendToBeVisual: true,
+  beforeParse(window){
+    window.HTMLCanvasElement.prototype.getContext = function(){
+      return new Proxy({}, {
+        get:(t,k)=>{
+          if (typeof k === "string" && ["strokeStyle","fillStyle","globalAlpha",
+              "lineWidth","font","textAlign"].includes(k)) return t[k];
+          return (...a)=>{ if (k in calls) calls[k]++; };
+        }, set:(t,k,v)=>{ t[k]=v; return true; }});
+    };
+    window.addEventListener("error", e =>
+      errors.push(String((e.error && e.error.stack) || e.message)));
+  }});
+setTimeout(()=>{
+  const w = dom.window;
+  fs.writeFileSync(process.argv[3], JSON.stringify({
+    errors, hasRefs: !!w._refs,
+    nodes: w._refs ? w._refs.nodes.length : 0,
+    links: w._refs ? w._refs.links.length : 0, calls}));
+  process.exit(0);
+}, 2500);
+""")
+    out = tmp_path / "out.json"
+    rr = subprocess.run([node, str(runner), str(page), str(out), jsdom_path],
+                        capture_output=True, text=True, timeout=300)
+    assert out.exists(), f"probe produced nothing: {rr.stderr[-500:]}"
+    g = json.loads(out.read_text())
+
+    assert not g["errors"], (
+        "the emitted page threw while loading:\n  " + "\n  ".join(g["errors"])[:900])
+    assert g["hasRefs"], "render() never completed - window._refs was never set"
+    assert g["nodes"] > 500 and g["links"] > 1000, f"page rendered a stub: {g}"
+    assert g["calls"]["arc"] > 0 and g["calls"]["moveTo"] > 0, \
+        f"the canvas received no drawing calls: {g['calls']}"
+
+
+def test_structure_leads_the_layout_not_call_traffic():
+    """`contains` is the skeleton; calls and imports decorate it.
+
+    Uniform link forces let call traffic dictate position. On prometheus
+    (53% calls, 8% imports, 39% contains) that dragged every subtree into
+    one mass - the reader's report was that nodes "cluster in the centre
+    and can't expand outward".
+
+    MEASURED on prometheus@6063ce7, 400 ticks, 643 parents with >=3
+    children, sibling spread normalised by the layout's RMS radius:
+
+        uniform  (52 / 0.6)   sibling spread 379px, rms 2811  ->  0.135
+        weighted (this table) sibling spread 137px, rms 3738  ->  0.037
+
+    2.8x tighter siblings in a 33% larger layout. The ordering asserted
+    below is the whole claim: structural edges must out-pull traffic.
+    """
+    tpl = vizmod.TEMPLATE.read_text()
+    m = re.search(r"const LINK_LAYOUT = \{(.*?)\n\};", tpl, re.S)
+    assert m, "the layout weighting table is gone"
+    rows = re.findall(
+        r"(\w+):\s*\{distance:\s*([\d.]+),\s*strength:\s*([\d.]+)\}", m.group(1))
+    dist = {k: float(d) for k, d, _ in rows}
+    stren = {k: float(st) for k, _, st in rows}
+    for kind in ("contains", "inherits", "calls", "imports"):
+        assert kind in stren, f"{kind} has no layout weighting"
+    assert stren["contains"] > stren["inherits"] > stren["calls"] >= stren["imports"], \
+        f"structure must out-pull traffic: {stren}"
+    assert stren["contains"] >= 10 * stren["calls"], \
+        f"calls still rival the skeleton: {stren}"
+    assert dist["contains"] < dist["calls"] < dist["imports"], \
+        f"traffic edges must rest further out: {dist}"
+    # and the force must READ the table rather than restate a constant
+    assert "LINK_LAYOUT[l.kind]" in tpl, \
+        "forceLink does not consult the weighting table"
+    assert not re.search(r"forceLink\(links\)\.id\(d=>d\.id\)\.distance\(\d", tpl), \
+        "a constant distance came back alongside the table"
+
+
+def test_the_repulsion_cutoff_does_not_cage_the_layout():
+    """distanceMax is a Barnes-Hut saving; set too tight it is a cage.
+
+    Below the cutoff a node feels no push from anything further away, so
+    the graph settles into a disc whose radius IS the cutoff. At
+    60*sqrt(N) a 13k-node map could not expand past it, which is what the
+    reader saw twice: first "everything clusters in the centre", then
+    "they are still bound by a radius that is too small".
+
+    MEASURED on prometheus@6063ce7, 400 ticks, RMS radius of the layout:
+
+        60*sqrt(N)  = 6.8k   ->  rms 4574
+        150*sqrt(N) = 17k    ->  rms 6044
+        no cutoff at all     ->  rms 6541
+
+    150 is within 8% of unbounded, so it keeps the saving and costs
+    almost no spread. Anything much tighter is a cage, and nothing
+    detected that - reverting this constant passed the whole suite.
+    """
+    tpl = vizmod.TEMPLATE.read_text()
+    m = re.search(r"\.distanceMax\((\d+) \* Math\.sqrt\(nodes\.length\)\)", tpl)
+    assert m, "the repulsion cutoff is gone or no longer scales with N"
+    mult = int(m.group(1))
+    assert mult >= 150, (
+        f"distanceMax = {mult}*sqrt(N) caps the layout radius; measured "
+        f"rms 4574 at 60 versus 6044 at 150 on a 13k-node map")
+
+
+@pytest.mark.slow
+@pytest.mark.network
+def test_pressing_a_node_selects_it_and_does_not_move_it(tmp_path, jsdom_env):
+    """The reader's report: "when clicking a node it just shoots away from
+    the clicker and nothing happens". ONE bug, both symptoms.
+
+    d3.drag preserves the grab offset by differencing the subject's
+    position against the pointer, so the subject must be in the SAME UNITS
+    as the pointer. The subject was the node itself - node.x is a GRAPH
+    coordinate, the pointer is a SCREEN coordinate - so event.x started as
+    a mixed-frame nonsense value and the node jumped away on mousedown.
+    Having "moved", the gesture then made d3 suppress the click, so
+    selection never fired either.
+
+    Executed, because no amount of reading the file shows it: press on a
+    node's screen position, assert it stays put and that it selects.
+    """
+    node, jsdom_path = jsdom_env
+    from memway.viz import export, render
+    page = tmp_path / "page.html"
+    page.write_text(render(export(str(HERE))))
+
+    runner = tmp_path / "sel.js"
+    runner.write_text(r"""
+const fs=require("fs");const {JSDOM}=require(process.argv[4]);
+const errors=[];
+const dom=new JSDOM(fs.readFileSync(process.argv[2],"utf8"),{
+ runScripts:"dangerously",pretendToBeVisual:true,
+ beforeParse(w){
+  w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{
+    get:(t,p)=>["strokeStyle","fillStyle","globalAlpha","lineWidth","font",
+                "textAlign"].includes(p)?t[p]:(()=>{}),
+    set:(t,p,v)=>{t[p]=v;return true;}});
+  w.addEventListener("error",e=>errors.push(String((e.error&&e.error.stack)||e.message)));
+ }});
+setTimeout(()=>{
+ const w=dom.window,d=w.document,R=w._refs;
+ const svg=d.getElementById("chart");
+ // jsdom performs no layout, so give the svg an identity screen CTM and
+ // d3.pointer returns client coordinates unchanged.
+ svg.getScreenCTM=()=>({a:1,b:0,c:0,d:1,e:0,f:0,
+   inverse(){return this;},multiply(){return this;}});
+ const n=R.nodes.find(x=>x._vis!==false)||R.nodes[0];
+ n.x=200;n.y=150;n.fx=200;n.fy=150;
+ const t=R.viewNow(), sx=t.applyX(n.x), sy=t.applyY(n.y);
+ const out={errors, picked:!!R.pick(sx,sy)};
+ const fire=(ty,x,y)=>svg.dispatchEvent(new w.MouseEvent(ty,
+   {clientX:x,clientY:y,bubbles:true,cancelable:true,view:w,button:0}));
+ fire("mousedown",sx,sy);
+ out.movedBy=Math.round(Math.hypot(n.x-200,n.y-150));
+ fire("mouseup",sx,sy);
+ out.selectedIsTarget=(R.selectedId()===n.id);
+ out.panelOpen=d.getElementById("panel").classList.contains("open");
+ out.cardNamesIt=(d.getElementById("card").textContent||"").includes(n.qualname);
+ fs.writeFileSync(process.argv[3],JSON.stringify(out));
+ process.exit(0);
+},2500);
+""")
+    out = tmp_path / "sel.json"
+    rr = subprocess.run([node, str(runner), str(page), str(out), jsdom_path],
+                        capture_output=True, text=True, timeout=300)
+    assert out.exists(), f"probe produced nothing: {rr.stderr[-500:]}"
+    g = json.loads(out.read_text())
+
+    assert not g["errors"], "page threw:\n  " + "\n  ".join(g["errors"])[:600]
+    assert g["picked"], "the hit-test cannot find a node at its own position"
+    assert g["movedBy"] <= 2, (
+        f"the node jumped {g['movedBy']}px on mousedown - the drag subject "
+        f"is not in the pointer's coordinate frame")
+    assert g["selectedIsTarget"], "pressing a node did not select it"
+    assert g["panelOpen"], "the coordinate card did not open"
+    assert g["cardNamesIt"], "the card opened on the wrong entity"

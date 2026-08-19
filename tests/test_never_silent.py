@@ -892,3 +892,42 @@ def test_a_disambiguated_name_is_ambiguous_not_absent(tmp_path):
         f"error lists {len(err['matches'])} but candidates() has "
         f"{len(cands)} - two implementations of one lookup")
     assert any("#" in m for m in err["matches"]), err["matches"]
+
+
+def test_json_surfaces_emit_only_json_on_stdout(tmp_path):
+    """stdout is a contract on a --json surface; progress belongs on stderr.
+
+    The parse cache prints "schema N -> M, re-parsing all files" when it
+    is discarded, and it printed to STDOUT - landing in the middle of
+    `memway --json verify-change` output and making it unparseable. That
+    fires on the FIRST run after any upgrade that bumps the schema, which
+    is precisely when an automated caller is least able to cope. 0.57.2
+    bumped the schema three times.
+    """
+    import subprocess as sp
+    (tmp_path / "m.py").write_text("def a():\n    return 1\n")
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+
+    # Force the discard the same way an upgrade does. NO SKIP GUARD: if
+    # the cache is not where this expects, that is a finding, not a
+    # reason to pass quietly.
+    import json as _json
+    cache = tmp_path / ".coord" / "cache" / "parse_cache.json"
+    assert cache.exists(), f"no parse cache at {cache} - has it moved?"
+    d = _json.loads(cache.read_text())
+    d["_schema"] = 0
+    cache.write_text(_json.dumps(d))
+
+    r = sp.run([sys.executable, "-m", "memway.cli", "--json",
+                "verify-change", str(tmp_path)],
+               capture_output=True, text=True, cwd=str(HERE))
+    assert r.returncode == 0, r.stderr[-300:]
+    assert "re-parsing" in r.stderr or "re-parsing" not in r.stdout, \
+        "the progress line is still on stdout"
+    try:
+        _json.loads(r.stdout)
+    except ValueError as e:
+        raise AssertionError(
+            f"--json stdout is not parseable JSON ({e}). First 120 bytes: "
+            f"{r.stdout[:120]!r}")

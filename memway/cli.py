@@ -32,7 +32,10 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway lineage <repo> [ref]         identity history through renames
   memway console <repo> [--port N]    serve the map live: tools as buttons,
                                         notes written back from the card
-                                        (127.0.0.1 + session token only)
+                                        (127.0.0.1 + session token only).
+                                        Takes --filter <qualname-prefix> and
+                                        --force, and refuses an unreadable
+                                        map exactly as viz does.
   memway viz <repo> [--out F]         render the real map as a single
                                         interactive HTML file (read-only;
                                         --filter <qualname-prefix> for a
@@ -1053,11 +1056,20 @@ def cmd_viz(repo, *args, force=False):
               f"(outside the filter, kept so edges are not silently cut)")
 
 
-def cmd_console(repo, *args):
+def cmd_console(repo, *args, force=False):
     """Serve the map live, with the read tools as buttons. 127.0.0.1 only,
-    token-gated; the only write is a note at a coordinate."""
+    token-gated; the only write is a note at a coordinate.
+
+    `force` arrives as a KEYWORD, exactly as it does for cmd_viz: main()
+    lifts every flag declared in BOOL_FLAGS out of argv before dispatch.
+    Adding "console" to that flag's owners without widening this signature
+    is what made `memway console <repo> --force` die with "unexpected
+    keyword argument 'force'" - the flag parsed fine and the command could
+    not receive it. The --force branch below stays for a direct call.
+    """
     from .console import serve
     port = 0
+    filter_prefix = ""
     rest = list(args)
     while rest:
         a = rest.pop(0)
@@ -1065,9 +1077,22 @@ def cmd_console(repo, *args):
             port = int(rest.pop(0))
         elif a.startswith("--port="):
             port = int(a.split("=", 1)[1])
+        elif a == "--filter" and rest:
+            filter_prefix = rest.pop(0)
+        elif a.startswith("--filter="):
+            filter_prefix = a.split("=", 1)[1]
+        elif a == "--force":
+            force = True
         else:
-            raise SystemExit(f"unknown flag {a!r} - use --port N")
-    httpd, url, _ = serve(repo, port=port)
+            raise SystemExit(
+                f"unknown flag {a!r} - use --port N, --filter <prefix>, "
+                f"--force")
+    try:
+        httpd, url, _ = serve(repo, port=port, filter_prefix=filter_prefix,
+                              force=force)
+    except ValueError as e:
+        # The readability guard, reported the way `memway viz` reports it.
+        raise SystemExit(str(e))
     # flush=True, and it matters. Python block-buffers stdout when it is
     # not a TTY, and this process then blocks in serve_forever() without
     # ever flushing - so `memway console > log` produced ZERO bytes while
@@ -1185,7 +1210,8 @@ def _usage_line(cmd: str) -> str:
 # usage text was right.
 VALUE_FLAGS = {"--author": ("meta",), "--source": ("pull",),
                "--into": ("pull",)}
-BOOL_FLAGS = {"--force": ("pull", "viz"), "--replace-meta": ("pull",),
+BOOL_FLAGS = {"--force": ("pull", "viz", "console"),
+              "--replace-meta": ("pull",),
               "--replay": ("pull",)}
 
 

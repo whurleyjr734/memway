@@ -13,12 +13,38 @@ and consumers of the same event name get linked through an event node.
 """
 
 import json
+import os
 from pathlib import Path
 from .indexer import Indexer
 
 EVENT_EMIT_FUNCS = {"emit", "publish", "dispatch"}
 EVENT_SUB_FUNCS = {"subscribe", "on", "consume", "register_handler"}
 
+
+
+def _is_builtin_call(caller_path: str, dst_qualname: str) -> bool:
+    """Does the CALLER's language define this name itself?
+
+    Read off the parser registered for that extension, so the answer comes
+    from whoever knows the language. An unknown extension answers False -
+    the permissive direction, because refusing an edge on a language we
+    cannot reason about would silently delete real ones.
+    """
+    from .refs import short_of
+    name = short_of(dst_qualname).split(".")[-1]
+    ext = os.path.splitext(str(caller_path))[1].lower()
+    if ext not in _BUILTINS_CACHE:
+        try:
+            from .parsers import get_parsers
+            p = get_parsers().get(ext)
+            _BUILTINS_CACHE[ext] = (frozenset() if p is None
+                                    else frozenset(p.builtin_names))
+        except Exception:
+            _BUILTINS_CACHE[ext] = frozenset()
+    return name in _BUILTINS_CACHE[ext]
+
+
+_BUILTINS_CACHE: dict = {}
 
 class EdgeBuilder:
     """Resolves the raw edges collected during indexing against the
@@ -176,6 +202,26 @@ class EdgeBuilder:
         #    named get, because caller and target were both tests.
         if getattr(self, "_via_attr", False) and dst_ent.kind == "function":
             return "attr-call-to-function"
+        # 2b. A BARE CALL SPELLING A LANGUAGE BUILTIN IS THE BUILTIN, not
+        #     a method that happens to share the name. prometheus declares
+        #     `func (c *memChunk) len() int` - the only entity in the repo
+        #     named `len` - and every builtin len(x) resolved to it: 1,619
+        #     incoming call edges, 9.9% of the map's call traffic, against
+        #     a next-highest of 342. Uniqueness read as certainty, which is
+        #     the 0.54.3 mistake from the other side.
+        #
+        #     THIS WAS ONCE THE BROADER CLAIM "a bare call is not a
+        #     method", and that claim is FALSE. rich binds
+        #     `add_row = items_table.add_row` and calls `add_row(...)`;
+        #     the bound-method alias keeps the name, and JS destructuring
+        #     does the same. The corpus floors caught it in one run - rich
+        #     96% -> 94% - which is precisely what they are for. Restricted
+        #     to names the LANGUAGE defines, the rule is true, and it still
+        #     covers all of the measured harm.
+        if (dst_ent.kind == "method"
+                and getattr(self, "_bare", False)
+                and _is_builtin_call(src_ent.path, dst_ent.qualname)):
+            return "builtin-call"
         # 3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry
         #    is already relied on by metrics (fan_in excludes test sources)
         #    and by D11b - which only fires on AMBIGUOUS names, and so
@@ -236,6 +282,7 @@ class EdgeBuilder:
             # wrong. Checked here rather than inside resolve() because the
             # rule needs the CALLER, which resolve() has no business knowing.
             self._via_attr = getattr(raw, "via_attr", False)
+            self._bare = getattr(raw, "bare", False)
             if dst_ent is not None and "." not in raw.dst_ref:
                 if self._unreachable_target(src_ent, dst_ent):
                     dst_ent = None

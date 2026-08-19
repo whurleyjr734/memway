@@ -482,10 +482,47 @@ def test_injected_classes_do_not_collide_with_the_template(served):
         ".rail is the template's filters panel, not ours"
 
 
-def test_pulse_cleanup_is_declared(served):
-    """Every stamp appended a circle that never went away."""
+def test_the_stamp_pulse_cannot_leak(served):
+    """Every stamp used to append a circle that never went away.
+
+    The fix was an animationend listener plus a setTimeout fallback,
+    because animationend never fires under reduced motion. Since 0.57.2
+    the graph is drawn on canvas, so the pulse is a number on the datum
+    that draw() reads and then stops reading - there is no element to
+    leave behind and no listener to miss. This asserts the property the
+    old test was protecting, not the mechanism it used.
+    """
     _, base, token = served
     _, page = get(base, "/", token, raw=True)
-    assert 'addEventListener("animationend",()=>el.remove()' in page
-    assert "if(el.isConnected) el.remove()" in page, \
-        "a fallback is needed - animationend never fires under reduced motion"
+    assert "n._pulse" in page, "the pulse no longer drives anything"
+    assert "requestAnimationFrame(step)" in page, "the pulse never animates"
+    assert 'prefers-reduced-motion: reduce' in page and \
+        "n._pulse = 0; R.draw(); return;" in page, \
+        "reduced motion was honoured by the CSS that this replaced"
+    # Nothing may be appended to the DOM to represent it.
+    assert "appendChild" not in page.split("function pulseRing")[1][:900], \
+        "the pulse appends an element again - that is the leak"
+
+
+def test_the_served_page_has_a_real_title(served):
+    """The console served `memway - __MEMWAY_TITLE__` in the browser tab.
+
+    build_page reimplemented half of viz.render - the data substitution -
+    and so never performed the other half, the title. The export path got
+    a repo name and the live console got the raw placeholder, on every
+    page, for as long as the console has existed. Found by opening it.
+
+    Same class as the 0.54.1 defect where every map's tab claimed to be
+    "itsdangerous": lesson 11, a string naming a thing must derive from
+    the thing.
+    """
+    _, base, token = served
+    _, page = get(base, "/", token, raw=True)
+    import re as _re
+    m = _re.search(r"<title>([^<]*)</title>", page)
+    assert m, "no title element in the served page"
+    title = m.group(1)
+    assert "__MEMWAY_TITLE__" not in title, \
+        f"the console serves an unsubstituted placeholder: {title!r}"
+    assert "memway" in title.lower() and len(title.strip()) > len("memway —"), \
+        f"title carries no repo identity: {title!r}"

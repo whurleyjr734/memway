@@ -48,11 +48,39 @@ class RawEdge:
     # older cached edges constructible; the schema bump forces a re-parse
     # so nothing keeps the stale default forever.
     via_attr: bool = False
+    # WAS A RECEIVER WRITTEN AT THE CALL SITE? Distinct from
+    # via_attr, which means "attribute call the parser could NOT
+    # resolve to a module": Python CLEARS via_attr when
+    # dst_override names the target, so via_attr cannot answer
+    # this question. Conflating them refused every
+    # resolved-receiver call to a method and dropped rich and
+    # sqlalchemy below their corpus recall floors - caught by
+    # those floors, not by any fixture. Default False means "not
+    # known to be bare", the safe direction: a parser that does
+    # not answer can never trigger a refusal.
+    bare: bool = False
 
 
 class LanguageParser:
     extensions: tuple = ()
     language: str = ""
+
+    # NAMES THE LANGUAGE ITSELF DEFINES, callable with no receiver.
+    #
+    # This began as the much broader claim that a bare call can never
+    # reach a method, which is FALSE and the corpus floors said so within
+    # one run: rich binds `add_row = items_table.add_row` and then calls
+    # `add_row(...)`, a bound-method alias that keeps the name, and JS
+    # destructuring does the same. rich fell 96% -> 94% on that alone.
+    #
+    # What IS true is narrower and is the whole of the measured harm: if
+    # a bare call spells a name the LANGUAGE defines, it is the language's
+    # - prometheus declares `func (c *memChunk) len() int`, the only
+    # entity in the repo named `len`, and every builtin len(x) resolved to
+    # it: 1,619 edges, 9.9% of the map's call traffic.
+    #
+    # Empty here, so a parser that does not answer never causes a refusal.
+    builtin_names: frozenset = frozenset()
 
     def parse(self, path: Path, repo_root: Path) -> tuple[list, list]:
         """Return (entities, edges) for one file."""
@@ -75,6 +103,9 @@ EVENT_SUB_FUNCS = {"subscribe", "on", "consume", "register_handler"}
 
 class PythonParser(LanguageParser):
     extensions = (".py",)
+    # Derived from the interpreter, not typed out: the set that shadows a
+    # repo name is exactly what `builtins` holds.
+    builtin_names = frozenset(dir(__import__("builtins")))
     language = "python"
 
     def parse(self, path: Path, repo_root: Path):
@@ -271,7 +302,10 @@ class PythonParser(LanguageParser):
                     edges.append(RawEdge(src, dst_override or fname, "calls",
                                          via_attr=(dst_override is None
                                                    and isinstance(n.func,
-                                                                  ast.Attribute))))
+                                                                  ast.Attribute)),
+                                         bare=not isinstance(
+                                             n.func, ast.Attribute)))
+
                 v.generic_visit(n)
 
         V().visit(tree)
@@ -288,6 +322,13 @@ class JavaScriptParser(LanguageParser):
     doc comment, which TS puts above the declaration rather than inside
     the body the way Python does."""
     extensions = (".js", ".mjs", ".jsx")
+    # Globals callable with no receiver. Deliberately not the whole of
+    # globalThis: only names a method could plausibly collide with.
+    builtin_names = frozenset((
+        "parseInt", "parseFloat", "isNaN", "isFinite", "encodeURI",
+        "decodeURI", "encodeURIComponent", "decodeURIComponent",
+        "setTimeout", "setInterval", "clearTimeout", "clearInterval",
+        "fetch", "require", "alert", "structuredClone", "queueMicrotask"))
     language = "javascript"
 
     def __init__(self):
@@ -455,7 +496,15 @@ class JavaScriptParser(LanguageParser):
                             edges.append(RawEdge(src_qual,
                                                  "EVT:<dynamic>", "consumes"))
                         else:
-                            edges.append(RawEdge(src_qual, fname, "calls"))
+                            # `x.foo()` is a member_expression; `foo()` is a
+                            # plain identifier. JS has no implicit-this call,
+                            # so a bare call can never reach a method.
+                            edges.append(RawEdge(
+                                src_qual, fname, "calls",
+                                via_attr=(fn is not None
+                                          and fn.type == "member_expression"),
+                                bare=(fn is None
+                                      or fn.type != "member_expression")))
                 scope_walk(c, child_stack)
 
         scope_walk(tree.root_node, [mod])
@@ -521,6 +570,12 @@ class GoParser(LanguageParser):
     its `name(params) result` signature and the doc comment block
     immediately above its declaration."""
     extensions = (".go",)
+    # Go spec, "Predeclared identifiers" - the functions only. Fixed by
+    # the language, not by us, and not derivable from Python.
+    builtin_names = frozenset((
+        "append", "cap", "clear", "close", "complex", "copy", "delete",
+        "imag", "len", "make", "max", "min", "new", "panic", "print",
+        "println", "real", "recover"))
     language = "go"
 
     def __init__(self):
@@ -570,7 +625,16 @@ class GoParser(LanguageParser):
                 if fn is not None:
                     callee = ntext(fn).split("(")[0].rsplit(".", 1)[-1]
                     if callee and callee[0].isalpha():
-                        edges.append(RawEdge(scope, callee, "calls"))
+                        # `x.foo()` parses as a selector_expression, `foo()`
+                        # as a plain identifier. Recording which lets the
+                        # resolver refuse a bare call landing on a method -
+                        # a Go method cannot be called without a receiver,
+                        # so `len(x)` is the builtin and never memChunk.len,
+                        # which was collecting 1,619 edges on prometheus.
+                        edges.append(RawEdge(
+                            scope, callee, "calls",
+                            via_attr=(fn.type == "selector_expression"),
+                            bare=(fn.type != "selector_expression")))
             for c in n.children:
                 add_calls(scope, c)
 
@@ -631,6 +695,11 @@ class JavaParser(LanguageParser):
     Type.method/2), constructors, imports, call edges. Generics and
     annotations are treated as body text - honest scope."""
     extensions = (".java",)
+    # Java has NO receiverless builtin functions, so the empty default is
+    # right and no exemption is needed. It used to need one, when the rule
+    # was "a bare call is not a method": a bare foo() in Java is a call on
+    # implicit this, and refusing it would have deleted gson's 3,150
+    # method-to-method edges.
     language = "java"
 
     def __init__(self):
@@ -661,12 +730,20 @@ class JavaParser(LanguageParser):
                     # edges in gson reached a method. The argument count at
                     # the call site is the arity, and it is right here.
                     a = n.child_by_field_name("arguments")
+                    # `obj.foo()` carries an `object` field; a bare `foo()`
+                    # does not. Recorded for completeness and for the
+                    # attribute-call rule - NOT so the bare-call rule can
+                    # fire here, since a receiverless call in Java is a
+                    # method call on implicit this. See
+                    # bare_call_reaches_method below.
                     edges.append(RawEdge(
                         scope,
                         refs.render(ntext(nm),
                                     arity=a.named_child_count
                                     if a is not None else None),
-                        "calls"))
+                        "calls",
+                        via_attr=(n.child_by_field_name("object") is not None),
+                        bare=(n.child_by_field_name("object") is None)))
             if n.type == "object_creation_expression":
                 t = n.child_by_field_name("type")
                 if t is not None:
@@ -728,7 +805,27 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 7      # 2: scope-aware call resolution
+PARSE_SCHEMA_VERSION = 10     # 10: builtin_names per parser;
+                              #     the rule that reads .bare
+                              #     narrowed to builtin names
+                              #     after the corpus floors
+                              #     showed the broad form was
+                              #     false for Python aliases.
+                              # 9: RawEdge.bare - was a receiver
+                              #    WRITTEN at the call site. Added
+                              #    one build after via_attr, and a
+                              #    cache warmed at 8 replays edges
+                              #    with bare=False, which silently
+                              #    disables the bare-call rule
+                              #    entirely. Two fields, two bumps.
+                              # 8: via_attr is now recorded by the Go,
+                              #    Java and JS/TS parsers, not just
+                              #    Python. The cache holds raw edges,
+                              #    so a warm one would replay every
+                              #    call as via_attr=False forever and
+                              #    the bare-call rule would refuse
+                              #    every method target it saw.
+                              # 2: scope-aware call resolution
                               # 7: ONE reference producer (refs.py).
                               #    The cache stores raw edges AND
                               #    entities, so a change to how a

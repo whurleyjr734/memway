@@ -754,3 +754,114 @@ def test_an_entity_from_the_future_loads_clean(tmp_path):
     assert any(e.qualname.endswith("m.alpha") for e in fresh.entities.values())
     assert not hasattr(next(iter(fresh.entities.values())), "surface_hash"), \
         "the unknown field was absorbed rather than dropped"
+
+
+def _index(tmp_path, files: dict):
+    import subprocess as sp
+    for rel, body in files.items():
+        f = tmp_path / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(body)
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+    from memway.query import _ctx
+    _, _, ix, eb, _ = _ctx(str(tmp_path))
+    return ix, eb
+
+
+def test_a_bare_call_is_not_a_go_method(tmp_path):
+    """`len(x)` is the builtin; `chk.len()` is the method. One line of
+    prometheus contains both:
+
+        removedInOrder = chk.len() + len(s.mmappedChunks)
+
+    memChunk.len was the only entity in that repo named `len`, so every
+    builtin call resolved to it: 1,619 incoming call edges, 9.9% of the
+    map's call traffic, against a next-highest of 342. A Go method cannot
+    be called without a receiver, so the bare form can never be it.
+    """
+    pytest.importorskip("tree_sitter_go")
+    # TWO DIFFERENT CALLERS, deliberately. Edges dedupe by
+    # (src, dst, kind), so a fixture where both forms sit in ONE function
+    # collapses to a single edge whether the rule fires or not - the first
+    # version of this test did exactly that and passed with the rule
+    # removed. Separate callers make the count discriminate.
+    ix, eb = _index(tmp_path, {"m.go": (
+        "package m\n\n"
+        "type chunk struct{ n int }\n\n"
+        "func (c *chunk) len() int { return c.n }\n\n"
+        "func viaReceiver(c *chunk) int { return c.len() }\n\n"
+        "func viaBuiltin(xs []int) int { return len(xs) }\n")})
+    target = next(ix.entities[c] for q, c in ix.by_qualname.items()
+                  if q.endswith("chunk.len"))
+    assert target.kind == "method", target.kind
+    calls = [e for e in eb
+             if (e.get("dst") or e.get("target")) == target.coord_id
+             and e.get("kind") == "calls"]
+    # the receiver call survives; the builtin does not
+    srcs = {(e.get("src") or e.get("source")) for e in calls}
+    quals = {ix.entities[c].qualname.rsplit(".", 1)[-1] for c in srcs
+             if c in ix.entities}
+    assert quals == {"viaReceiver"}, (
+        f"only the receiver call may reach the method; callers were "
+        f"{quals} - a bare len(xs) is resolving to memChunk.len")
+
+
+def test_java_keeps_its_implicit_this_calls(tmp_path):
+    """THE EXEMPTION, and the reason the rule reads the parser.
+
+    A bare foo() in Java is a call on implicit this, so refusing bare
+    calls to methods there would delete Java's method edges wholesale -
+    gson's 3,150 method-to-method edges, built in 0.56.0. LanguageParser
+    declares the fact; edges.py asks.
+    """
+    pytest.importorskip("tree_sitter_java")
+    ix, eb = _index(tmp_path, {"A.java": (
+        "public class A {\n"
+        "  int helper(int x) { return x + 1; }\n"
+        "  int use(int x) { return helper(x); }\n"
+        "}\n")})
+    target = next(ix.entities[c] for q, c in ix.by_qualname.items()
+                  if "helper" in q)
+    assert target.kind == "method", target.kind
+    calls = [e for e in eb
+             if (e.get("dst") or e.get("target")) == target.coord_id
+             and e.get("kind") == "calls"]
+    assert calls, (
+        "a receiverless call in Java is a method call on implicit this - "
+        "refusing it deletes Java method resolution")
+
+
+def test_every_parser_declares_its_own_builtins_and_records_bare_calls():
+    """The rule is only as good as the data under it, twice over.
+
+    via_attr was populated by the PYTHON parser alone, so Go, Java and
+    JS/TS calls all arrived looking receiverless. And `bare` had to be a
+    SEPARATE field: Python clears via_attr when dst_override resolves an
+    imported receiver, so via_attr cannot answer "was a receiver
+    written". Conflating them dropped rich and sqlalchemy below their
+    corpus floors.
+
+    Python's builtin set is DERIVED from the interpreter rather than
+    typed out (lesson 11). Go's and JS's come from their language specs,
+    which no Python process can introspect. Java's is empty and correct:
+    it has no receiverless builtin functions.
+    """
+    import inspect
+    from memway.parsers import get_parsers, LanguageParser
+    assert LanguageParser.builtin_names == frozenset(), \
+        "the safe default is that a parser claims no builtins"
+    seen = {}
+    for ext, p in get_parsers().items():
+        seen[type(p).__name__] = p
+        src = inspect.getsource(type(p))
+        assert "bare=" in src or type(p).__name__ == "TypeScriptParser", (
+            f"{type(p).__name__} never records `bare`, so the resolver "
+            f"cannot tell a receiverless call from any other")
+    py = seen["PythonParser"].builtin_names
+    assert "len" in py and "print" in py and "add_row" not in py
+    assert len(py) > 100, "python builtins look derived from nothing"
+    go = seen["GoParser"].builtin_names
+    assert {"len", "make", "append", "cap"} <= go, go
+    assert seen["JavaParser"].builtin_names == frozenset(), \
+        "Java has no receiverless builtin functions"
