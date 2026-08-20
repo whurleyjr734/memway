@@ -552,6 +552,45 @@ def summary(repo: str) -> dict:
             })
     know.sort(key=lambda k: (not k["any_stale"], k["qualname"] or ""))
 
+    # THE NUMBER AND ITS PROVENANCE, SIDE BY SIDE. `hardest` says what is
+    # complicated; this says what is depended upon - and how much of that
+    # dependence the resolver actually resolved.
+    #
+    # It exists because the same manual move found a real defect on three
+    # consecutive unfamiliar repos: index it, sort by call in-degree, read
+    # the top few. prometheus put a 3-line `len` method at 1,619 callers,
+    # scikit-learn put a pretty-printer's `format` at 292, django put a GIS
+    # mixin's `append` at 573. Two were confidently wrong; the third was an
+    # honest guess reported as a fact.
+    #
+    # DELIBERATELY NOT A DETECTOR. No threshold, no warning, no flag - a
+    # heuristic on a heuristic would need a number chosen to make the three
+    # known cases light up, and would then cry wolf on the genuinely hot
+    # utilities that sit beside them (django's assertRaisesMessage has
+    # 1,935 callers and every one is real). This asserts nothing. It puts
+    # the count next to how it was resolved and lets the reader do what a
+    # reader is for. Same posture as dig: return candidates, never judge.
+    _indeg: dict = {}
+    _guessed: dict = {}
+    for _e in edges:
+        if _e.get("kind") != "calls":
+            continue
+        d = _e.get("dst")
+        _indeg[d] = _indeg.get(d, 0) + 1
+        if float(_e.get("confidence", 1.0)) < LOW_CONFIDENCE:
+            _guessed[d] = _guessed.get(d, 0) + 1
+    _dep = []
+    for cid, n in _indeg.items():
+        ent = ix.entities.get(cid)
+        if not ent:
+            continue
+        _dep.append({"qualname": ent.qualname, "callers": n,
+                     "guessed": _guessed.get(cid, 0),
+                     "is_test": is_test_entity(ent)})
+    _dep_shown, _dep_report = rank_bound_report(
+        _dep, "most_depended_on", rank=lambda d: (-d["callers"], d["qualname"]),
+        cap=5)
+
     _hardest_shown, _hardest_report = rank_bound_report(
         [{"qualname": q, "complexity": c, "is_test": t}
          for c, q, t in prod], "hardest", cap=5)
@@ -574,6 +613,8 @@ def summary(repo: str) -> dict:
         # Top-five lists, but they SAY they are top-five now. Both were
         # silent slices: a reader saw five and could not tell whether the
         # repo had five or five hundred.
+        "most_depended_on": _dep_shown,
+        **_dep_report,
         "hardest": _hardest_shown,
         **_hardest_report,
         "hardest_overall": _hardest_all_shown,

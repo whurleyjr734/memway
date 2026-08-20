@@ -603,3 +603,70 @@ def test_inheritance_lists_are_bounded_too(tmp_path):
         f"the list is not bounded: {len(inh['inherited_unchanged_by'])} of {total}"
     assert inh["inherited_unchanged_by_shown"] == CAP
     assert "overridden_by_total" in inh, "the sibling list lost its report"
+
+
+def test_summary_shows_what_is_depended_on_and_how_it_was_resolved(tmp_path):
+    """The count and its provenance, side by side. No verdict.
+
+    The same manual move found a real defect on three consecutive
+    unfamiliar repos - index it, sort by call in-degree, read the top few.
+    prometheus put a 3-line `len` method at 1,619 callers, scikit-learn a
+    pretty-printer's `format` at 292, django a GIS mixin's `append` at
+    573. This puts that in the first tool anybody calls.
+
+    DELIBERATELY NOT A DETECTOR, and the test enforces that. No threshold,
+    no warning, no flag: a heuristic on a heuristic would need a number
+    picked to make the three known cases light up, and would then cry wolf
+    on the genuinely hot utilities beside them - django's
+    assertRaisesMessage has 1,935 callers and every one is real. Same
+    posture as dig: return candidates, never judge.
+
+    What makes it useful is `guessed` riding beside `callers`. On its
+    first run it surfaced two cases nobody had noticed: django's
+    render_to_string at 834 callers, ALL 834 guesses, and order_by at 800
+    with 798.
+    """
+    import subprocess as sp
+    # A method reachable only through the bare-name tier (see the fixture
+    # note on the caller-warning test), plus one resolved exactly, so the
+    # two read differently in the same list.
+    body = ["class Alpha:", "    def stash(self, x):", "        return x", "",
+            "def stash(x):", "    return x", "",
+            "def solid(x):", "    return x + 1", ""]
+    # THE LESS-DEPENDED-ON ONE IS DEFINED FIRST, on purpose. Edges are
+    # tallied in file order, so with the busy entity first the natural
+    # order is already sorted and deleting the rank changes nothing - the
+    # first version of this assertion passed on exactly that luck.
+    for i in range(6):
+        body += [f"def caller_{i}(y):", "    return solid(y)", ""]
+    for i in range(8):
+        body += [f"def guesser_{i}(o):", "    return o.stash(1)", ""]
+    (tmp_path / "m.py").write_text("\n".join(body))
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+
+    from memway.query import summary
+    s = summary(str(tmp_path))
+    dep = s["most_depended_on"]
+    assert dep, "nothing reported as depended-on"
+    assert s["most_depended_on_shown"] == len(dep) <= 5
+    assert s["most_depended_on_total"] >= len(dep)
+    assert dep == sorted(dep, key=lambda d: (-d["callers"], d["qualname"])), \
+        "not ordered by how depended-upon it is"
+    for d in dep:
+        assert {"qualname", "callers", "guessed", "is_test"} <= set(d), d
+        assert d["guessed"] <= d["callers"], d
+
+    by_q = {d["qualname"].rsplit(".", 1)[-1]: d for d in dep}
+    assert "stash" in by_q and "solid" in by_q, sorted(by_q)
+    assert by_q["stash"]["guessed"] == by_q["stash"]["callers"], (
+        "the bare-name callers are not reported as guesses, which is the "
+        "whole point of putting the two numbers together")
+    assert by_q["solid"]["guessed"] == 0, (
+        "exactly-resolved callers are being called guesses")
+
+    # AND IT MUST NOT JUDGE. No threshold anywhere near this field.
+    import json as _json
+    blob = _json.dumps(s)
+    assert "suspicious" not in blob and "warning" not in blob.lower(), \
+        "this surface acquired a verdict; it reports and does not judge"
