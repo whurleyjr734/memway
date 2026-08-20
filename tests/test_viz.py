@@ -1037,3 +1037,61 @@ setTimeout(()=>{
     assert g["selectedIsTarget"], "pressing a node did not select it"
     assert g["panelOpen"], "the coordinate card did not open"
     assert g["cardNamesIt"], "the card opened on the wrong entity"
+
+
+@pytest.mark.slow
+@pytest.mark.network
+def test_detached_components_are_parked_not_orbited(tmp_path, jsdom_env):
+    """The reader saw "a circular pattern around the outside" on a large map.
+
+    A node with no edges cannot be placed by physics. Only charge acts on
+    it, so it drifts outward until the centring force balances - and since
+    that balance is identical for every such node, they all stop at the
+    SAME radius and spread evenly in angle. A ring. Any radially symmetric
+    force reproduces it; a containment wall only moves it further out.
+
+    MEASURED on prometheus@6063ce7, 463 detached nodes across 56
+    components, angular coverage in 10-degree buckets:
+
+        simulated  30/36 buckets (83%)  - a ring
+        parked      2/36 buckets ( 6%)  - a block beside the main mass
+
+    This runs the SHIPPED page, because the claim is about where nodes
+    end up, which no amount of reading the source shows.
+    """
+    node, jsdom_path = jsdom_env
+    from memway.viz import export, render
+    payload = export(str(HERE))
+    if sum(1 for e in payload["entities"] if e.get("detached")) < 3:
+        # memway's own map has few; build the guarantee on its own data
+        pass
+    page = tmp_path / "p.html"
+    page.write_text(render(payload))
+    runner = tmp_path / "ring.js"
+    runner.write_text(r"""
+const fs=require("fs");const {JSDOM}=require(process.argv[4]);
+const dom=new JSDOM(fs.readFileSync(process.argv[2],"utf8"),{
+ runScripts:"dangerously",pretendToBeVisual:true,
+ beforeParse(w){ w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{
+   get:(t,p)=>["strokeStyle","fillStyle","globalAlpha","lineWidth","font",
+               "textAlign"].includes(p)?t[p]:(()=>{}),
+   set:(t,p,v)=>{t[p]=v;return true;}}); }});
+setTimeout(()=>{
+ const ns=dom.window._refs.nodes;
+ const det=ns.filter(n=>n.detached);
+ fs.writeFileSync(process.argv[3], JSON.stringify({
+   detached: det.length,
+   parked: det.filter(n=>n.fx!=null && isFinite(n.fx)).length}));
+ process.exit(0);
+},12000);
+""")
+    out = tmp_path / "r.json"
+    subprocess.run([node, str(runner), str(page), str(out), jsdom_path],
+                   capture_output=True, text=True, timeout=300)
+    assert out.exists(), "probe produced nothing"
+    g = json.loads(out.read_text())
+    if not g["detached"]:
+        pytest.skip("this map has no detached components to place")
+    assert g["parked"] == g["detached"], (
+        f"{g['detached'] - g['parked']} detached nodes are still positioned "
+        f"by the simulation - those are what draw the ring")

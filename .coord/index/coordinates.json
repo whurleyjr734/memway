@@ -9449,6 +9449,39 @@
     "loc": 6,
     "complexity": 2
   },
+  "C-32dedb": {
+    "coord_id": "C-32dedb",
+    "kind": "function",
+    "qualname": "tests.test_viz.test_detached_components_are_parked_not_orbited",
+    "path": "tests/test_viz.py",
+    "lineno": 1044,
+    "body_hash": "8f51833c3cc051d8",
+    "parent": "C-bba297",
+    "signature": "test_detached_components_are_parked_not_orbited(tmp_path, jsdom_env)",
+    "shape_hash": "36753becafbd250d",
+    "logic_hash": "7af94a1dc0062451",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "The reader saw \"a circular pattern around the outside\" on a large map. A node with no edges cannot be placed by physics. Only charge acts on it, so it drifts outward until the centring force balances ",
+        "kind": "docstring"
+      },
+      {
+        "line": 23,
+        "text": "memway's own map has few; build the guarantee on its own data",
+        "kind": "comment"
+      }
+    ],
+    "comment_hash": "8dc8b372a8473912",
+    "comment_rot": false,
+    "sketch": "AB6G0MGiAKE8NeJtAEZtFtcLAPjiddbtAKsIKxdNAEzdVxSHAEpU7qYXALz3spoSAEMWGU/JAJHARpSIAAYzTjsiAE9RXKnJABIaHx7AAEks8FYhAMhnlehqAH+UQXtZAR1Xt0cZANBJcUeXAD0gNmDDAAkLO2j3AFazfnDQABIaIw86AD68qH4GANKI/JDVAAZrah7fADnOYjmAADxK5gRSASb8YwgHAE7RRnVEAG/E9vLmAD/sEaWFAJtJnv/8AJWM2KAYAAL5vsPHAAFbc7UZACsdLzl7AAkCT1wYABvU1YI9AME5i1iOAC5fPmyFAQuYBkKBAEc2mrkHABo3SV9SAG06waQjADhEoxQYAJqoAHjzATMlnJP0ACZIuxrx",
+    "n_shingles": 640,
+    "end_lineno": 1097,
+    "loc": 54,
+    "complexity": 6
+  },
   "C-33634d": {
     "coord_id": "C-33634d",
     "kind": "method",
@@ -34436,11 +34469,11 @@
     "qualname": "tests.test_viz",
     "path": "tests/test_viz.py",
     "lineno": 1,
-    "body_hash": "59d250fbaef5b109",
+    "body_hash": "1d5d0b0f0eee0617",
     "parent": null,
     "signature": "",
-    "shape_hash": "bcf0b408766fbf3c",
-    "logic_hash": "d2a430e44172c249",
+    "shape_hash": "5119c562ed7dff54",
+    "logic_hash": "03703c2297049e68",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -34603,15 +34636,20 @@
         "line": 933,
         "text": "and the force must READ the table rather than restate a constant",
         "kind": "comment"
+      },
+      {
+        "line": 1066,
+        "text": "memway's own map has few; build the guarantee on its own data",
+        "kind": "comment"
       }
     ],
-    "comment_hash": "21082da35c4d6ba8",
+    "comment_hash": "ef91600cb370361b",
     "comment_rot": false,
-    "sketch": "AAEqN3WSAAR5WBCnABYi7MMKAAAFw633AAUJln0/AAZhy0J9AADlIRZbABKM/tQlAAg2WYWLAAgQmrP1AAYzTjsiAAVK76lTAACvtXlqABZ2tMgTAABnDFvVAAVpGyLVAASNmvlwAALtrqYQAA8rg2cmAALWYmlDAAmiHIprABH5Jq0UAALEZ2Y2AANUfOsvAAdZpd4VAARXVBCYAALMxi7BAAE3g7uSAAf2c/foAAJRACdHABJw5Jx3AAdJmHlgAAauFt5aAAqP3F09AAJTS1aCAArGPkevAAZCeIpkAAG6DnCwAAGkCzBgAAJIWXhfAAgoQurPAAJJOSdBAA5JbgfFAAWs8nVpAAAz/MA7AAa1HplrAAKc2dnwAAhQZgxZ",
-    "n_shingles": 7377,
-    "end_lineno": 1039,
-    "loc": 1040,
-    "complexity": 241
+    "sketch": "AAEqN3WSAAR5WBCnABYi7MMKAAAFw633AAUJln0/AAZhy0J9AADlIRZbABKM/tQlAAg2WYWLAAgQmrP1AAYzTjsiAAVK76lTAACvtXlqABZ2tMgTAABnDFvVAAVpGyLVAASNmvlwAALtrqYQAA8rg2cmAALWYmlDAAmiHIprABH5Jq0UAALEZ2Y2AANUfOsvAAZrah7fAARXVBCYAALMxi7BAAE3g7uSAAf2c/foAAJRACdHABJw5Jx3AAdJmHlgAAauFt5aAAL5vsPHAAFbc7UZAArGPkevAAZCeIpkAAG6DnCwAAGkCzBgAAJIWXhfAAgoQurPAAJJOSdBAA5JbgfFAAWs8nVpAAAz/MA7AAa1HplrAAKc2dnwAAhQZgxZ",
+    "n_shingles": 7665,
+    "end_lineno": 1097,
+    "loc": 1098,
+    "complexity": 246
   },
   "C-bba405": {
     "coord_id": "C-bba405",

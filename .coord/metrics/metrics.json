@@ -3043,6 +3043,20 @@
     "path": "tests/test_friction.py",
     "provenance": "computed"
   },
+  "C-32dedb": {
+    "body_hash": "8f51833c3cc051d8",
+    "churn": 0,
+    "complexity": 6,
+    "fan_in": 0,
+    "fan_out": 1,
+    "kind": "function",
+    "line_end": 1097,
+    "line_start": 1044,
+    "loc": 54,
+    "logic_hash": "7af94a1dc0062451",
+    "path": "tests/test_viz.py",
+    "provenance": "computed"
+  },
   "C-33634d": {
     "body_hash": "397e52fdd70e46ac",
     "churn": 0,
@@ -11647,18 +11661,18 @@
     "provenance": "computed"
   },
   "C-bba297": {
-    "agg_complexity": 293,
-    "body_hash": "59d250fbaef5b109",
+    "agg_complexity": 299,
+    "body_hash": "1d5d0b0f0eee0617",
     "churn": 0,
-    "complexity": 241,
+    "complexity": 246,
     "fan_in": 0,
     "fan_out": 14,
     "kind": "module",
-    "line_end": 1039,
+    "line_end": 1097,
     "line_start": 1,
-    "loc": 1040,
-    "logic_hash": "d2a430e44172c249",
-    "n_children": 53,
+    "loc": 1098,
+    "logic_hash": "03703c2297049e68",
+    "n_children": 54,
     "path": "tests/test_viz.py",
     "provenance": "computed"
   },

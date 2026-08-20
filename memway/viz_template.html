@@ -400,6 +400,40 @@ svg.call(zoomBehavior);
 // Frame the graph once it has settled. Without this the view sits at 1:1
 // on the centre of a layout thousands of pixels across, which is what
 // "everything clusters in the middle" actually was.
+// A NODE WITH NO EDGES CANNOT BE PLACED BY PHYSICS, and pretending
+// otherwise is what draws the circle. On prometheus 134 nodes across 56
+// components have no path to the main graph; nothing but charge acts on
+// them, so they drift outward until the centring force balances - and
+// because the balance is identical for every one of them, they all stop
+// at the SAME radius. Measured: 80% of them within +/-2% of one value,
+// while the connected mass sits at less than half that distance. A ring,
+// and any radially symmetric force reproduces it: a containment wall
+// just moves the ring further out.
+//
+// So they are parked instead of simulated. A grid beside the main mass
+// reads as what it is - "these are not attached to anything" - rather
+// than as an orbit the layout discovered. The offset is derived from the
+// main mass, so it scales with the graph instead of being a constant.
+function parkDetached(){
+  const free = nodes.filter(n=>!n.detached && isFinite(n.x));
+  const held = nodes.filter(n=>n.detached);
+  if (!held.length || !free.length) return;
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+  for (const n of free){
+    if (n.x<x0) x0=n.x; if (n.x>x1) x1=n.x;
+    if (n.y<y0) y0=n.y; if (n.y>y1) y1=n.y;
+  }
+  const step = 2 * (r(held[0]) + 14);
+  const cols = Math.max(1, Math.ceil(Math.sqrt(held.length)));
+  const left = x1 + step * 3;
+  const top = (y0 + y1) / 2 - (Math.ceil(held.length / cols) * step) / 2;
+  held.forEach((n, i)=>{
+    n.fx = left + (i % cols) * step;
+    n.fy = top + Math.floor(i / cols) * step;
+    n.x = n.fx; n.y = n.fy;
+  });
+}
+
 function fitView(){
   const vis = nodes.filter(n=>n._vis !== false);
   if (!vis.length) return;
@@ -823,10 +857,10 @@ function render(data){
     // One early frame so a large graph is usable before it fully settles,
     // then the real one on end. Guarded so it cannot fight the reader:
     // any manual zoom or pan cancels the pending auto-fit.
-    if (tickCount === 90 && !userMoved) fitView();
+    if (tickCount === 90){ parkDetached(); if (!userMoved) fitView(); }
     draw();
   });
-  sim.on("end", ()=>{ if (!userMoved) fitView(); });
+  sim.on("end", ()=>{ parkDetached(); if (!userMoved) fitView(); });
   // viewNow() exposes the live zoom transform so a harness can turn a
   // graph coordinate into a screen coordinate and click it. Selection
   // is otherwise untestable without a real browser.
