@@ -513,3 +513,93 @@ def test_every_payload_surface_keeps_its_shape():
     assert bounded_somewhere, (
         "no list in any payload was actually truncated, so this test "
         "cannot tell a bounded surface from an unbounded one")
+
+
+def test_the_caller_warning_carries_its_own_confidence(tmp_path):
+    """"573 direct callers" and "573 name guesses" are different claims.
+
+    Measured on django@cccc004:
+    django.contrib.gis.geos.mutable_list.ListMixin.append has 573 direct
+    callers and ALL 573 are bare-name guesses at confidence 0.6 -
+    ordinary `results.append(x)` across the codebase landing on a GIS
+    mixin. The RESOLVER is right there: it could not type the receiver
+    and refused to claim certainty, which is why they are 0.6 and not
+    0.95.
+
+    What was wrong is the sentence built from the number. The briefing
+    led with "WIDELY DEPENDED ON (573 direct callers)" while the fact
+    that every one was a guess sat in a separate grounding block, phrased
+    about the whole radius rather than about that number. The reader gets
+    the claim and the caveat in different places and weighs the claim.
+
+    The threshold is LOW_CONFIDENCE, shared with the grounding block - a
+    second literal is how two surfaces come to disagree about what a
+    guess is.
+    """
+    import subprocess as sp
+    # REACHING THE BARE-NAME TIER TAKES A SPECIFIC SHAPE, and getting it
+    # wrong makes this test pass on nothing. Two same-named METHODS is not
+    # enough: resolve() breaks that tie itself (production over test) and
+    # reports "exact" at 0.95, so the fallback never runs and the fixture
+    # produced zero guessed callers.
+    #
+    # What is needed is for resolve() to go ambiguous AND for the
+    # fallback's filter to leave exactly one candidate. A method plus a
+    # module-level FUNCTION of the same name does both: resolve() sees two
+    # and refuses, then rule 2 ("an attribute call is not a module-level
+    # function") removes the function, leaving the method at 0.60 -
+    # exactly django's ListMixin.append.
+    body = ["class Alpha:", "    def stash(self, x):", "        return x", "",
+            "def stash(x):", "    return x", ""]
+    for i in range(8):
+        body += [f"def caller_{i}(o):", "    return o.stash(1)", ""]
+    (tmp_path / "m.py").write_text("\n".join(body))
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+
+    from memway.query import before_edit, LOW_CONFIDENCE
+    b = before_edit(str(tmp_path), "m.Alpha.stash")
+    total = b["direct_callers_total"]
+    guessed = b["direct_callers_guessed"]
+    assert total >= 5, (
+        f"fixture produced {total} callers; it must produce at least 5 or "
+        f"the warning never fires and this test asserts nothing")
+    assert guessed == total, (
+        f"fixture produced {guessed} guessed of {total} - it is not "
+        f"reaching the bare-name tier, so the branch under test never runs")
+    wide = [w for w in b["warnings"] if w.startswith("WIDELY DEPENDED ON")]
+    assert wide, "no widely-depended-on warning to qualify"
+    assert "guesses" in wide[0] and "upper bound" in wide[0], (
+        f"{total} callers are ALL guesses and the warning does not say so: "
+        f"{wide[0]!r}")
+    assert 0 < LOW_CONFIDENCE <= 1
+
+
+def test_inheritance_lists_are_bounded_too(tmp_path):
+    """The 0.58.0 census missed this field, and the reason is instructive.
+
+    It measured `before_edit` on a Go entity with no inheritance at all,
+    so `inherited_unchanged_by` never appeared. On django@cccc004,
+    SimpleTestCase.assertRaisesMessage is inherited unchanged by 2,389
+    test classes and that ONE field was 133,163 of the briefing's 136,453
+    characters - 97.6%. A census is only as good as the entity it runs on.
+    """
+    import subprocess as sp
+    body = ["class Base:", "    def run(self):", "        return 1", ""]
+    for i in range(30):
+        body += [f"class Sub{i}(Base):", "    pass", ""]
+    (tmp_path / "m.py").write_text("\n".join(body))
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+
+    from memway.query import before_edit
+    from memway.payload import CAP
+    b = before_edit(str(tmp_path), "Base.run")
+    inh = b.get("inheritance") or {}
+    total = inh.get("inherited_unchanged_by_total", 0)
+    if total <= CAP:
+        pytest.skip(f"fixture produced {total} inheritors; need more than {CAP}")
+    assert len(inh["inherited_unchanged_by"]) == CAP, \
+        f"the list is not bounded: {len(inh['inherited_unchanged_by'])} of {total}"
+    assert inh["inherited_unchanged_by_shown"] == CAP
+    assert "overridden_by_total" in inh, "the sibling list lost its report"

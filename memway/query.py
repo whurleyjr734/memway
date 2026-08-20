@@ -25,6 +25,11 @@ from .metadata import (MetaStore, stamp_for, accepted_for, for_display,
                        unsuperseded_stale, rot_is_answered)
 from .metrics import MetricsStore
 from .payload import rank_bound_report
+
+# Below this, an edge is a GUESS rather than a resolved reference. Named
+# because two surfaces now ask the question - the grounding block and the
+# widely-depended-on warning - and a second literal is how they drift.
+LOW_CONFIDENCE = 0.7
 from .lineage import VersionStore
 from . import refs
 
@@ -610,7 +615,8 @@ def before_edit(repo: str, ref: str) -> dict:
             src = ix.entities.get(edge["src"])
             if src:
                 callers.append({"qualname": src.qualname,
-                                "path": src.path, "line": src.lineno})
+                                "path": src.path, "line": src.lineno,
+                                "_conf": float(edge.get("confidence", 1.0))})
 
     # RANKED AND BOUNDED, AND IT SAYS SO. This listed every caller, which
     # on a hot entity is not a briefing but a dump: DirLocker.Lock in
@@ -642,8 +648,18 @@ def before_edit(repo: str, ref: str) -> dict:
     callers_tests = sum(1 for c in callers
                         if (q := ix.by_qualname.get(c["qualname"]))
                         and is_test_entity(ix.entities[q]))
+    # HOW MANY OF THOSE CALLERS ARE GUESSES. Measured on django@cccc004:
+    # ListMixin.append has 573 direct callers and ALL 573 are bare-name
+    # guesses at confidence 0.6 - ordinary `results.append(x)` across the
+    # codebase landing on a GIS mixin. The resolver is behaving correctly
+    # there; it could not type the receiver and refused to claim
+    # certainty. What was wrong is the SENTENCE built from that number.
+    callers_guessed = sum(1 for c in callers
+                          if c["_conf"] < LOW_CONFIDENCE)
     callers_shown, callers_report = rank_bound_report(
         callers, "direct_callers", rank=_rank)
+    for c in callers_shown:
+        c.pop("_conf", None)
 
     from .blast import blast_radius
     b = blast_radius([e.coord_id], edges)
@@ -776,11 +792,26 @@ def before_edit(repo: str, ref: str) -> dict:
                 overridden_by.append(sub_e.qualname)
             else:
                 inherits_to.append(sub_e.qualname)
+        # BOUNDED LIKE EVERY OTHER LIST. The 0.58.0 census measured
+        # `before_edit` on a Go entity with no inheritance at all, so it
+        # never saw this one: on django@cccc004,
+        # SimpleTestCase.assertRaisesMessage is inherited unchanged by
+        # 2,389 test classes and this single field was 133,163 of the
+        # briefing's 136,453 characters - 97.6%. A census is only as good
+        # as the entity it is run on.
+        #
+        # `overrides` and `defined_on` are single values and stay whole.
+        ov_shown, ov_report = rank_bound_report(
+            sorted(overridden_by), "overridden_by")
+        inh_shown, inh_report = rank_bound_report(
+            sorted(inherits_to), "inherited_unchanged_by")
         inheritance = {
             "defined_on": ix.entities[cls_cid].qualname,
             "overrides": overrides,
-            "overridden_by": overridden_by,
-            "inherited_unchanged_by": inherits_to,
+            "overridden_by": ov_shown,
+            **ov_report,
+            "inherited_unchanged_by": inh_shown,
+            **inh_report,
         }
 
     # ---- comments: the line-level "why", with rot detection ----
@@ -860,8 +891,26 @@ def before_edit(repo: str, ref: str) -> dict:
                         "hardest code in the repo - small edits have "
                         "outsized bug risk")
     if len(callers) >= 5:
-        warnings.append(f"WIDELY DEPENDED ON ({len(callers)} direct "
-                        "callers): signature/behavior changes ripple")
+        # THE COUNT AND ITS CONFIDENCE ARE ONE SENTENCE, not two. This
+        # said "WIDELY DEPENDED ON (573 direct callers)" as a headline
+        # while the fact that every one of those 573 was a name guess sat
+        # in a separate grounding block, phrased about the whole radius
+        # rather than about this number. A reader gets the claim and the
+        # caveat in different places and weighs the claim.
+        if callers_guessed == len(callers):
+            warnings.append(
+                f"WIDELY DEPENDED ON ({len(callers)} direct callers) - but "
+                f"ALL of them are low-confidence name guesses, not resolved "
+                f"references: this is an upper bound on who depends on you, "
+                f"not a count of who does")
+        elif callers_guessed:
+            warnings.append(
+                f"WIDELY DEPENDED ON ({len(callers)} direct callers, "
+                f"{callers_guessed} of them low-confidence guesses): "
+                f"signature/behavior changes ripple")
+        else:
+            warnings.append(f"WIDELY DEPENDED ON ({len(callers)} direct "
+                            "callers): signature/behavior changes ripple")
     if radius["is_lower_bound"]:
         # NAME THE ACTUAL CAUSE. This said "dynamic event emission
         # reached" unconditionally, because that was the only way to be a
@@ -924,6 +973,7 @@ def before_edit(repo: str, ref: str) -> dict:
         "direct_callers": callers_shown,
         **callers_report,
         "direct_callers_tests": callers_tests,
+        "direct_callers_guessed": callers_guessed,
         "downstream": radius,
         "knowledge": knowledge,
         **({"evidence": _evidence} if _evidence else {}),
