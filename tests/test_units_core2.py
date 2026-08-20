@@ -865,3 +865,48 @@ def test_every_parser_declares_its_own_builtins_and_records_bare_calls():
     assert {"len", "make", "append", "cap"} <= go, go
     assert seen["JavaParser"].builtin_names == frozenset(), \
         "Java has no receiverless builtin functions"
+
+
+def test_a_literal_receiver_is_the_language_not_your_method(tmp_path):
+    """`"{}".format(x)` is str.format. It cannot be a repo method.
+
+    Measured on scikit-learn@1be3c64:
+    sklearn.utils._pprint._EstimatorPrettyPrinter.format collected 292
+    incoming call edges at resolution "exact", confidence 0.95, from
+    lines like print("score: {:.4f}".format(score)) - the seventh-highest
+    in-degree in the entire map, produced by the most common formatting
+    idiom in Python.
+
+    NOT the same rule as the builtin one. That needs `bare` - no receiver
+    written - and correctly declines here, because `"...".format(x)` has
+    a receiver. This is a receiver whose type the SYNTAX states, which is
+    the only part of the stdlib-receiver problem needing no inference.
+
+    BOTH HALVES ARE ASSERTED, and either alone passes for the wrong
+    reason: the literal call must NOT resolve, and a genuine
+    `obj.format(x)` on a repo instance MUST still resolve. A rule that
+    refuses both would look like a fix and would delete real edges.
+    """
+    ix, eb = _index(tmp_path, {"m.py": (
+        "class Printer:\n"
+        "    def format(self, x):\n"
+        "        return x\n"
+        "\n"
+        "def uses_literal(score):\n"
+        "    return 'score: {:.4f}'.format(score)\n"
+        "\n"
+        "def uses_instance(p, x):\n"
+        "    return p.format(x)\n")})
+    target = next(ix.entities[c] for q, c in ix.by_qualname.items()
+                  if q.endswith("Printer.format"))
+    callers = {ix.entities[e.get("src") or e.get("source")].qualname.rsplit(".", 1)[-1]
+               for e in eb
+               if (e.get("dst") or e.get("target")) == target.coord_id
+               and e.get("kind") == "calls"
+               and (e.get("src") or e.get("source")) in ix.entities}
+    assert "uses_literal" not in callers, (
+        "a str literal's .format resolved to the repo method - this is the "
+        "292-edge defect measured on scikit-learn")
+    assert "uses_instance" in callers, (
+        "a genuine obj.format(x) stopped resolving; the rule is refusing "
+        "real edges, which is worse than the defect it replaces")

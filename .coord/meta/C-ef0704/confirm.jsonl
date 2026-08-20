@@ -1,0 +1,1 @@
+{"ts": "2026-08-20T04:52:05Z", "author": "cli", "text": "Re-read at the literal-receiver change. Comments verified; the class gained no new behaviour of its own. Its parse() records literal_recv from the member_expression's object node - see that method.", "body_hash": "ea8e92ca85567201"}

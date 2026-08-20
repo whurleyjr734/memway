@@ -40,6 +40,7 @@ from pathlib import Path
 import pytest
 
 from memway import refs
+from memway.parsers import _py_literal_recv
 
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
@@ -78,7 +79,12 @@ class _Scoped(ast.NodeVisitor):
         nm = (f.id if isinstance(f, ast.Name)
               else f.attr if isinstance(f, ast.Attribute) else None)
         if nm and self.stack:
-            self.out.append((self.stack[-1], nm, isinstance(f, ast.Attribute)))
+            # The third element is "was this an attribute call"; the
+            # fourth is "was the receiver a LITERAL", read through the
+            # parser's own predicate so the oracle cannot disagree with
+            # the resolver about what a literal is.
+            self.out.append((self.stack[-1], nm, isinstance(f, ast.Attribute),
+                             _py_literal_recv(n)))
         self.generic_visit(n)
 
 
@@ -134,8 +140,22 @@ def _measure(repo: Path):
             continue
         v = _Scoped()
         v.visit(tree)
-        for src, tgt, via in v.out:
+        for src, tgt, via, lit in v.out:
             if tgt not in uniq or src not in short or src == tgt:
+                continue
+            # A LITERAL RECEIVER IS THE LANGUAGE'S. `"{}".format(x)` is
+            # str.format, so expecting an edge to a repo method named
+            # `format` scores the resolver's correct refusal as a miss.
+            #
+            # SECOND TIME THIS ORACLE HAS SHARED THE RESOLVER'S BLIND
+            # SPOT, and the note below about builtins is the first. When
+            # the literal rule landed, sklearn's recall "fell" 87% -> 83%
+            # and every one of the 206 lost hits had a literal receiver -
+            # measured, not assumed, because the same drop could equally
+            # have meant real edges were deleted. An oracle only checks
+            # you where it disagrees; where it shares an assumption it
+            # certifies it.
+            if lit:
                 continue
             # THE ORACLE MUST NOT SHARE THE TOOL'S BLIND SPOT. A bare
             # `isinstance(x, y)` is the BUILTIN, not sqlalchemy's

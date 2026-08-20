@@ -21,8 +21,8 @@ from pathlib import Path
 from memway.parsers import PARSE_SCHEMA_VERSION
 
 # sha256 of memway/parsers.py as released under the version below.
-_PARSERS_SHA = "923e2352776df261943969ef94336b22ed9f6c6028b2e213adccf14dcc3fe51e"
-_SCHEMA_AT_SHA = 10
+_PARSERS_SHA = "347bda9a212d9fc910576965de89049cb99e48656381b119f1b6bd99dd2d57db"
+_SCHEMA_AT_SHA = 11
 
 _GUIDANCE = """
 memway/parsers.py has changed since PARSE_SCHEMA_VERSION was last pinned.

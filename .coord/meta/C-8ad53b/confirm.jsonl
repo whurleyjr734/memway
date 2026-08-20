@@ -1,0 +1,1 @@
+{"ts": "2026-08-20T04:52:09Z", "author": "cli", "text": "Re-read at the literal-receiver change. The scope walk and its comments are untouched; the call-emission branch inside it gained literal_recv.", "body_hash": "08405ae3522d1423"}

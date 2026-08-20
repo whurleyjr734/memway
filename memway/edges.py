@@ -222,6 +222,28 @@ class EdgeBuilder:
                 and getattr(self, "_bare", False)
                 and _is_builtin_call(src_ent.path, dst_ent.qualname)):
             return "builtin-call"
+        # 2c. A LITERAL'S METHOD BELONGS TO THE LITERAL'S TYPE. The
+        #     receiver was written as a literal, so the syntax states its
+        #     type and no inference is needed: `"{}".format(x)` is
+        #     str.format and cannot be a repo entity, however unique that
+        #     name is in the index.
+        #
+        #     Measured on scikit-learn@1be3c64:
+        #     sklearn.utils._pprint._EstimatorPrettyPrinter.format took
+        #     292 incoming call edges at resolution "exact", confidence
+        #     0.95, from lines like
+        #     print("score: {:.4f}".format(score)) - the seventh-highest
+        #     in-degree in the whole map, from the most common formatting
+        #     idiom in Python.
+        #
+        #     THIS IS NOT RULE 2b. That one needs `bare` - no receiver
+        #     written at all - and correctly declines here, because
+        #     `"...".format(x)` HAS a receiver. This is a receiver whose
+        #     type the parser can read off the syntax, which is the one
+        #     part of the stdlib-receiver problem that needs no type
+        #     information. mu.Lock() still needs to know what mu is.
+        if getattr(self, "_literal_recv", False):
+            return "literal-receiver"
         # 3. PRODUCTION CODE DOES NOT CALL TEST HELPERS. The same asymmetry
         #    is already relied on by metrics (fan_in excludes test sources)
         #    and by D11b - which only fires on AMBIGUOUS names, and so
@@ -283,6 +305,7 @@ class EdgeBuilder:
             # rule needs the CALLER, which resolve() has no business knowing.
             self._via_attr = getattr(raw, "via_attr", False)
             self._bare = getattr(raw, "bare", False)
+            self._literal_recv = getattr(raw, "literal_recv", False)
             if dst_ent is not None and "." not in raw.dst_ref:
                 if self._unreachable_target(src_ent, dst_ent):
                     dst_ent = None

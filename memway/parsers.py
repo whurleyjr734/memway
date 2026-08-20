@@ -13,6 +13,7 @@ register it in PARSERS. Tree-sitter grammars exist for ~40 languages,
 so most plugins are a node-type mapping plus an import/call convention.
 """
 
+import ast
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -59,6 +60,40 @@ class RawEdge:
     # known to be bare", the safe direction: a parser that does
     # not answer can never trigger a refusal.
     bare: bool = False
+    # THE RECEIVER WAS A LITERAL, so its type is stated by the syntax.
+    # Distinct from `bare` (no receiver at all) and from via_attr (an
+    # attribute call the parser could not resolve to a module). The
+    # confirm on visit_Call records what merging those two cost; this is
+    # a third question and gets a third field.
+    literal_recv: bool = False
+
+
+_PY_LITERAL_NODES = (ast.Constant, ast.JoinedStr, ast.List, ast.Dict,
+                     ast.Set, ast.Tuple, ast.ListComp, ast.DictComp,
+                     ast.SetComp, ast.GeneratorExp)
+
+
+def _py_literal_recv(n) -> bool:
+    """Was this call written on a LITERAL receiver?
+
+    `"{}".format(x)` is str.format and cannot be a repo method, however
+    unique that name is. The AST states the receiver's type outright, so
+    unlike the rest of the stdlib-receiver problem this needs no
+    inference at all.
+    """
+    return (isinstance(n.func, ast.Attribute)
+            and isinstance(n.func.value, _PY_LITERAL_NODES))
+
+
+# Tree-sitter node types whose value is a literal, so the receiver's type
+# is stated by the syntax. Go is absent on purpose: its literals have no
+# methods, so `"x".Foo()` does not parse.
+_LITERAL_NODES = frozenset((
+    "string", "template_string", "number", "array", "object", "true",
+    "false", "null", "regex", "string_literal", "character_literal",
+    "decimal_integer_literal", "decimal_floating_point_literal",
+    "array_initializer",
+))
 
 
 class LanguageParser:
@@ -95,7 +130,6 @@ class LanguageParser:
 # Python plugin: stdlib ast (no dependencies, richest resolution)
 # --------------------------------------------------------------------------
 
-import ast
 
 EVENT_EMIT_FUNCS = {"emit", "publish", "dispatch"}
 EVENT_SUB_FUNCS = {"subscribe", "on", "consume", "register_handler"}
@@ -304,7 +338,8 @@ class PythonParser(LanguageParser):
                                                    and isinstance(n.func,
                                                                   ast.Attribute)),
                                          bare=not isinstance(
-                                             n.func, ast.Attribute)))
+                                             n.func, ast.Attribute),
+                                         literal_recv=_py_literal_recv(n)))
 
                 v.generic_visit(n)
 
@@ -504,7 +539,12 @@ class JavaScriptParser(LanguageParser):
                                 via_attr=(fn is not None
                                           and fn.type == "member_expression"),
                                 bare=(fn is None
-                                      or fn.type != "member_expression")))
+                                      or fn.type != "member_expression"),
+                                literal_recv=(
+                                    fn is not None
+                                    and fn.type == "member_expression"
+                                    and (fn.child_by_field_name("object")
+                                         or fn).type in _LITERAL_NODES)))
                 scope_walk(c, child_stack)
 
         scope_walk(tree.root_node, [mod])
@@ -743,7 +783,10 @@ class JavaParser(LanguageParser):
                                     if a is not None else None),
                         "calls",
                         via_attr=(n.child_by_field_name("object") is not None),
-                        bare=(n.child_by_field_name("object") is None)))
+                        bare=(n.child_by_field_name("object") is None),
+                        literal_recv=(
+                            (o := n.child_by_field_name("object")) is not None
+                            and o.type in _LITERAL_NODES)))
             if n.type == "object_creation_expression":
                 t = n.child_by_field_name("type")
                 if t is not None:
@@ -805,7 +848,13 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 10     # 10: builtin_names per parser;
+PARSE_SCHEMA_VERSION = 11     # 11: RawEdge.literal_recv - the receiver
+                              #     was written as a literal, so its
+                              #     type is stated by the syntax. A
+                              #     cache warmed at 10 replays edges
+                              #     with literal_recv=False, silently
+                              #     disabling the rule that reads it.
+                              # 10: builtin_names per parser;
                               #     the rule that reads .bare
                               #     narrowed to builtin names
                               #     after the corpus floors
