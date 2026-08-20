@@ -5616,6 +5616,34 @@
     "loc": 8,
     "complexity": 1
   },
+  "C-1d7ee3": {
+    "coord_id": "C-1d7ee3",
+    "kind": "function",
+    "qualname": "tests.test_viz.test_the_map_names_its_clusters_at_overview_zoom",
+    "path": "tests/test_viz.py",
+    "lineno": 1111,
+    "body_hash": "315b3227368626d5",
+    "parent": "C-bba297",
+    "signature": "test_the_map_names_its_clusters_at_overview_zoom(tmp_path, jsdom_env)",
+    "shape_hash": "788199dffba494b5",
+    "logic_hash": "fe65dd62d695a842",
+    "param_types": {},
+    "return_type": "",
+    "comments": [
+      {
+        "line": 2,
+        "text": "A map with no text on it cannot be read. The renderer drew a label only for the hovered, selected or searched node, so at overview zoom it carried NO names at all - a constellation you had to click to",
+        "kind": "docstring"
+      }
+    ],
+    "comment_hash": "19127cd809f3105d",
+    "comment_rot": false,
+    "sketch": "AHMRCQFIALX/SNZvANcrfarwAIqXXD64ALlJbfC1AFB2EyQLAEpU7qYXAFHaa8qaAFmY82pzACsSxJwZAAYzTjsiAE9RXKnJAEmwFNBOAL6BG0hnAMhnlehqAGflDCTVACpRQLi9ACh2Ysy0AD/bEyKYAKHEbbA/AJ2odTppAJAGelyqAD68qH4GAFRCqk+aAInrAmmHAC5jAMW0AIhxKYJVAJMAnw+sAE7RRnVEAQcb0fAiAQQhHNFOAG9zgCwoAIBhSk5vAFLVgfx9AHFvvTl3AFhv/OkdADqE7EbhAGLrhuCyABRy2yYiABOCSP0EAQuYBkKBABNFsj6LAEgRlWvMACUg13sHADhEoxQYAJqoAHjzAIX1h2R0AEJ2KpV0",
+    "n_shingles": 646,
+    "end_lineno": 1164,
+    "loc": 54,
+    "complexity": 4
+  },
   "C-1d9327": {
     "coord_id": "C-1d9327",
     "kind": "function",
@@ -9454,7 +9482,7 @@
     "kind": "function",
     "qualname": "tests.test_viz.test_detached_components_are_parked_not_orbited",
     "path": "tests/test_viz.py",
-    "lineno": 1044,
+    "lineno": 1053,
     "body_hash": "8f51833c3cc051d8",
     "parent": "C-bba297",
     "signature": "test_detached_components_are_parked_not_orbited(tmp_path, jsdom_env)",
@@ -9478,7 +9506,7 @@
     "comment_rot": false,
     "sketch": "AB6G0MGiAKE8NeJtAEZtFtcLAPjiddbtAKsIKxdNAEzdVxSHAEpU7qYXALz3spoSAEMWGU/JAJHARpSIAAYzTjsiAE9RXKnJABIaHx7AAEks8FYhAMhnlehqAH+UQXtZAR1Xt0cZANBJcUeXAD0gNmDDAAkLO2j3AFazfnDQABIaIw86AD68qH4GANKI/JDVAAZrah7fADnOYjmAADxK5gRSASb8YwgHAE7RRnVEAG/E9vLmAD/sEaWFAJtJnv/8AJWM2KAYAAL5vsPHAAFbc7UZACsdLzl7AAkCT1wYABvU1YI9AME5i1iOAC5fPmyFAQuYBkKBAEc2mrkHABo3SV9SAG06waQjADhEoxQYAJqoAHjzATMlnJP0ACZIuxrx",
     "n_shingles": 640,
-    "end_lineno": 1097,
+    "end_lineno": 1106,
     "loc": 54,
     "complexity": 6
   },
@@ -14153,7 +14181,7 @@
     "kind": "function",
     "qualname": "tests.test_viz.test_the_repulsion_cutoff_does_not_cage_the_layout",
     "path": "tests/test_viz.py",
-    "lineno": 940,
+    "lineno": 945,
     "body_hash": "abe9efd1f51025cb",
     "parent": "C-bba297",
     "signature": "test_the_repulsion_cutoff_does_not_cage_the_layout()",
@@ -14172,7 +14200,7 @@
     "comment_rot": false,
     "sketch": "ALg0gQWCAB7mbMQlAIX0jImxAGjav9FzATp9X/APACLr2XfzAVKriZ8WAO0D2vAVAGCYi24dAFCMaJJAAK9mw1veAHvU2h3eAHBZKbiyAOgm5gxfAGR63TvzAlI12+y0ADdzaLlKAEwaBbzUAQQyEgSKAFgUNr9SA5ASHN0iAP2opy1MAA49QHuAA4ptGuf5AJhFWnmRAQF/xzo2AVQPpPJ1ADO2VzPaAMnSCCWfACx8VgkwAFMtIcSRBJXZB2fgADpgkTcgAEm2jkNxAA+cBPT7AGZuwtSrAV+zK46rAroHWlnrAdFKz8ShAIIxBizlAJAqtYSGAF1+mewhAIeUu+TqAETsDF9lAU68desHALLzRj4DAI2naMpeAFZ8yrOU",
     "n_shingles": 314,
-    "end_lineno": 965,
+    "end_lineno": 970,
     "loc": 26,
     "complexity": 3
   },
@@ -20630,11 +20658,11 @@
     "qualname": "tests.test_test_lens.test_the_shipped_canvas_renderer_actually_draws",
     "path": "tests/test_test_lens.py",
     "lineno": 545,
-    "body_hash": "a5e83edfa7708a71",
+    "body_hash": "160eeda768ce7b32",
     "parent": "C-cb8b67",
     "signature": "test_the_shipped_canvas_renderer_actually_draws(mapped, tmp_path)",
     "shape_hash": "7620fe9c888a938e",
-    "logic_hash": "ecace80d123572c5",
+    "logic_hash": "54207b43ebe13670",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -20659,72 +20687,72 @@
         "kind": "comment"
       },
       {
-        "line": 118,
+        "line": 124,
         "text": "One arc per visible node for the fill, one for the stroke.",
         "kind": "comment"
       },
       {
-        "line": 123,
+        "line": 129,
         "text": "THE BATCHING CLAIM, executed. Edges stroke ONCE per (kind, state)",
         "kind": "comment"
       },
       {
-        "line": 124,
+        "line": 130,
         "text": "bucket; node outlines are legitimately per node, so they are counted",
         "kind": "comment"
       },
       {
-        "line": 125,
+        "line": 131,
         "text": "separately - conflating the two is what made the first version of",
         "kind": "comment"
       },
       {
-        "line": 126,
+        "line": 132,
         "text": "this assertion read 1223 strokes and call it a failure.",
         "kind": "comment"
       },
       {
-        "line": 140,
+        "line": 146,
         "text": "INK MUST SHRINK WITH THE VIEW, measured at two zooms rather than",
         "kind": "comment"
       },
       {
-        "line": 141,
+        "line": 147,
         "text": "asserted from the source. Every stroke used to be divided by view.k,",
         "kind": "comment"
       },
       {
-        "line": 142,
+        "line": 148,
         "text": "holding it at a CONSTANT SCREEN WIDTH however far you zoomed out: at",
         "kind": "comment"
       },
       {
-        "line": 143,
+        "line": 149,
         "text": "k=0.06 a node is a 0.6px dot inside a 1.5px outline and 31k edges",
         "kind": "comment"
       },
       {
-        "line": 144,
+        "line": 150,
         "text": "each lay down a full pixel, so an overview reads as a solid mass.",
         "kind": "comment"
       },
       {
-        "line": 145,
+        "line": 151,
         "text": "The reader's words were \"the edge thickness makes it look so dense",
         "kind": "comment"
       },
       {
-        "line": 146,
+        "line": 152,
         "text": "when zooming out\".",
         "kind": "comment"
       }
     ],
     "comment_hash": "14a4f7bea1f6a9b6",
-    "comment_rot": false,
-    "sketch": "AAxcrFdpABSDWUkZADsTqx0/AGrnE/z/AAmTO4q6ACrtI1/TAGslGbWQABdkPH5SABwIXR++AEJ8MphwAAKJ6RWnABKxSZ3mACf4LOoaABGx5mu8AC1K75YpABKxOeOVAAjZv0qPAA4txEv7ABRE+IZcAAkLO2j3AASzK5j1ACMPwVuPAAZAuDCrAA0XZ9TsACUUKf2VABaMDM5OACLiO6YYAAenYR7RABvMIbWPAAIue6obABZCAkUQAB193rcnAA6z1J08AD3Ye7WyABdzmvlFAFlAndLrAB6V9wK2AANxyiPCAAGkCzBgABKn0Kt2ABwKJlIXAAE0gIopABwF5xNYABvhY2bAAC1J9OfIAB9p1rH0ABFxoXBZAAIgRbn0",
-    "n_shingles": 1924,
-    "end_lineno": 697,
-    "loc": 153,
+    "comment_rot": true,
+    "sketch": "AAxcrFdpABSDWUkZADsTqx0/AGrnE/z/AAmTO4q6ACrtI1/TAFIjNSK6ABdkPH5SABwIXR++AEJ8MphwAAKJ6RWnABKxSZ3mACf4LOoaABGx5mu8AC1K75YpABKxOeOVAAjZv0qPAA4txEv7ABRE+IZcAAkLO2j3AASzK5j1AAhbvx11AAZAuDCrAA0XZ9TsACUUKf2VABaMDM5OACLiO6YYAAenYR7RABvMIbWPAAIue6obABZCAkUQAB193rcnAA6z1J08AD3Ye7WyABdzmvlFAFlAndLrAB6V9wK2AANxyiPCAAGkCzBgABKn0Kt2ABwKJlIXAAE0gIopABwF5xNYABvhY2bAAC1J9OfIAB9p1rH0ABFxoXBZAAIgRbn0",
+    "n_shingles": 1993,
+    "end_lineno": 703,
+    "loc": 159,
     "complexity": 18
   },
   "C-6e5320": {
@@ -25516,7 +25544,7 @@
     "kind": "function",
     "qualname": "tests.test_viz.test_structure_leads_the_layout_not_call_traffic",
     "path": "tests/test_viz.py",
-    "lineno": 901,
+    "lineno": 906,
     "body_hash": "de9a796e986743af",
     "parent": "C-bba297",
     "signature": "test_structure_leads_the_layout_not_call_traffic()",
@@ -25540,7 +25568,7 @@
     "comment_rot": false,
     "sketch": "AOW85ypMAB7mbMQlAIBBghj+AFi48Np2ABYs8QiXAYxIVjAoATU1rHjxAiFN8JOIAAmUEDI6AClp+zxVAKs6CDrcAI5R4AHpAV4Gi4PsAJk46F6/ABUn/bFZAI9EdkEqAKZ+KAOtAR/kaziGACnSFNhhAAig91qPAMXDs35sAEfOBcAlAA49QHuAATTF1BYzAGeJ6JhBAN3kovNWAOl8uZBVAOfr7tavAFokFVL3AKcg1iM/AMYgxSb9Adwo8MYCAOXDZ2liAAqP3F09ADv24lAsABWpzytTAEkCdLHbACQ9rCNVAMkM1J7QACieijXuACV0Esf0AEgT1VEIANHQL9T5ADK1r5OWAQfJ95ReAU7TjTtxAF4IsRVvAE7kmC5C",
     "n_shingles": 485,
-    "end_lineno": 937,
+    "end_lineno": 942,
     "loc": 37,
     "complexity": 11
   },
@@ -27275,12 +27303,12 @@
     "kind": "function",
     "qualname": "tests.test_viz.test_pressing_a_node_selects_it_and_does_not_move_it",
     "path": "tests/test_viz.py",
-    "lineno": 970,
-    "body_hash": "90100dc79955097e",
+    "lineno": 975,
+    "body_hash": "4d945751da2157e4",
     "parent": "C-bba297",
     "signature": "test_pressing_a_node_selects_it_and_does_not_move_it(tmp_path, jsdom_env)",
     "shape_hash": "ddccf0b1cf693bf3",
-    "logic_hash": "0a397644c5221667",
+    "logic_hash": "7fc21e76f69ed1ef",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -27291,11 +27319,11 @@
       }
     ],
     "comment_hash": "860ae422f991881a",
-    "comment_rot": false,
-    "sketch": "AKMv5jdBAGlFluaxANJyQB5JADwYQf1DAFMmTdesAMayA+HQAEfre+j6AEz811WuADXP95srAC2FoclzAAYzTjsiAE9RXKnJAArUoB98AFL0mXJcAKckPGmVAAxMQ01lABvRXY1FAKqHPmDeAEmfHWzvAKHEbbA/AHY/r4SyAHmN+WgPAD68qH4GAANUfOsvABwWGzJkAB53s+nlANbILhqdACPV2gSDAD3TrNUfABRSA+jMAH81G6GyAHEYwJ+iAGtzOGO9AA/tpfuiAAfVL8u1AHKmESmzADqE7EbhAAT0CxFSAAGkCzBgAC5fPmyFAIVF4L0KAEc2mrkHAEgRlWvMAAWs8nVpADhEoxQYAFsCVMYTABeK2KcuAEJ2KpV0",
-    "n_shingles": 949,
-    "end_lineno": 1039,
-    "loc": 70,
+    "comment_rot": true,
+    "sketch": "AKMv5jdBAGlFluaxANJyQB5JADwYQf1DAFMmTdesAFB2EyQLAEfre+j6AEz811WuADXP95srAC2FoclzAAYzTjsiAE9RXKnJAArUoB98AFL0mXJcAKckPGmVAAxMQ01lABvRXY1FAKqHPmDeAEmfHWzvAKHEbbA/AHY/r4SyAHmN+WgPAD68qH4GAANUfOsvABwWGzJkAB53s+nlANbILhqdACPV2gSDAD3TrNUfABRSA+jMAH81G6GyAHEYwJ+iAGtzOGO9AA/tpfuiAAfVL8u1AHKmESmzADqE7EbhAAT0CxFSAAGkCzBgAC5fPmyFACfSmiC0AEc2mrkHAEgRlWvMAAWs8nVpADhEoxQYAFsCVMYTABeK2KcuAEJ2KpV0",
+    "n_shingles": 981,
+    "end_lineno": 1048,
+    "loc": 74,
     "complexity": 8
   },
   "C-941cf7": {
@@ -34469,11 +34497,11 @@
     "qualname": "tests.test_viz",
     "path": "tests/test_viz.py",
     "lineno": 1,
-    "body_hash": "1d5d0b0f0eee0617",
+    "body_hash": "740c6df174f72cf9",
     "parent": null,
     "signature": "",
-    "shape_hash": "5119c562ed7dff54",
-    "logic_hash": "03703c2297049e68",
+    "shape_hash": "1452a78d246cc659",
+    "logic_hash": "15bc195e95cf2c70",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -34633,12 +34661,12 @@
         "kind": "comment"
       },
       {
-        "line": 933,
+        "line": 938,
         "text": "and the force must READ the table rather than restate a constant",
         "kind": "comment"
       },
       {
-        "line": 1066,
+        "line": 1075,
         "text": "memway's own map has few; build the guarantee on its own data",
         "kind": "comment"
       }
@@ -34646,10 +34674,10 @@
     "comment_hash": "ef91600cb370361b",
     "comment_rot": false,
     "sketch": "AAEqN3WSAAR5WBCnABYi7MMKAAAFw633AAUJln0/AAZhy0J9AADlIRZbABKM/tQlAAg2WYWLAAgQmrP1AAYzTjsiAAVK76lTAACvtXlqABZ2tMgTAABnDFvVAAVpGyLVAASNmvlwAALtrqYQAA8rg2cmAALWYmlDAAmiHIprABH5Jq0UAALEZ2Y2AANUfOsvAAZrah7fAARXVBCYAALMxi7BAAE3g7uSAAf2c/foAAJRACdHABJw5Jx3AAdJmHlgAAauFt5aAAL5vsPHAAFbc7UZAArGPkevAAZCeIpkAAG6DnCwAAGkCzBgAAJIWXhfAAgoQurPAAJJOSdBAA5JbgfFAAWs8nVpAAAz/MA7AAa1HplrAAKc2dnwAAhQZgxZ",
-    "n_shingles": 7665,
-    "end_lineno": 1097,
-    "loc": 1098,
-    "complexity": 246
+    "n_shingles": 8024,
+    "end_lineno": 1165,
+    "loc": 1166,
+    "complexity": 249
   },
   "C-bba405": {
     "coord_id": "C-bba405",
@@ -37064,11 +37092,11 @@
     "qualname": "tests.test_test_lens",
     "path": "tests/test_test_lens.py",
     "lineno": 1,
-    "body_hash": "c7f3f5c8f0a1f38a",
+    "body_hash": "bb857d418739e4ba",
     "parent": null,
     "signature": "",
     "shape_hash": "4b8f1687113eb8f4",
-    "logic_hash": "7665c7e9a50ab42e",
+    "logic_hash": "26a2b97facd73a37",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -37338,62 +37366,62 @@
         "kind": "comment"
       },
       {
-        "line": 662,
+        "line": 668,
         "text": "One arc per visible node for the fill, one for the stroke.",
         "kind": "comment"
       },
       {
-        "line": 667,
+        "line": 673,
         "text": "THE BATCHING CLAIM, executed. Edges stroke ONCE per (kind, state)",
         "kind": "comment"
       },
       {
-        "line": 668,
+        "line": 674,
         "text": "bucket; node outlines are legitimately per node, so they are counted",
         "kind": "comment"
       },
       {
-        "line": 669,
+        "line": 675,
         "text": "separately - conflating the two is what made the first version of",
         "kind": "comment"
       },
       {
-        "line": 670,
+        "line": 676,
         "text": "this assertion read 1223 strokes and call it a failure.",
         "kind": "comment"
       },
       {
-        "line": 684,
+        "line": 690,
         "text": "INK MUST SHRINK WITH THE VIEW, measured at two zooms rather than",
         "kind": "comment"
       },
       {
-        "line": 685,
+        "line": 691,
         "text": "asserted from the source. Every stroke used to be divided by view.k,",
         "kind": "comment"
       },
       {
-        "line": 686,
+        "line": 692,
         "text": "holding it at a CONSTANT SCREEN WIDTH however far you zoomed out: at",
         "kind": "comment"
       },
       {
-        "line": 687,
+        "line": 693,
         "text": "k=0.06 a node is a 0.6px dot inside a 1.5px outline and 31k edges",
         "kind": "comment"
       },
       {
-        "line": 688,
+        "line": 694,
         "text": "each lay down a full pixel, so an overview reads as a solid mass.",
         "kind": "comment"
       },
       {
-        "line": 689,
+        "line": 695,
         "text": "The reader's words were \"the edge thickness makes it look so dense",
         "kind": "comment"
       },
       {
-        "line": 690,
+        "line": 696,
         "text": "when zooming out\".",
         "kind": "comment"
       }
@@ -37401,9 +37429,9 @@
     "comment_hash": "bb4f3b41da4d32bf",
     "comment_rot": false,
     "sketch": "AAxcrFdpABSDWUkZACNazf0cABHaLHciAAkMaQ9wAAB5m9X+AADlIRZbABdkPH5SAAu2b72cAB8RhD7nAAKJ6RWnABKxSZ3mABBWZA8eABGx5mu8AC1K75YpABKxOeOVAASNmvlwAAF9kY1DAAzWeP5CAARVzZuXAASzK5j1AARYDgCjAARQTuiwAA0XZ9TsAAFNT8bdAAw7w8tHACLiO6YYAAdLqLKIAAaZXWSsAAIue6obABZCAkUQABPDsAmtAAQ41QYfADr8g+QUABdzmvlFABHEYRq2ABghJ4mSAADoCQgqAAGkCzBgABKn0Kt2AAak5/ZcAAE0gIopAAjlHuFzAAtfYHzdAAhwew/XAAYSC48RAAIa8TChAAIgRbn0",
-    "n_shingles": 5697,
-    "end_lineno": 697,
-    "loc": 698,
+    "n_shingles": 5762,
+    "end_lineno": 703,
+    "loc": 704,
     "complexity": 118
   },
   "C-cbbf26": {
@@ -38539,11 +38567,11 @@
     "qualname": "tests.test_viz.test_the_emitted_page_runs_without_error",
     "path": "tests/test_viz.py",
     "lineno": 834,
-    "body_hash": "84c7ad3853c7b61c",
+    "body_hash": "2b7b93a2fd711126",
     "parent": "C-bba297",
     "signature": "test_the_emitted_page_runs_without_error(tmp_path, jsdom_env)",
     "shape_hash": "1b519a7dca88ea5f",
-    "logic_hash": "aaa0e5e638220e2d",
+    "logic_hash": "7b95398db94eba6d",
     "param_types": {},
     "return_type": "",
     "comments": [
@@ -38554,11 +38582,11 @@
       }
     ],
     "comment_hash": "cf93ad0f242108a2",
-    "comment_rot": false,
-    "sketch": "AMz+ykD+AGlFluaxAHV4ewMkAAAFw633AAUJln0/AYi10NDfAEfre+j6ABKM/tQlAPiMiaNZAJCKy90KAAYzTjsiAAoIIm7MAEmwFNBOAFL0mXJcAL0esav5ACnkZp5lAFxWNSapAKqHPmDeAD/bEyKYABCb/fUuAJ61ArbxAJAGelyqAAXBnPOcANKI/JDVAInrAmmHABaMDM5OANbILhqdASb8YwgHABvMIbWPAEJwFM9zAIwaOKYaABx2FrmbADuq1Q/hAFLVgfx9AHFvvTl3AMh1QTRrADqE7EbhAGLrhuCyAYAM/109ABKn0Kt2ACrdmilsAEc2mrkHAEgRlWvMAFQaxJxxADhEoxQYAMhaJpScABeK2KcuAEJ2KpV0",
-    "n_shingles": 744,
-    "end_lineno": 898,
-    "loc": 65,
+    "comment_rot": true,
+    "sketch": "AMz+ykD+ABghpqUAAHV4ewMkAAAFw633AAUJln0/ARhIwXlPAEfre+j6ABKM/tQlAPiMiaNZAJCKy90KAAYzTjsiAAoIIm7MAEmwFNBOAFL0mXJcAL0esav5ACnkZp5lAATnqW83AKqHPmDeAD/bEyKYABCb/fUuAJ2odTppAJAGelyqAAXBnPOcANKI/JDVAInrAmmHABaMDM5OANbILhqdAQbFCNiDABvMIbWPAEJwFM9zAIwaOKYaABx2FrmbADuq1Q/hAFLVgfx9AHFvvTl3AMh1QTRrADqE7EbhAGLrhuCyAPREkQBNABKn0Kt2ACfSmiC0AEc2mrkHAEgRlWvMAFQaxJxxADhEoxQYAMhaJpScABeK2KcuAEJ2KpV0",
+    "n_shingles": 822,
+    "end_lineno": 903,
+    "loc": 70,
     "complexity": 8
   },
   "C-cf3842": {

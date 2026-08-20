@@ -868,7 +868,12 @@ const dom = new JSDOM(fs.readFileSync(process.argv[2], "utf8"), {
       return new Proxy({}, {
         get:(t,k)=>{
           if (typeof k === "string" && ["strokeStyle","fillStyle","globalAlpha",
-              "lineWidth","font","textAlign"].includes(k)) return t[k];
+              "lineWidth","font","textAlign","textBaseline"].includes(k)) return t[k];
+          // measureText RETURNS A VALUE. A stub that answers undefined for
+          // every method models the API badly enough to invent failures:
+          // the cluster labels read .width off it and the page "threw"
+          // in a way no browser would.
+          if (k === "measureText") return (str)=>({width: String(str).length * 6});
           return (...a)=>{ if (k in calls) calls[k]++; };
         }, set:(t,k,v)=>{ t[k]=v; return true; }});
     };
@@ -995,8 +1000,12 @@ const dom=new JSDOM(fs.readFileSync(process.argv[2],"utf8"),{
  runScripts:"dangerously",pretendToBeVisual:true,
  beforeParse(w){
   w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{
-    get:(t,p)=>["strokeStyle","fillStyle","globalAlpha","lineWidth","font",
-                "textAlign"].includes(p)?t[p]:(()=>{}),
+    get:(t,p)=>{
+      if(["strokeStyle","fillStyle","globalAlpha","lineWidth","font",
+          "textAlign","textBaseline"].includes(p)) return t[p];
+      if(p==="measureText") return (s)=>({width:String(s).length*6});
+      return ()=>{};
+    },
     set:(t,p,v)=>{t[p]=v;return true;}});
   w.addEventListener("error",e=>errors.push(String((e.error&&e.error.stack)||e.message)));
  }});
@@ -1095,3 +1104,62 @@ setTimeout(()=>{
     assert g["parked"] == g["detached"], (
         f"{g['detached'] - g['parked']} detached nodes are still positioned "
         f"by the simulation - those are what draw the ring")
+
+
+@pytest.mark.slow
+@pytest.mark.network
+def test_the_map_names_its_clusters_at_overview_zoom(tmp_path, jsdom_env):
+    """A map with no text on it cannot be read.
+
+    The renderer drew a label only for the hovered, selected or searched
+    node, so at overview zoom it carried NO names at all - a constellation
+    you had to click to identify. `contains` already holds the hierarchy,
+    so every cluster has a name available.
+
+    TWO FAILURES THIS PINS, both found by measuring rather than reading:
+
+    1. Gating on cluster SCREEN SIZE (>=44px) drew three labels on
+       prometheus at fit-zoom - the map went quiet exactly when
+       orientation matters most. The gate is collision, biggest first.
+    2. Labelling with the last qualname segment alone put "pb" on three
+       different clusters at once. Names widen a segment at a time, and
+       only where they collide.
+    """
+    node, jsdom_path = jsdom_env
+    from memway.viz import export, render
+    page = tmp_path / "p.html"
+    page.write_text(render(export(str(HERE))))
+    runner = tmp_path / "labels.js"
+    runner.write_text(r"""
+const fs=require("fs");const {JSDOM}=require(process.argv[4]);
+const texts=[];
+const dom=new JSDOM(fs.readFileSync(process.argv[2],"utf8"),{
+ runScripts:"dangerously",pretendToBeVisual:true,
+ beforeParse(w){ w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{
+   get:(t,p)=>{ if(["strokeStyle","fillStyle","globalAlpha","lineWidth","font",
+                    "textAlign","textBaseline"].includes(p)) return t[p];
+     if(p==="measureText") return (s)=>({width:s.length*6});
+     if(p==="fillText") return (s)=>texts.push(s);
+     return ()=>{}; },
+   set:(t,p,v)=>{t[p]=v;return true;}}); }});
+setTimeout(()=>{
+ const R=dom.window._refs;
+ texts.length=0; R.draw();
+ const dupes=texts.filter((v,i)=>texts.indexOf(v)!==i);
+ fs.writeFileSync(process.argv[3], JSON.stringify({
+   labels:texts.length, duplicates:dupes.length, sample:texts.slice(0,8)}));
+ process.exit(0);
+},12000);
+""")
+    out = tmp_path / "l.json"
+    subprocess.run([node, str(runner), str(page), str(out), jsdom_path],
+                   capture_output=True, text=True, timeout=300)
+    assert out.exists(), "probe produced nothing"
+    g = json.loads(out.read_text())
+    assert g["labels"] >= 5, (
+        f"only {g['labels']} cluster labels drawn at overview - the map is "
+        f"unreadable without clicking: {g['sample']}")
+    assert g["duplicates"] == 0, (
+        f"{g['duplicates']} clusters share a label - a name that fits several "
+        f"things names none of them: {g['sample']}")
+

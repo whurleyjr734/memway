@@ -588,6 +588,10 @@ const rm = tpl.match(/function r\(d\)\{[^\n]*\}/);
 const sm = tpl.match(/function ringStale\(d\)\{[\s\S]*?\n\}/);
 const bm = tpl.match(/^function buckets\(\)\{[\s\S]*?\n\}/m);
 const dm = tpl.match(/^function draw\(\)\{[\s\S]*?\n\}\n/m);
+// draw() calls the cluster-label pass, so it has to come along. Lifted
+// rather than stubbed: a stub would let the label code rot unexecuted.
+const lm2 = tpl.match(/^function drawClusterLabels\(\)\{[\s\S]*?\n\}/m);
+if (!lm2) { console.error("drawClusterLabels() not found"); process.exit(2); }
 for (const [n,m] of Object.entries({normalize:nm, r:rm, ringStale:sm,
                                     buckets:bm, draw:dm}))
   if (!m) { console.error(n + "() not found in the shipped template"); process.exit(2); }
@@ -614,7 +618,9 @@ STYLE.node.ring={stroke:"#b",width:1.6,dash:"none"};
 STYLE.node.ringStale={stroke:"#c",width:1.6,dash:"3 3"};
 const view={x:0,y:0,k:1};
 let W=1000,H=800,DPR=1,hovered=null;
-eval(bm[0]); eval(dm[0]);
+let clusters = [];
+STYLE.plate = 'rgb(0,0,0)';
+eval(lm2[0]); eval(bm[0]); eval(dm[0]);
 
 draw();
 const all = {arcs:log.arc, strokes:log.stroke, fills:log.fill,

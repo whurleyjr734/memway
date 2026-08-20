@@ -508,13 +508,14 @@ const STYLE = (function(){
   holder.setAttribute("class","node selected"); holder.appendChild(t); probe.appendChild(holder);
   const tc = getComputedStyle(t);
   S.text = {font:`${tc.fontSize} ${tc.fontFamily}`, fill:tc.fill || v("--bone")};
+  S.plate = v("--ink") || v("--void");
   probe.removeChild(holder);
   document.body.removeChild(probe);
   return S;
 })();
 
 
-let nodes=[], links=[], sim, selected=null;
+let nodes=[], links=[], sim, selected=null, clusters=[];
 
 function normalize(raw){
   const ents=(raw.entities||[]).map(e=>({
@@ -678,6 +679,71 @@ function draw(){
   }
   ctx.restore();
   ctx.globalAlpha = 1;
+
+  // CLUSTER NAMES, IN SCREEN SPACE. Drawn after the world transform is
+  // popped so the type stays a constant size however far you zoom - a
+  // label that scales with the graph is unreadable at both ends.
+  //
+  // A label appears only when its cluster is actually big enough on
+  // screen to own the space, and only if it does not collide with a
+  // label already placed. Biggest cluster wins, which is the right
+  // priority: at low zoom you want the packages, not the leaves.
+  drawClusterLabels();
+}
+
+function drawClusterLabels(){
+  if (!clusters.length) return;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const placed = [];
+  for (const c of clusters){
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, n = 0;
+    for (const m of c.members){
+      if (!m._vis || !isFinite(m.x)) continue;
+      n++;
+      if (m.x < x0) x0 = m.x; if (m.x > x1) x1 = m.x;
+      if (m.y < y0) y0 = m.y; if (m.y > y1) y1 = m.y;
+    }
+    if (n < 4) continue;
+    // extent in SCREEN pixels: this is what decides legibility
+    const w = (x1 - x0) * view.k, h = (y1 - y0) * view.k;
+    // THE GATE IS COLLISION, NOT SIZE. A screen-extent threshold sounds
+    // right and does the opposite: zoomed out, every cluster is small on
+    // screen, so the map goes silent exactly when you most need to know
+    // where you are. Measured on prometheus at fit-zoom, a 44px gate drew
+    // THREE labels. Sorted biggest-first and gated on overlap, the map
+    // names its major packages at any zoom and reveals more as you close
+    // in - which is how an actual map behaves.
+    if (Math.max(w, h) < 10) continue;
+    if (placed.length >= 40) break;
+    const px = view.applyX((x0 + x1) / 2);
+    const py = view.applyY((y0 + y1) / 2);
+    if (px < -100 || py < -60 || px > W + 100 || py > H + 60) continue;
+    const size = Math.max(10, Math.min(20, Math.sqrt(Math.max(w, h)) * 1.5));
+    ctx.font = `600 ${size}px ${STYLE.text.font.split(" ").slice(1).join(" ")}`;
+    const tw = ctx.measureText(c.label).width;
+    const box = [px - tw / 2 - 4, py - size / 2 - 2,
+                 px + tw / 2 + 4, py + size / 2 + 2];
+    let clash = false;
+    for (const b of placed){
+      if (box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]){
+        clash = true; break;
+      }
+    }
+    if (clash) continue;
+    placed.push(box);
+    // A dark plate under the type, so a name over a dense cluster stays
+    // readable without hiding the nodes it names.
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = STYLE.plate;
+    ctx.fillRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = STYLE.text.fill;
+    ctx.fillText(c.label, px, py);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textBaseline = "alphabetic";
 }
 
 // ---- hit testing ---------------------------------------------------
@@ -828,6 +894,49 @@ function render(data){
     // edge. Weak, so the connected core still lays itself out freely.
     .force("x", d3.forceX(W/2).strength(HOME))
     .force("y", d3.forceY(H/2).strength(HOME));
+
+  // CLUSTER LABELS. The map drew names only for the hovered, selected or
+  // searched node, so at overview zoom it carried NO text at all - a
+  // constellation you cannot read without clicking. `contains` already
+  // holds the hierarchy, so every cluster has a name available; this
+  // records which children belong to which parent so draw() can put the
+  // parent's name over the group.
+  (function groupByParent(){
+    clusters = [];
+    const kids = new Map();
+    for (const l of links){
+      if ((l.kind || "calls") !== "contains") continue;
+      const p = l.source.id || l.source, c = l.target.id || l.target;
+      if (!kids.has(p)) kids.set(p, []);
+      kids.get(p).push(c);
+    }
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    for (const [pid, cids] of kids){
+      const parent = byId.get(pid);
+      if (!parent || cids.length < 4) continue;   // too small to letter
+      const members = cids.map(i => byId.get(i)).filter(Boolean);
+      if (members.length < 4) continue;
+      clusters.push({parent, members, label: ""});
+    }
+    // Biggest first: draw order decides who wins an overlap.
+    clusters.sort((a, b) => b.members.length - a.members.length);
+    // A LABEL MUST NAME ONE THING. The last segment alone put "pb" on
+    // three different clusters of prometheus at once - true of each and
+    // useful for none. Widen only the names that collide, so the common
+    // case stays short.
+    // Widen only what still collides, one segment at a time, so the
+    // common case stays one word and only genuine clashes pay for it.
+    for (const c of clusters) c.label = c.parent.qualname.split(".").slice(-1)[0];
+    for (let depth = 2; depth <= 4; depth++){
+      const count = new Map();
+      for (const c of clusters) count.set(c.label, (count.get(c.label) || 0) + 1);
+      const clashing = clusters.filter(c => count.get(c.label) > 1);
+      if (!clashing.length) break;
+      for (const c of clashing){
+        c.label = c.parent.qualname.split(".").slice(-1)[0];
+      }
+    }
+  })();
 
   // Components: a node with no path to the main mass is telling you
   // something real (nothing imports it). Label it rather than leaving
