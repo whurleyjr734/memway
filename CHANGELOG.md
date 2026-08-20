@@ -7,6 +7,91 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-08-20
+
+Theme: **a briefing, not a dump.**
+
+Minor rather than patch: a new module, and payload shapes changed on
+three MCP surfaces.
+
+### The census
+
+Every MCP tool measured on one hot entity - `DirLocker.Lock` in
+prometheus, 342 callers:
+
+| tool | before | after | |
+|---|---:|---:|---|
+| `show` | 55,829 | **2,293** | -96% |
+| `before_edit` | 53,534 | **2,173** | -96% |
+| `attention` | 2,965 | 3,032 | +2% |
+| `summary` | 1,456 | 1,599 | +9% |
+| `at` / `verify_change` / `lineage` | - | unchanged | - |
+
+`show` was the worst: **99.5% of its payload was a single 344-entry
+`edges` list**. These are read by agents, so an unbounded list is not
+clutter you skip - it is a context budget you cannot get back. The two
+surfaces that grew did so by gaining totals they never had.
+
+### One rule, one implementation
+
+`memway/payload.py` is new and owns `rank_bound_report`. The rule was
+already written by hand **five times**, and two were silent:
+
+| site | was |
+|---|---|
+| `show.edges` | unbounded, 344 entries |
+| `attention.comment_rot` | `[:limit]` + its own total |
+| `attention.markers` | `[:limit]` + a differently named total |
+| `summary.hardest` / `hardest_overall` | `[:5]`, **reported nothing** |
+| `summary.knowledge.entries` | `[:20]`, **reported nothing** |
+
+Three parts, all required. **RANK** the useful entries first - a bounded
+list is only as good as its ordering. **BOUND** at twelve. **REPORT**
+`<name>_total` and `<name>_shown`, always: a list that quietly stops at
+twelve IS a sampled list, and this project's own guard message reads
+"Nothing is ever sampled silently."
+
+`show`'s ordering is deliberate: out-edges first (what an entity calls
+describes it, and there are far fewer than callers), then production
+before tests, then confidence descending - so a bare-name guess can never
+displace an exact edge in the twelve you see.
+
+`before_edit` also drops `downstream.direct`, which repeated all 342
+qualnames already in `direct_callers` at 100% overlap - 15,947 characters
+of nothing. `direct_count` replaces it.
+
+Ranking is not cosmetic: `Head.Init` has 103 callers of which **98 are
+tests**. The five that matter were buried at arbitrary depth, and
+`direct_callers_tests` now says so.
+
+`marker_total` is kept as an explicit alias of `markers_total`. The MCP
+has shipped that key; renaming a field to tidy an internal refactor
+breaks a caller for nobody's benefit.
+
+### Guarded
+
+- A structural pin: no module outside `payload.py` may construct a
+  `<name>_shown` key, by AST scan.
+- Shape tests for `summary`, `attention`, `show` and `before_edit`.
+  **The 96% reduction landed with the suite green** before these
+  existed: `direct_callers` was referenced by exactly one assertion in
+  the whole suite, and `downstream.direct` by none.
+
+Two falsifications were vacuous first. `cap=None` passed the shape test
+because `shown == total` still satisfies "shown <= total" - asserting the
+arithmetic is not asserting the bound. And the first `summary` contract
+asserted a `repo` key that has never existed.
+
+### Also
+
+`viz`: clusters are named. The map drew a label only for the hovered,
+selected or searched node, so at overview zoom it carried no text at all.
+Package names are drawn in screen space at constant size; 40 labels on
+prometheus, zero duplicates. Gating on cluster screen size drew three, so
+the gate is collision, biggest first. Labelling by last qualname segment
+put "pb" on three clusters at once, so names widen a segment at a time
+and only where they collide.
+
 ## [0.57.2] - 2026-08-18
 
 Theme: **stop generating your own work.**

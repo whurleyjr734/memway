@@ -24,6 +24,7 @@ from .edges import EdgeBuilder, neighbors
 from .metadata import (MetaStore, stamp_for, accepted_for, for_display,
                        unsuperseded_stale, rot_is_answered)
 from .metrics import MetricsStore
+from .payload import rank_bound_report
 from .lineage import VersionStore
 from . import refs
 
@@ -342,7 +343,25 @@ def show(repo: str, ref: str) -> dict:
             "resolution": edge.get("resolution", "unknown"),
             "confidence": edge.get("confidence", 1.0),
         })
-    out["edges"] = rel
+    # RANKED, BOUNDED, REPORTED - through the one function that does it.
+    # This shipped every edge: `show` on DirLocker.Lock in prometheus came
+    # to 55,829 characters, of which 55,572 was this list (344 entries).
+    #
+    # Ordering is the half that makes the cut survivable. OUT edges first
+    # - what this entity calls describes the entity, and there are always
+    # far fewer of them than callers - then production before tests, then
+    # confidence, so a bare-name guess never displaces an exact edge.
+    def _edge_rank(r):
+        te = ix.by_qualname.get(r["target"])
+        return (0 if r["direction"] == "out" else 1,
+                1 if te and is_test_entity(ix.entities[te]) else 0,
+                -float(r.get("confidence") or 0),
+                str(r["target"]))
+
+    from .verify import is_test_entity
+    rel_shown, rel_report = rank_bound_report(rel, "edges", rank=_edge_rank)
+    out["edges"] = rel_shown
+    out.update(rel_report)
     out["map_lag"] = _map_lag(repo, coord)
     out["knowledge_lag"] = _knowledge_lag(ix, meta)
     return out
@@ -528,6 +547,14 @@ def summary(repo: str) -> dict:
             })
     know.sort(key=lambda k: (not k["any_stale"], k["qualname"] or ""))
 
+    _hardest_shown, _hardest_report = rank_bound_report(
+        [{"qualname": q, "complexity": c, "is_test": t}
+         for c, q, t in prod], "hardest", cap=5)
+    _hardest_all_shown, _hardest_all_report = rank_bound_report(
+        [{"qualname": q, "complexity": c, "is_test": t}
+         for c, q, t in ranked], "hardest_overall", cap=5)
+    _entries_shown, _entries_report = rank_bound_report(
+        know, "entries")
     return {
         "map_lag": _map_lag(repo, coord),
         "knowledge_lag": _knowledge_lag(ix, meta),
@@ -539,10 +566,13 @@ def summary(repo: str) -> dict:
         # consumers already depend on it. is_test rides along so every
         # entry in both lists has the same shape. `hardest_overall` is
         # the new, additive view: the same numbers, nothing excluded.
-        "hardest": [{"qualname": q, "complexity": c, "is_test": t}
-                    for c, q, t in prod[:5]],
-        "hardest_overall": [{"qualname": q, "complexity": c, "is_test": t}
-                            for c, q, t in ranked[:5]],
+        # Top-five lists, but they SAY they are top-five now. Both were
+        # silent slices: a reader saw five and could not tell whether the
+        # repo had five or five hundred.
+        "hardest": _hardest_shown,
+        **_hardest_report,
+        "hardest_overall": _hardest_all_shown,
+        **_hardest_all_report,
         "entities_by_origin": {"source": n_src,
                                "tests": len(ix.entities) - n_src},
         "knowledge": {
@@ -550,7 +580,8 @@ def summary(repo: str) -> dict:
             "coordinates_with_knowledge": len(know),
             "by_channel": dict(chan_counts),
             "superseded": superseded_count,
-            "entries": know[:20],
+            "entries": _entries_shown,
+            **_entries_report,
         },
     }
 
@@ -608,13 +639,11 @@ def before_edit(repo: str, ref: str) -> dict:
         return (1 if is_test_entity(ix.entities[ent]) else 0,
                 -_fan.get(ent, 0), c["qualname"]) if ent else (2, 0, c["qualname"])
 
-    callers.sort(key=_rank)
-    callers_total = len(callers)
     callers_tests = sum(1 for c in callers
                         if (q := ix.by_qualname.get(c["qualname"]))
                         and is_test_entity(ix.entities[q]))
-    CALLER_CAP = 12
-    callers_shown = callers[:CALLER_CAP]
+    callers_shown, callers_report = rank_bound_report(
+        callers, "direct_callers", rank=_rank)
 
     from .blast import blast_radius
     b = blast_radius([e.coord_id], edges)
@@ -893,8 +922,7 @@ def before_edit(repo: str, ref: str) -> dict:
                     "fan_in": m.get("fan_in", 0),
                     "churn": m.get("churn", 0)},
         "direct_callers": callers_shown,
-        "direct_callers_total": callers_total,
-        "direct_callers_shown": len(callers_shown),
+        **callers_report,
         "direct_callers_tests": callers_tests,
         "downstream": radius,
         "knowledge": knowledge,
@@ -1193,8 +1221,10 @@ def attention(repo_root, limit=20):
     # shallow-clone label on dig, get_parsers naming every skipped
     # language); one surface in this very function kept it and its
     # neighbour did not.
-    rot_total = len(rot)
-    rot = rot[:limit]
+    # THROUGH THE ONE FUNCTION. This was the third hand-written copy of
+    # rank-bound-report in this module; markers below was the fourth,
+    # and summary held two more that reported nothing at all.
+    rot, rot_report = rank_bound_report(rot, "comment_rot", cap=limit)
 
     markers = []
     for e in ix.entities.values():
@@ -1236,11 +1266,18 @@ def attention(repo_root, limit=20):
                                          current_hash=accepted_for(e)))
         stale_notes += len(unsuperseded_stale(rows))
 
+    markers_shown, markers_report = rank_bound_report(
+        markers, "markers", cap=limit)
+
     return {
         "comment_rot": rot,
-        "comment_rot_total": rot_total,
-        "markers": markers[:limit],
-        "marker_total": len(markers),
+        **rot_report,
+        "markers": markers_shown,
+        **markers_report,
+        # marker_total is kept as it was: the MCP has shipped that key and
+        # renaming a payload field to tidy an internal refactor would break
+        # a caller for nobody's benefit.
+        "marker_total": markers_report["markers_total"],
         "stale_design_docs": stale_docs,
         "stale_notes": stale_notes,
         "note": "each item is a place where recorded intent and current "

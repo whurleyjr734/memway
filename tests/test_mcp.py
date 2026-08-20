@@ -402,3 +402,114 @@ def test_the_briefing_is_ranked_bounded_and_says_so(tmp_path):
     import json as _json
     assert len(_json.dumps(b)) < 12_000, \
         f"briefing is {len(_json.dumps(b)):,} chars - the cap is not holding"
+
+
+def test_one_truncation_rule_and_nothing_reimplements_it():
+    """rank-bound-report has ONE implementation.
+
+    It was written by hand five times before payload.py existed:
+    attention capped markers and comment rot with two differently named
+    totals, summary sliced knowledge entries at 20 and two hot lists at 5
+    and reported NOTHING, and before_edit had just grown a sixth. Five
+    copies is how a rule gets fixed in one place and not the others -
+    the shape this codebase already pins against for the stamping rules
+    (stamp_for / accepted_for) and the ring rule.
+
+    Pinned structurally: the reporting keys are built inside
+    payload.rank_bound_report from the list's own name, so no other module
+    may construct a `<name>_shown` key. A hand-rolled cap elsewhere would
+    have to invent one, and this test would name it.
+    """
+    import ast
+    from memway import payload
+    src_dir = HERE / "memway"
+
+    assert callable(payload.rank_bound_report)
+    shown, rep = payload.rank_bound_report([3, 1, 2], "things", rank=lambda x: x)
+    assert shown == [1, 2, 3], "rank is not applied"
+    assert rep == {"things_total": 3, "things_shown": 3}, rep
+    shown, rep = payload.rank_bound_report(list(range(50)), "things")
+    assert len(shown) == payload.CAP and rep["things_total"] == 50, rep
+
+    offenders = []
+    for f in sorted(src_dir.glob("*.py")):
+        if f.name == "payload.py":
+            continue
+        tree = ast.parse(f.read_text())
+        for node in ast.walk(tree):
+            # a literal "<something>_shown" key anywhere else means a
+            # second implementation of the report half
+            if isinstance(node, ast.Constant) and isinstance(node.value, str) \
+                    and node.value.endswith("_shown"):
+                offenders.append(f"{f.name}: {node.value!r}")
+    assert not offenders, (
+        "these build a truncation report outside payload.py, which is how "
+        f"five copies of this rule happened the first time: {offenders}")
+
+
+def test_every_payload_surface_keeps_its_shape():
+    """The fields agents read, asserted - because none of them were.
+
+    A 96% payload reduction landed with the suite green: `direct_callers`
+    was referenced by exactly ONE assertion in the whole suite and
+    `downstream.direct` by none, so removing a field and truncating a list
+    to twelve went unnoticed. This is the guard that objects next time.
+
+    Deliberately shape, not content: names and types of the keys a caller
+    binds to, so the test survives real changes to the numbers.
+    """
+    import subprocess as sp
+    from memway import query
+    repo = HERE
+    contracts = {
+        # NOTE: no "repo" key - summary has never had one. The first
+        # draft of this contract asserted it and failed, which is the
+        # test working: a shape test is only worth having if it is
+        # written against the payload rather than against memory of it.
+        "summary": (query.summary(str(repo)), [
+            "entities", "edges", "kinds", "languages",
+            "hardest", "hardest_total", "hardest_shown",
+            "hardest_overall", "hardest_overall_total",
+            "entities_by_origin", "knowledge", "map_lag"]),
+        "attention": (query.attention(str(repo)), [
+            "comment_rot", "comment_rot_total", "comment_rot_shown",
+            "markers", "markers_total", "markers_shown", "marker_total",
+            "stale_design_docs", "stale_notes", "note"]),
+        "show": (query.show(str(repo), "memway.query.before_edit"), [
+            "coord_id", "qualname", "kind", "path", "line", "signature",
+            "edges", "edges_total", "edges_shown", "knowledge",
+            "map_lag", "knowledge_lag"]),
+        "before_edit": (query.before_edit(str(repo), "memway.query.before_edit"), [
+            "entity", "metrics", "comments", "grounding", "knowledge",
+            "direct_callers", "direct_callers_total", "direct_callers_shown",
+            "direct_callers_tests", "downstream", "warnings"]),
+    }
+    for tool, (payload, keys) in contracts.items():
+        missing = [k for k in keys if k not in payload]
+        assert not missing, f"{tool} lost payload keys: {missing}"
+
+    s = contracts["summary"][0]
+    assert {"entries", "entries_total", "entries_shown"} <= set(s["knowledge"])
+    d = contracts["before_edit"][0]["downstream"]
+    assert "direct_count" in d and "direct" not in d, \
+        "downstream.direct duplicated direct_callers verbatim; it must not return"
+    from memway.payload import CAP
+    bounded_somewhere = False
+    for tool, (payload, _) in contracts.items():
+        for k, v in payload.items():
+            if not k.endswith("_shown"):
+                continue
+            base = k[:-len("_shown")]
+            total = payload.get(f"{base}_total", 0)
+            assert total >= v, f"{tool}.{k} exceeds its own total"
+            # THE BOUND ITSELF, not just the arithmetic. Asserting only
+            # shown <= total is satisfied by shipping everything and
+            # reporting it - cap=None passed that check, which is how
+            # this assertion earned its place.
+            assert v <= max(CAP, 5), \
+                f"{tool}.{base} shipped {v} entries - the cap is not holding"
+            if total > v:
+                bounded_somewhere = True
+    assert bounded_somewhere, (
+        "no list in any payload was actually truncated, so this test "
+        "cannot tell a bounded surface from an unbounded one")
