@@ -581,6 +581,41 @@ def before_edit(repo: str, ref: str) -> dict:
                 callers.append({"qualname": src.qualname,
                                 "path": src.path, "line": src.lineno})
 
+    # RANKED AND BOUNDED, AND IT SAYS SO. This listed every caller, which
+    # on a hot entity is not a briefing but a dump: DirLocker.Lock in
+    # prometheus returned 342 of them and the whole payload came to 53,534
+    # characters - roughly 13k tokens for one pre-edit check, most of it
+    # test callers nobody asked about.
+    #
+    # The reader almost always wants the same thing: who depends on this
+    # that MATTERS. So production before tests, then the caller's own
+    # fan-in (a caller that many things use tells you more than a leaf),
+    # then qualname so the order is stable across runs.
+    #
+    # THE TRUNCATION IS VISIBLE. This map's own guard message says nothing
+    # is ever sampled silently, and a list that quietly stops at 12 is a
+    # sampled list - so the counts ride alongside and the caller can ask
+    # for the rest with `memway show`.
+    from .verify import is_test_entity
+    _fan = {}
+    for edge in edges:
+        if edge["kind"] == "calls":
+            _fan[edge["dst"]] = _fan.get(edge["dst"], 0) + 1
+    _by_q = {c["qualname"]: c for c in callers}
+
+    def _rank(c):
+        ent = ix.by_qualname.get(c["qualname"])
+        return (1 if is_test_entity(ix.entities[ent]) else 0,
+                -_fan.get(ent, 0), c["qualname"]) if ent else (2, 0, c["qualname"])
+
+    callers.sort(key=_rank)
+    callers_total = len(callers)
+    callers_tests = sum(1 for c in callers
+                        if (q := ix.by_qualname.get(c["qualname"]))
+                        and is_test_entity(ix.entities[q]))
+    CALLER_CAP = 12
+    callers_shown = callers[:CALLER_CAP]
+
     from .blast import blast_radius
     b = blast_radius([e.coord_id], edges)
     affected = []
@@ -608,7 +643,12 @@ def before_edit(repo: str, ref: str) -> dict:
     unresolved = _unresolved_refs_to(ix, edges, e)
     radius = {
         "downstream_count": len(affected),
-        "direct": [a["qualname"] for a in affected if a["depth"] == 1],
+        # DEPTH 1 IS `direct_callers`, ALREADY ABOVE. This repeated all
+        # 342 of them as bare qualnames on prometheus - 15,947 characters
+        # of pure duplication, 100% overlap, measured. The count stays
+        # because the shape of the radius is the point here; the names
+        # live in one place.
+        "direct_count": sum(1 for a in affected if a["depth"] == 1),
         "transitive_count": sum(1 for a in affected if a["depth"] > 1),
         "via_event": [a["qualname"] for a in affected if a["via_event"]],
         "is_lower_bound": bool(b.get("radius_is_lower_bound", False)
@@ -852,7 +892,10 @@ def before_edit(repo: str, ref: str) -> dict:
         "metrics": {"complexity": cx,
                     "fan_in": m.get("fan_in", 0),
                     "churn": m.get("churn", 0)},
-        "direct_callers": callers,
+        "direct_callers": callers_shown,
+        "direct_callers_total": callers_total,
+        "direct_callers_shown": len(callers_shown),
+        "direct_callers_tests": callers_tests,
         "downstream": radius,
         "knowledge": knowledge,
         **({"evidence": _evidence} if _evidence else {}),

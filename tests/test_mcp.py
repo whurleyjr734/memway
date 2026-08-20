@@ -337,3 +337,68 @@ def test_flight_recorder_logs_tool_calls(built):
     # reference-only contract: no payload text fields ever
     assert all(set(l) <= {"ts", "session", "tool", "ref", "ok"}
                for l in lines)
+
+
+def test_the_briefing_is_ranked_bounded_and_says_so(tmp_path):
+    """A briefing is not a dump, and a truncated list must admit it.
+
+    before_edit listed EVERY caller. On prometheus that made one pre-edit
+    check 53,534 characters - roughly 13k tokens - of which 36,677 was a
+    342-entry caller list and 15,947 was `downstream.direct` repeating the
+    same 342 qualnames at 100% overlap. For an agent, which is what this
+    surface is for, that is the density problem in its most expensive
+    form: a context budget, not visual clutter.
+
+    Three properties, and the third is the one this project cares about:
+    the list is RANKED so the first entries are the useful ones, BOUNDED
+    so a hot entity cannot blow the budget, and the truncation is VISIBLE.
+    The guard message elsewhere in this codebase reads "nothing is ever
+    sampled silently", and a list that quietly stops at twelve is a
+    sampled list.
+    """
+    import subprocess as sp
+    # TWO FILES, because is_test_entity classifies by PATH, not by
+    # function name - naming a function test_* inside m.py fooled the
+    # first version of this fixture and it asserted on zero test callers.
+    body = ["class Hub:", "    def target(self):", "        return 1", ""]
+    for i in range(20):                       # 20 production callers
+        body += [f"def worker_{i}(h):", "    return h.target()", ""]
+    # FILE NAMES CHOSEN SO THE UNSORTED ORDER PUTS TESTS FIRST. With
+    # m.py / test_m.py the natural edge order already happened to be
+    # production-first, so deleting the sort changed nothing and the
+    # ranking assertion passed on luck - caught by falsifying it.
+    (tmp_path / "zz_prod.py").write_text("\n".join(body))
+    tb = ["from zz_prod import Hub", ""]
+    for i in range(20):                       # and 20 test callers
+        tb += [f"def test_case_{i}(h):", "    return h.target()", ""]
+    (tmp_path / "aa_test.py").write_text("\n".join(tb))
+    sp.run([sys.executable, "-m", "memway.cli", "init", str(tmp_path)],
+           capture_output=True, cwd=str(HERE))
+
+    from memway.query import before_edit
+    b = before_edit(str(tmp_path), "Hub.target")
+
+    shown, total = b["direct_callers_shown"], b["direct_callers_total"]
+    assert total >= 30, f"fixture produced too few callers to bound: {total}"
+    assert shown < total, "nothing was bounded, so nothing is being tested"
+    assert shown == len(b["direct_callers"]), "the count disagrees with the list"
+    assert b["direct_callers_tests"] > 0, "the fixture has no test callers"
+
+    # RANKED: production first. A briefing that opens with test callers
+    # buries the answer under the scaffolding.
+    from memway.verify import is_test_entity
+    from memway.query import _ctx
+    _, _, ix, _, _ = _ctx(str(tmp_path))
+    kinds = [is_test_entity(ix.entities[ix.by_qualname[c["qualname"]]])
+             for c in b["direct_callers"]]
+    assert not any(kinds[:5]), \
+        f"tests appear in the first five callers: {[c['qualname'] for c in b['direct_callers'][:5]]}"
+
+    # NOT DUPLICATED: the radius reports its shape, not the same names again.
+    assert "direct" not in b["downstream"], \
+        "downstream.direct is back - it repeated direct_callers verbatim"
+    assert isinstance(b["downstream"].get("direct_count"), int)
+
+    import json as _json
+    assert len(_json.dumps(b)) < 12_000, \
+        f"briefing is {len(_json.dumps(b)):,} chars - the cap is not holding"
