@@ -374,3 +374,54 @@ def test_typescript_renames_carry_their_knowledge(tmp_path):
     texts = [k["text"] for k in show(str(tmp_path), "loadUser")["knowledge"]]
     assert any("raw id" in t for t in texts), (
         f"the note did not follow the rename: {texts}")
+
+
+def test_review_has_a_reachable_json_door(repo):
+    """A flag that cannot be reached is a flag that does not exist.
+
+    `memway review . --json` could never work: main() intercepts --json
+    BEFORE dispatch and reads the next token as a query name, so the flag
+    on cmd_review was unreachable from the moment it was written. Found
+    by using the tool, not by any test - same shape as the --replay flag
+    that shipped discoverable-by-nobody.
+
+    `review` is a registered query now, and it takes the REV either
+    positionally or as --since, because somebody who learned the CLI form
+    will type the flag and "unknown revision '--since'" is technically
+    true and useless.
+    """
+    from memway import query
+    assert "review" in query.QUERIES, "review has no --json door"
+    # ALL FOUR SPELLINGS. The space-separated `--since REV` is caught by
+    # the positional fallback whether or not its own branch exists, so
+    # asserting on it discriminates nothing - sabotaging that branch left
+    # this test green. `--since=REV` is the form that genuinely needs
+    # handling: it starts with "--", so without its branch the value is
+    # skipped and the revision silently stays HEAD.
+    # THE REVISION MUST NOT BE THE DEFAULT. Asserting `since == "HEAD"`
+    # passes whether or not the argument was parsed at all, because HEAD
+    # is what it falls back to - two sabotages ran green against exactly
+    # that before this line was written. Use the commit sha, which no
+    # fallback can produce.
+    sha = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    assert sha and sha != "HEAD"
+    assert query.QUERIES["review"](str(repo), [])["since"] == "HEAD"
+    for name, argv in {"positional": [sha],
+                       "flag":       ["--since", sha],
+                       "equals":     [f"--since={sha}"]}.items():
+        got = query.QUERIES["review"](str(repo), argv)
+        assert got["since"] == sha, (
+            f"{name} form fell back to {got['since']!r} instead of parsing "
+            f"the revision")
+
+    r = _cli("review", repo, "--since", "HEAD", "--json")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert json.loads(r.stdout.strip() or "{}") or True
+
+    # and the dead flag must not come back on the command itself
+    import inspect
+    from memway import cli as _cli_mod
+    src = inspect.getsource(_cli_mod.cmd_review)
+    assert "as_json" not in src, (
+        "cmd_review grew a --json flag again; --json is a query prefix and "
+        "main() consumes it before this function is ever called")

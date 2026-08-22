@@ -65,16 +65,16 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway review [repo] [--since REV]  knowledge added since REV, each
                                         entry paired with the one it
                                         supersedes. A line diff cannot
-                                        show that [--json]
+                                        show that
   memway attention <repo>             the queue: stale knowledge, comment
                                         rot, drifted design docs, markers
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --version                    print the installed version (-V)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage, dig, search,
-                                        attention, verify-change (which
+                                        review, attention, verify-change (which
                                         also names the knowledge your
-                                        change just staled). All nine are
+                                        change just staled). All ten are
                                         reads: .coord is left untouched.
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
@@ -952,22 +952,22 @@ def cmd_review(repo=".", *args):
     """What this change did to the map's knowledge, paired for review."""
     since = "HEAD"
     rest = list(args)
-    as_json = False
     while rest:
         a = rest.pop(0)
         if a == "--since" and rest:
             since = rest.pop(0)
         elif a.startswith("--since="):
             since = a.split("=", 1)[1]
-        elif a == "--json":
-            as_json = True
         else:
-            raise SystemExit(f"unknown flag {a!r} - use --since REV, --json")
+            raise SystemExit(
+                f"unknown flag {a!r} - use --since REV. For JSON, "
+                f"`memway --json review <repo> [REV]`: --json is a query "
+                f"prefix, not a flag, and a --json here was unreachable.")
     from .review import review, render
     r = review(repo, since)
     if r.get("error"):
         print(r["error"]); sys.exit(1)
-    print(json.dumps(r, indent=2) if as_json else render(r))
+    print(render(r))
 
 
 def cmd_search(repo=".", *args):

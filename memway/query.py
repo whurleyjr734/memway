@@ -1082,6 +1082,34 @@ def at(repo: str, location: str) -> dict:
 
 
 # router used by both the --json CLI path and the MCP server
+def _review_q(repo, a):
+    """`memway --json review <repo> [REV]`, and it accepts `--since REV`.
+
+    Somebody who learned the CLI form types the flag here, and the naive
+    version answered "unknown revision '--since'" - technically true and
+    useless. Taking both spellings costs two lines; sending a reader to
+    diff the two surfaces by eye costs a session.
+    """
+    from .review import review
+    args = list(a or [])
+    since = "HEAD"
+    for x in args:
+        # NO BRANCH FOR `--since REV`. It had one, and no sabotage could
+        # break it: the flag itself is skipped as a "--" token and the
+        # value that follows is caught by the positional case below, so
+        # the branch never decided anything. A branch a falsification
+        # cannot reach is a branch doing no work.
+        #
+        # `--since=REV` DOES need its own case: it starts with "--", so
+        # without this it is skipped and the revision silently stays at
+        # the default.
+        if x.startswith("--since="):
+            since = x.split("=", 1)[1]
+        elif not x.startswith("--"):
+            since = x
+    return review(repo, since)
+
+
 def _search_q(repo, a):
     from .review import search
     if not a:
@@ -1094,6 +1122,12 @@ QUERIES = {
     # The one read that starts from a SUBJECT rather than a coordinate.
     # Third door, same function - the surfaces test requires all three.
     "search": lambda repo, a: _search_q(repo, a),
+    # `memway review . --json` could never work: main() intercepts --json
+    # before dispatch and reads the next token as a QUERY NAME, so the flag
+    # on cmd_review was unreachable from the moment it was written. Same
+    # shape as the --replay flag that existed and could not be discovered.
+    # One door, the established one.
+    "review": lambda repo, a: _review_q(repo, a),
     "lineage": lambda repo, a: lineage(repo, a[0]),
     "at": lambda repo, a: at(repo, a[0]),
     "summary": lambda repo, a: summary(repo),

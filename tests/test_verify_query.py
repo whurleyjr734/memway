@@ -90,6 +90,7 @@ def test_verify_change_is_a_registered_query():
         "summary", "at", "show", "before-edit", "lineage", "dig",
         "verify-change", "attention",
         "search",
+        "review",
     }, sorted(query.QUERIES)
 
 

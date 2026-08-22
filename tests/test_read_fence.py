@@ -92,6 +92,9 @@ READS = {
     # write would be least likely to be noticed.
     "search":      lambda r: __import__("memway.review", fromlist=["search"])
                                 .search(str(r), "alpha"),
+    # review shells out to git and reads .coord/meta; it must not write.
+    "review":      lambda r: __import__("memway.review", fromlist=["review"])
+                                .review(str(r), "HEAD"),
     "attention":     lambda r: query.attention(str(r)),
 }
 
