@@ -7,10 +7,22 @@
 # that can refuse without that failure mode.
 name: map
 
+# THE TAG FILTER IS LOAD-BEARING, NOT DECORATION. `branches: [main]` alone
+# means a tag push matches nothing and starts no run at all - so
+# release-map, which is gated on `startsWith(github.ref, 'refs/tags/v')`,
+# was false on every run the workflow could receive. It shipped in 0.60.0
+# and never executed once. Verified after v0.61.0: the tag produced zero
+# runs, and the branch run reported release-map as `skipped`.
+#
+# Same shape as the `--json review` flag fixed in 0.60.1 - a branch whose
+# precondition the surrounding code can never supply. Every conditional
+# needs a run in which it is TRUE, and nothing here proves that but a real
+# tag.
 on:
   pull_request:
   push:
     branches: [main]
+    tags: ["v*"]
 
 jobs:
   knowledge:
