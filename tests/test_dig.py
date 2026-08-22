@@ -520,7 +520,7 @@ def test_mcp_registers_dig_and_states_the_callers_job():
     assert "caller" in d, "the description must hand judgment to the caller"
     assert "never gates" in d and "never writes" in d
     assert t["inputSchema"]["required"] == ["ref"]
-    assert len(TOOLS) == 10, "dig is the tenth tool"
+    assert len(TOOLS) == 11, "dig ships alongside the other tools"
 
 
 def test_cli_help_states_the_contract():

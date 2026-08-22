@@ -1082,8 +1082,18 @@ def at(repo: str, location: str) -> dict:
 
 
 # router used by both the --json CLI path and the MCP server
+def _search_q(repo, a):
+    from .review import search
+    if not a:
+        return {"error": "usage: memway --json search <repo> <query> [channel]"}
+    return search(repo, a[0], a[1] if len(a) > 1 else "")
+
+
 QUERIES = {
     "show": lambda repo, a: show(repo, a[0]),
+    # The one read that starts from a SUBJECT rather than a coordinate.
+    # Third door, same function - the surfaces test requires all three.
+    "search": lambda repo, a: _search_q(repo, a),
     "lineage": lambda repo, a: lineage(repo, a[0]),
     "at": lambda repo, a: at(repo, a[0]),
     "summary": lambda repo, a: summary(repo),
@@ -1191,6 +1201,64 @@ def verify_change(repo_root, run=False):
                 "text": row.get("text", ""),
             })
     result["staled_knowledge"] = staled
+
+    # KNOWLEDGE ON THE CALLERS, one layer out. staled_knowledge asks what
+    # the change invalidated ON the changed entity - the stamp says so.
+    # But a note on a CALLER that names the thing you just changed is the
+    # next most likely to be quietly wrong, and no stamp will ever catch
+    # it: the caller's own body did not move, so its entries stay fresh
+    # while the fact they describe has changed underneath.
+    #
+    # A HEURISTIC, LABELLED AS ONE. Mentioning a name is not evidence a
+    # note is wrong; it is evidence of where to look. So these are
+    # reported separately from staled_knowledge, never counted with it,
+    # and `--gate` does not block on them. A guess promoted to a verdict
+    # is the failure this project keeps finding in its own output.
+    at_risk = []
+    changed_names = {}
+    for cid in dict.fromkeys(result.get("changed_ids", [])):
+        ent = ix.entities.get(cid)
+        if ent:
+            changed_names[_short(ent.qualname)] = ent.qualname
+    if changed_names:
+        changed_set = set(result.get("changed_ids", []))
+        callers: dict = {}
+        for e in edges:
+            if e.get("kind") != "calls":
+                continue
+            if e["dst"] in changed_set and e["src"] not in changed_set:
+                callers.setdefault(e["src"], set()).add(e["dst"])
+        for src, dsts in callers.items():
+            src_ent = ix.entities.get(src)
+            if not src_ent:
+                continue
+            rows = for_display(meta.read_all(src, accepted_for(src_ent)))
+            for row in rows:
+                if row.get("superseded"):
+                    continue
+                text_l = (row.get("text") or "").lower()
+                named = sorted({changed_names[n] for d in dsts
+                                for n in [_short(ix.entities[d].qualname)]
+                                if n and n.lower() in text_l})
+                if named:
+                    at_risk.append({
+                        "coordinate": src,
+                        "qualname": src_ent.qualname,
+                        "channel": row.get("channel", ""),
+                        "mentions": named,
+                        "text": row.get("text", ""),
+                    })
+    shown_risk, risk_report = rank_bound_report(
+        at_risk, "knowledge_at_risk",
+        rank=lambda k: (-len(k["mentions"]), k["qualname"]))
+    result["knowledge_at_risk"] = shown_risk
+    result.update(risk_report)
+    result["knowledge_at_risk_note"] = (
+        "notes on CALLERS that name something this change touched. Their "
+        "own stamps are still fresh - the caller's body did not move - so "
+        "nothing else will flag them. A mention is where to look, not "
+        "proof of error, and --gate does not block on these."
+    )
 
     # Which COMMENTS did this change rot? The same question one layer out:
     # staled_knowledge asks what the change invalidated in the map, this
@@ -1337,15 +1405,43 @@ def attention(repo_root, limit=20):
     # and summary held two more that reported nothing at all.
     rot, rot_report = rank_bound_report(rot, "comment_rot", cap=limit)
 
-    markers = []
+    # ONE MARKER, ONE ENTITY - the innermost that contains it.
+    #
+    # Comments are attributed by line containment, so a FIXME inside a
+    # method belongs to the method AND its class AND its module, and the
+    # queue listed it three times. Measured on a three-comment fixture:
+    # six markers. That is the attention queue inflating its own count,
+    # which is how a queue stops being worked - the same disease as the
+    # 43-vs-3 incident recorded on this function.
+    #
+    # (file, line) identifies the comment; the entity with the SMALLEST
+    # span containing that line is the one that owns it. Exact, because
+    # comments carry their line - not a guess from matching text.
+    _claims: dict = {}
     for e in ix.entities.values():
         for c in getattr(e, "comments", []) or []:
             mk = _re.match(r"(TODO|FIXME|HACK|XXX)\b[:\s]*(.*)",
                            c["text"], _re.I)
-            if mk:
-                markers.append({"tag": mk.group(1).upper(),
-                                "entity": e.qualname,
-                                "text": mk.group(2)[:100]})
+            if not mk:
+                continue
+            # THE LINE IS ENTITY-RELATIVE, not absolute in the file -
+            # measured, because keying on it directly deduped nothing:
+            # the same FIXME reads line 5 on the module, 4 on the class
+            # and 2 on the method. lineno + line - 1 gives 5 for all
+            # three, which is what makes them one marker.
+            try:
+                rel = int(c.get("line") or 0)
+            except (TypeError, ValueError):
+                rel = 0
+            line = (e.lineno or 1) + rel - 1 if rel else 0
+            key = (e.path, line, mk.group(1).upper(), mk.group(2)[:100])
+            span = (getattr(e, "end_lineno", 0) or 0) - (e.lineno or 0)
+            prev = _claims.get(key)
+            if prev is None or span < prev[0]:
+                _claims[key] = (span, {"tag": mk.group(1).upper(),
+                                       "entity": e.qualname,
+                                       "text": mk.group(2)[:100]})
+    markers = [v for _, v in _claims.values()]
     markers.sort(key=lambda x: ("FIXME", "HACK", "XXX", "TODO"
                                 ).index(x["tag"]))
 

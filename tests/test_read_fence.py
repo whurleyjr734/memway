@@ -87,6 +87,11 @@ READS = {
     # deliberate. It is a pure read now, and this is where the guarantee
     # lives. attention was never enrolled because it was never a query.
     "verify_change": lambda r: query.verify_change(str(r)),
+    # search reads every meta channel on every coordinate - the widest
+    # read in the codebase, and therefore the one where an accidental
+    # write would be least likely to be noticed.
+    "search":      lambda r: __import__("memway.review", fromlist=["search"])
+                                .search(str(r), "alpha"),
     "attention":     lambda r: query.attention(str(r)),
 }
 

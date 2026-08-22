@@ -107,6 +107,8 @@ def review(repo: str, since: str = "HEAD") -> dict:
                 "supersedes": (previous.get("text") if previous else None),
                 "supersedes_author": (previous.get("author")
                                       if previous else None),
+                # the REASON the belief changed, when the author gave one
+                "replaces": en.get("replaces") or None,
             })
             previous = en
 
@@ -161,6 +163,91 @@ def render(result: dict, width: int = 78) -> str:
         lines.append(f"    + {clip(a['text'])}")
         if a["supersedes"]:
             lines.append(f"    ↳ supersedes: {clip(a['supersedes'])}")
+            if a.get("replaces"):
+                lines.append(f"      because: {clip(a['replaces'])}")
         else:
             lines.append("    ↳ first entry in this channel")
     return "\n".join(lines)
+
+
+def search(repo: str, query: str, channel: str = "", limit: int = 12) -> dict:
+    """Which coordinates hold knowledge mentioning `query`.
+
+    THE MISSING DIRECTION. Every other read starts from a coordinate:
+    you know what you are looking at and ask what is known about it. An
+    agent opening a task has the opposite problem - it knows a SUBJECT
+    ("proxies", "timeout", "retry") and no idea which coordinates were
+    ever taught anything about it. Without this the only way to find
+    prior reasoning is to already know where it lives, which means
+    accumulated knowledge is stored but not findable, and the same
+    ground gets re-derived.
+
+    Case-insensitive substring across channels. Deliberately not fuzzy
+    and not ranked by relevance: this is grep, and a grep that guesses is
+    harder to trust than one that does exactly what it says. Matches are
+    ordered by how many entries a coordinate has on the subject, which is
+    a fact rather than a judgement.
+
+    SUPERSEDED ENTRIES ARE SEARCHED AND LABELLED, not skipped. A note
+    somebody replaced is often exactly what you want when asking "was
+    this considered before" - but it must arrive marked as history.
+    """
+    from .query import _ctx
+    from .metadata import for_display, accepted_for
+
+    q = (query or "").strip().lower()
+    if not q:
+        return {"error": "empty query"}
+    if channel and channel not in CHANNELS:
+        return {"error": f"unknown channel {channel!r}; "
+                         f"expected one of {sorted(CHANNELS)}"}
+    ctx = _ctx(repo)
+    if not ctx:
+        return {"error": f"no index at {repo}; run memway init first"}
+    _, _coord, ix, _edges, meta = ctx
+
+    hits = []
+    for cid, ent in ix.entities.items():
+        rows = for_display(meta.read_all(cid, current_hash=accepted_for(ent)))
+        found = []
+        for r in rows:
+            if channel and r["channel"] != channel:
+                continue
+            text = r.get("text", "")
+            if q in text.lower():
+                found.append({
+                    "channel": r["channel"],
+                    "stale": bool(r.get("stale")),
+                    "superseded": bool(r.get("superseded")),
+                    "author": r.get("author", ""),
+                    "excerpt": _excerpt(text, q),
+                })
+        if found:
+            hits.append({
+                "coordinate": cid,
+                "qualname": ent.qualname,
+                "kind": ent.kind,
+                "path": ent.path,
+                "matches": len(found),
+                "live": sum(1 for f in found if not f["superseded"]),
+                "entries": found[:3],
+            })
+    shown, report = rank_bound_report(
+        hits, "hits", rank=lambda h: (-h["live"], -h["matches"], h["qualname"]),
+        cap=limit)
+    return {"query": query, "channel": channel or "all",
+            "hits": shown, **report,
+            "note": ("superseded entries are included and marked - prior "
+                     "reasoning somebody replaced is often what you want "
+                     "when asking whether something was considered before")}
+
+
+def _excerpt(text: str, q: str, width: int = 160) -> str:
+    """The matched sentence, not the first N characters of the entry."""
+    flat = " ".join(text.split())
+    i = flat.lower().find(q)
+    if i < 0:
+        return flat[:width]
+    start = max(0, i - width // 3)
+    end = min(len(flat), i + width - (i - start))
+    return ("…" if start else "") + flat[start:end] + ("…" if end < len(flat) else "")

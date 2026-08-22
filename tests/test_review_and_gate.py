@@ -203,3 +203,174 @@ def test_knowledge_is_bounded_and_the_deciding_entry_survives(repo):
             "decides was truncated away")
         assert surface["knowledge"][0]["superseded"] is False, (
             "history is ordered ahead of the deciding entry")
+
+
+# ---------------------------------------------------------------- unparsed
+
+def test_a_file_nobody_parsed_is_not_a_file_with_no_changes(tmp_path):
+    """THE HOLE, and the gate made it worse before this.
+
+    PythonParser returned ([], []) on a SyntaxError, so a broken file
+    indexed as zero entities - indistinguishable from an empty file.
+    verify-change then reported "no entity-level changes detected" and
+    --gate exited 0: CI would certify a change whose impact had never
+    been computed. A gate that passes on an unanalysed change converts
+    "we did not look" into "we checked", which is worse than no gate.
+    """
+    (tmp_path / "ok.py").write_text("def good(x):\n    return x + 1\n")
+    assert _cli("init", tmp_path).returncode == 0
+    (tmp_path / "bad.py").write_text("def broken(:\n    nope\n")
+
+    from memway.query import verify_change
+    r = verify_change(str(tmp_path))
+    assert r.get("unparsed"), "an unparsed file was reported as nothing"
+    assert "bad.py" in r["unparsed"][0]["file"]
+    assert "UNKNOWN" in r["note"], r["note"]
+
+    g = _cli("verify-change", tmp_path, "--gate")
+    assert g.returncode == 1, "the gate passed on a file nobody parsed"
+    assert "could not be parsed" in g.stdout
+
+
+# ------------------------------------------------------------------ search
+
+def test_search_finds_prior_reasoning_by_subject(repo):
+    """The one read that does NOT start from a coordinate.
+
+    Every other surface needs you to already know where to look, which
+    means accumulated knowledge is stored but not findable and the same
+    ground gets re-derived.
+    """
+    _cli("meta", repo, "alpha", "notes",
+         "Proxy handling: we pass the env var through untouched.")
+    from memway.review import search
+    r = search(str(repo), "proxy")
+    assert r["hits_total"] >= 1, r
+    assert any("alpha" in h["qualname"] for h in r["hits"])
+    assert "proxy" in r["hits"][0]["entries"][0]["excerpt"].lower()
+    assert search(str(repo), "nothing-mentions-this")["hits_total"] == 0
+    assert search(str(repo), "")["error"]
+    assert search(str(repo), "proxy", channel="nope")["error"]
+
+
+def test_search_returns_superseded_entries_marked_as_history(repo):
+    """What somebody already considered and replaced is often exactly
+    what you want when asking whether a thing was thought about - but it
+    has to arrive labelled, or it reads as current belief."""
+    _cli("meta", repo, "alpha", "notes", "Retry policy: three attempts.")
+    _cli("meta", repo, "alpha", "notes", "SUPERSEDES: retry policy is now one.")
+    from memway.review import search
+    r = search(str(repo), "retry policy")
+    entries = r["hits"][0]["entries"]
+    assert any(e["superseded"] for e in entries), (
+        "superseded reasoning was dropped; it is the part that answers "
+        "'was this considered before'")
+    assert any(not e["superseded"] for e in entries)
+
+
+# ----------------------------------------------------------------- markers
+
+def test_one_marker_belongs_to_one_entity(tmp_path):
+    """A FIXME inside a method belonged to the method AND its class AND
+    its module, so the queue listed it three times - three comments
+    produced six markers, the attention queue inflating its own count.
+
+    The comment's `line` is ENTITY-RELATIVE, which is why keying on it
+    directly deduped nothing: the same FIXME reads line 5 on the module,
+    4 on the class and 2 on the method. lineno + line - 1 makes them one.
+    """
+    (tmp_path / "m.py").write_text(
+        "# XXX: this needs work\n"
+        "class Thing:\n"
+        "    # TODO: and this\n"
+        "    def go(self):\n"
+        "        # FIXME: really\n"
+        "        return 1\n")
+    _cli("init", tmp_path)
+    from memway.query import attention
+    a = attention(str(tmp_path))
+    assert a["markers_total"] == 3, (
+        f"{a['markers_total']} markers for 3 comments: {a['markers']}")
+    owner = {m["tag"]: m["entity"] for m in a["markers"]}
+    assert owner["FIXME"].endswith("Thing.go"), owner
+    assert owner["TODO"].endswith("Thing"), owner
+    assert owner["XXX"] == "m", owner
+
+
+# ------------------------------------------------------------- replaces
+
+def test_supersession_can_carry_its_reason(repo):
+    """A pair of texts leaves the reader to infer WHY the belief changed,
+    and the why is the part that does not survive in anybody's head."""
+    _cli("meta", repo, "alpha", "notes", "It is *99 now.",
+         "--replaces", "callers moved to 0-indexing in #412")
+    from memway.review import review, render
+    r = review(str(repo), "HEAD")
+    a = [x for x in r["added"] if "99" in x["text"]][0]
+    assert a["replaces"] == "callers moved to 0-indexing in #412"
+    assert "because: callers moved to 0-indexing" in render(r)
+
+
+# ------------------------------------------------------- knowledge at risk
+
+def test_notes_on_callers_that_name_the_change_are_flagged(tmp_path):
+    """One layer out from staled_knowledge, and no stamp will ever catch it.
+
+    A note on a CALLER that names the thing you changed stays FRESH - the
+    caller's own body did not move - while the fact it describes has
+    changed underneath.
+
+    A HEURISTIC, LABELLED. Reported separately, never counted with
+    staled_knowledge, and --gate does not block on it: a mention is where
+    to look, not proof of error.
+    """
+    (tmp_path / "m.py").write_text(
+        "def fetch(url, timeout):\n    return url\n\n"
+        "def caller(u):\n    return fetch(u, 5)\n")
+    _cli("init", tmp_path)
+    _cli("meta", tmp_path, "caller", "notes",
+         "Relies on fetch defaulting to a 5s timeout.")
+    (tmp_path / "m.py").write_text(
+        "def fetch(url, timeout, retries):\n    return url\n\n"
+        "def caller(u):\n    return fetch(u, 5)\n")
+
+    from memway.query import verify_change
+    r = verify_change(str(tmp_path))
+    risk = r["knowledge_at_risk"]
+    assert risk, "a caller's note naming the changed entity was not flagged"
+    assert any(m.endswith("fetch") for m in risk[0]["mentions"]), risk
+    assert not any(k["coordinate"] == risk[0]["coordinate"]
+                   for k in (r.get("staled_knowledge") or [])), (
+        "an at-risk note was counted as staled - a guess promoted to a verdict")
+    assert _cli("verify-change", tmp_path, "--gate").returncode == 0, (
+        "the gate blocked on a heuristic")
+
+
+# --------------------------------------------------------------- typescript
+
+def test_typescript_renames_carry_their_knowledge(tmp_path):
+    """`parseable` and `supported` are different claims.
+
+    The TS grammar was wired and rename tracking was never proven, so the
+    honest status was "we think so". This is the proof: rename a method,
+    the lineage records it and the note follows.
+    """
+    pytest.importorskip("tree_sitter_typescript")
+    (tmp_path / "svc.ts").write_text(
+        "export class Client {\n"
+        "  fetchUser(id: string): string {\n    return id;\n  }\n}\n")
+    _cli("init", tmp_path)
+    _cli("meta", tmp_path, "fetchUser", "notes",
+         "Returns the raw id; callers must not assume a User object.")
+    (tmp_path / "svc.ts").write_text(
+        "export class Client {\n"
+        "  loadUser(id: string): string {\n    return id;\n  }\n}\n")
+    _cli("index", tmp_path)
+
+    from memway.query import lineage, show
+    lin = lineage(str(tmp_path), "loadUser")
+    assert lin.get("history"), f"no rename recorded: {lin}"
+    assert "fetchUser" in lin["history"][0]["note"], lin
+    texts = [k["text"] for k in show(str(tmp_path), "loadUser")["knowledge"]]
+    assert any("raw id" in t for t in texts), (
+        f"the note did not follow the rename: {texts}")

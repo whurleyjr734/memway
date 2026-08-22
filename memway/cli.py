@@ -16,6 +16,8 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway at <repo> <file:line>        grep hit -> entity (the handoff)
   memway show <repo> <ref>            entity dossier: edges + knowledge
   memway meta <repo> <ref> <ch> <txt> attach knowledge at a coordinate
+                                        [--replaces WHY] the reason this
+                                          supersedes what came before
                                         [--author WHO] (default: cli)
   memway pull <name>[@version]        fetch a published map into .coord
                                         [--into DIR] [--source URL]
@@ -56,6 +58,10 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         [--gate] exit 1 if AUTHORED
                                         knowledge (notes/docs) was staled
                                         and left unanswered - the CI check
+  memway search <repo> <query>        which coordinates hold knowledge
+                                        mentioning a subject - the one
+                                        read that does not start from a
+                                        coordinate [--channel CH] [--json]
   memway review [repo] [--since REV]  knowledge added since REV, each
                                         entry paired with the one it
                                         supersedes. A line diff cannot
@@ -65,10 +71,10 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway mcp [repo]                   run the MCP server (agent wiring)
   memway --version                    print the installed version (-V)
   memway --json <q> <repo> [args]     structured: summary, at, show,
-                                        before-edit, lineage, dig,
+                                        before-edit, lineage, dig, search,
                                         attention, verify-change (which
                                         also names the knowledge your
-                                        change just staled). All eight are
+                                        change just staled). All nine are
                                         reads: .coord is left untouched.
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
@@ -380,7 +386,7 @@ def cmd_show(repo, ref):
                   f"{entry['text']}")
 
 
-def cmd_meta(repo, ref, channel, text, author="cli"):
+def cmd_meta(repo, ref, channel, text, author="cli", replaces=""):
     """Attach knowledge at a coordinate.
 
     author defaults to "cli", NOT "human": MetaStore.add's own default is
@@ -409,7 +415,14 @@ def cmd_meta(repo, ref, channel, text, author="cli"):
         stamp = stamp_for(e, repo)
     except GhostEntity as exc:
         print(str(exc)); sys.exit(1)
-    meta.add(e.coord_id, channel, text, author=author, body_hash=stamp)
+    # WHY THE BELIEF CHANGED, not just what replaced what. Supersession is
+    # positional, so review can already show the pair - but a pair of texts
+    # leaves the reader to infer the reason, and the reason is the part
+    # that does not survive in anybody's head. Rides in **extra, so no
+    # schema change and older entries simply lack it.
+    _extra = {"replaces": replaces} if replaces else {}
+    meta.add(e.coord_id, channel, text, author=author, body_hash=stamp,
+             **_extra)
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
 
@@ -957,6 +970,45 @@ def cmd_review(repo=".", *args):
     print(json.dumps(r, indent=2) if as_json else render(r))
 
 
+def cmd_search(repo=".", *args):
+    """Which coordinates hold knowledge mentioning a subject."""
+    query, channel, as_json = "", "", False
+    rest = list(args)
+    while rest:
+        a = rest.pop(0)
+        if a == "--channel" and rest:
+            channel = rest.pop(0)
+        elif a.startswith("--channel="):
+            channel = a.split("=", 1)[1]
+        elif a == "--json":
+            as_json = True
+        elif a.startswith("--"):
+            raise SystemExit(f"unknown flag {a!r} - use --channel CH, --json")
+        else:
+            query = (query + " " + a).strip()
+    if not query:
+        raise SystemExit("usage: memway search <repo> <query> "
+                         "[--channel notes|docs|confirm] [--json]")
+    from .review import search
+    r = search(repo, query, channel)
+    if r.get("error"):
+        print(r["error"]); sys.exit(1)
+    if as_json:
+        print(json.dumps(r, indent=2)); return
+    n, tot = r["hits_shown"], r["hits_total"]
+    print(f"{tot} coordinate(s) mention {r['query']!r}"
+          + (f" (showing {n})" if n < tot else "")
+          + (f" in {r['channel']}" if r["channel"] != "all" else ""))
+    for h in r["hits"]:
+        print(f"\n  {h['coordinate']}  {h['qualname']}  [{h['kind']}]")
+        print(f"    {h['path']} - {h['matches']} entr"
+              f"{'y' if h['matches'] == 1 else 'ies'}, {h['live']} live")
+        for e in h["entries"]:
+            tag = ("superseded" if e["superseded"]
+                   else "stale" if e["stale"] else e["channel"])
+            print(f"      [{tag}] {e['excerpt']}")
+
+
 def cmd_verify_change(repo=".", *args, gate=False):
     """Post-change impact AND the knowledge this change staled.
 
@@ -984,6 +1036,11 @@ def cmd_verify_change(repo=".", *args, gate=False):
     r = query.verify_change(repo)
     if "error" in r:
         print(r["error"]); sys.exit(1)
+    unparsed = r.get("unparsed") or []
+    if unparsed:
+        print(f"  UNPARSED ({len(unparsed)}) - impact is UNKNOWN, not zero:")
+        for u in unparsed:
+            print(f"    {u['file']}  {u['error'][:90]}")
     changed = r.get("changed") or []
     print(f"changed: {len(changed)}" + (f" - {', '.join(changed[:6])}" if changed else ""))
     print(f"  impacted: {r.get('impacted', 0)}")
@@ -1019,6 +1076,18 @@ def cmd_verify_change(repo=".", *args, gate=False):
         print("  comment rot: none")
 
     if gate:
+        # AN UNPARSED FILE FAILS THE GATE. Before this, a syntax error
+        # produced zero entities, zero changes and exit 0 - so CI would
+        # certify a change whose impact had never been computed. That is
+        # worse than no gate: a gate that passes on an unanalysed change
+        # converts "we did not look" into "we checked".
+        if unparsed:
+            print()
+            print(f"GATE: {len(unparsed)} file(s) could not be parsed, so "
+                  f"the impact of this change is unknown")
+            for u in unparsed:
+                print(f"  {u['file']}")
+            sys.exit(1)
         # AUTHORED KNOWLEDGE ONLY - see the docstring. A staled `confirm`
         # is a prompt; a staled `notes` or `docs` is a reason somebody
         # wrote down that the code has moved out from under.
@@ -1182,7 +1251,7 @@ COMMANDS = {
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
-    "viz": cmd_viz, "console": cmd_console, "review": cmd_review,
+    "viz": cmd_viz, "console": cmd_console, "review": cmd_review, "search": cmd_search,
     "pull": cmd_pull, "attention": cmd_attention,
     # The three read doors that existed over MCP and --json but not here.
     # verify-change is the one that mattered: the pre-commit hook had
@@ -1271,7 +1340,7 @@ def _usage_line(cmd: str) -> str:
 # line - was rejected with "applies to 'pull' only", because pull happened
 # to claim --force first. The usage text and the parser disagreed, and the
 # usage text was right.
-VALUE_FLAGS = {"--author": ("meta",), "--source": ("pull",),
+VALUE_FLAGS = {"--author": ("meta",), "--replaces": ("meta",), "--source": ("pull",),
                "--into": ("pull",)}
 BOOL_FLAGS = {"--force": ("pull", "viz", "console"),
               "--gate": ("verify-change",),

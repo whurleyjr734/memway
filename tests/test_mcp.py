@@ -160,6 +160,7 @@ def test_tools_list_advertises_every_tool(built):
                      "memway_dig",
                      "memway_verify_change", "memway_probe", "memway_meta",
                      "memway_attention",
+        "memway_search",
                      "memway_show", "memway_lineage",
                      "memway_before_edit"}
     for t in r["result"]["tools"]:                  # schema well-formed
@@ -200,7 +201,12 @@ def test_serve_loop_processes_lines(built):
     mcp.serve(built, stdin=inp, stdout=outp)
     lines = [json.loads(l) for l in outp.getvalue().splitlines() if l]
     assert lines[0]["result"]["serverInfo"]["name"] == "memway"
-    assert len(lines[1]["result"]["tools"]) == 10
+    # DERIVED, not restated. A hard-coded tool count is a constant
+    # describing behaviour, which is invisible to a test that checks
+    # behaviour (lesson 11) - it fails on every new tool and teaches
+    # you to bump the number rather than ask whether the tool is
+    # advertised. What matters is that the loop returns ALL of them.
+    assert len(lines[1]["result"]["tools"]) == len(mcp.TOOLS)
 
 
 # ------------------------------------------------------- before_edit

@@ -25,6 +25,11 @@ from pathlib import Path
 from . import query
 
 
+def _search(repo, query, channel=""):
+    from .review import search
+    return search(repo, query, channel)
+
+
 TOOLS = [
     {
         "name": "memway_summary",
@@ -126,6 +131,30 @@ TOOLS = [
         "fn": lambda repo, a: query.agent_meta(repo, a["ref"],
                                                a.get("channel", "notes"),
                                                a["text"]),
+    },
+    {
+        "name": "memway_search",
+        "description": "FIND PRIOR REASONING BEFORE YOU START. Every other "
+                       "read starts from a coordinate you already know; this "
+                       "starts from a SUBJECT. Ask 'what do we know about "
+                       "proxies / timeouts / retries' and get the coordinates "
+                       "whose notes mention it, superseded entries included "
+                       "and labelled - what somebody already considered and "
+                       "replaced is often exactly what you need. Without this "
+                       "accumulated knowledge is stored but not findable, and "
+                       "the same ground gets re-derived.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "substring, case-insensitive"},
+                "channel": {"type": "string",
+                            "description": "notes | docs | confirm | history; "
+                                           "omit for all"},
+            },
+            "required": ["query"],
+        },
+        "fn": lambda repo, a: _search(repo, a["query"], a.get("channel", "")),
     },
     {
         "name": "memway_attention",
