@@ -39,6 +39,12 @@ def repo(tmp_path):
     return tmp_path
 
 
+def _coord_of(repo, ref):
+    """The coordinate id for a ref, read back from the map."""
+    r = _cli("--json", "show", repo, ref)
+    return json.loads(r.stdout)["coord_id"]
+
+
 def test_a_line_diff_cannot_show_supersession_but_review_can(repo):
     """THE reason this exists, asserted against git itself.
 
@@ -425,3 +431,69 @@ def test_review_has_a_reachable_json_door(repo):
     assert "as_json" not in src, (
         "cmd_review grew a --json flag again; --json is a query prefix and "
         "main() consumes it before this function is ever called")
+
+
+def test_a_restamp_supersedes_nothing_in_review(repo):
+    """THE SURFACE WHERE A HUMAN JUDGES THE CHANGE, and it was lying.
+
+    A re-stamp carries no claim, so review reported it three wrong ways at
+    once: rendered as `+ ` with no text, announced as having SUPERSEDED
+    the note it was actually vouching for, and - by taking the `previous`
+    slot - it made the next real entry read "first entry in this channel".
+
+    Found by running `memway review` on memway's own release.
+    """
+    from memway.review import review, render
+    # stale the note so the re-stamp is meaningful, then stamp it
+    (repo / "m.py").write_text(
+        'def alpha(x):\n    """Doc."""\n    return x + 2\n')
+    assert _cli("index", repo).returncode == 0
+    assert _cli("affirm", repo, "alpha", "notes").returncode == 0
+
+    r = review(str(repo), since="HEAD")
+    stamps = [a for a in r["added"] if a.get("reaffirms")]
+    assert stamps, f"the re-stamp is not in the review at all: {r['added']}"
+    for s in stamps:
+        assert s["supersedes"] is None, (
+            f"a stamp reported as replacing a claim it vouches for: {s}")
+    assert r["reaffirmed"] == len(stamps), r
+
+    text = render(r)
+    assert "↻ re-stamped" in text, text
+    assert "+ \n" not in text and not text.rstrip().endswith("+"), (
+        f"a stamp rendered as a blank addition:\n{text}")
+
+
+def test_a_restamp_does_not_take_the_supersession_slot(repo):
+    """The cascade. With a stamp sitting in `previous`, the NEXT real note
+    reported itself as the first entry in a channel that already had two."""
+    from memway.review import review
+    (repo / "m.py").write_text(
+        'def alpha(x):\n    """Doc."""\n    return x + 2\n')
+    assert _cli("index", repo).returncode == 0
+    assert _cli("affirm", repo, "alpha", "notes").returncode == 0
+
+    # THE STAMP MUST BE IN THE COMMITTED BASELINE. `previous` is seeded
+    # from the last entry as of `since`, so the bug only bites when that
+    # entry is a stamp. A first version of this test wrote the stamp and
+    # the note in the same uncommitted batch, where the seeding never
+    # matters - it passed against the broken code and proved nothing.
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "stamped", "--no-gpg-sign")
+    banked = json.loads(
+        (repo / ".coord" / "meta" / _coord_of(repo, "alpha") /
+         "notes.jsonl").read_text().splitlines()[-1])
+    assert banked.get("reaffirms"), (
+        f"[fixture] the committed baseline does not end in a stamp: {banked}")
+
+    assert _cli("meta", repo, "alpha", "notes",
+                "actually the +2 is what matters now").returncode == 0
+
+    r = review(str(repo), since="HEAD")
+    claims = [a for a in r["added"] if not a.get("reaffirms")]
+    assert len(claims) == 1, claims
+    assert claims[0]["supersedes"], (
+        "the new note reported itself as first, because a stamp was "
+        "standing in for the claim it should have superseded")
+    assert "load-bearing" in claims[0]["supersedes"], claims[0]

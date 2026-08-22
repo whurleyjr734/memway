@@ -490,6 +490,14 @@ def cmd_affirm(repo, ref, channel="confirm", author="cli"):
         print(f'  write the first one with: '
               f'memway meta {repo} {ref} {channel} "<what you checked>"')
         sys.exit(1)
+    if entry is None:
+        # Nothing was stale, so nothing was written. Exit 0 - a sweep over
+        # many coordinates must not fail on the ones that were already
+        # fine - but say so plainly, because "re-stamped" on a no-op is
+        # how the store fills with entries that record nothing.
+        print(f"already current: every {channel} entry at {e.coord_id} "
+              f"({e.qualname}) is stamped at this hash - nothing written")
+        return
     n = entry["reaffirms"]
     print(f"re-stamped {n} {channel} "
           f"{'entry' if n == 1 else 'entries'} at {e.coord_id} "

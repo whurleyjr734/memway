@@ -316,6 +316,20 @@ class MetaStore:
         doors now append their own remedy and both are pinned by
         EXECUTING it.
 
+        A RE-STAMP OF SOMETHING ALREADY CURRENT IS THE ORIGINAL DISEASE.
+        Returns None and writes NOTHING when every claim in the channel is
+        already accepted at this hash. Without that, five `affirm` calls
+        on an unchanged coordinate left one claim and five stamps - each
+        recording that a hash which never moved still had not moved. An
+        agent looping this over a repo would grow the store forever, which
+        is the volume problem this method exists to end, rebuilt in a
+        cheaper format. Measured, not theorised: it is exactly what
+        happened the first time the tool was pointed at a fresh channel.
+
+        So the write is conditional on there being something stale to
+        answer, and "nothing needed" is a success, not an error - a script
+        sweeping coordinates must not fail on the ones that were fine.
+
         Raises ValueError stating what is missing; callers add the how.
         """
         prior = [e for e in self.read(coord_id, channel)
@@ -325,6 +339,11 @@ class MetaStore:
                 f"nothing to reaffirm: {coord_id} has no {channel} entry "
                 f"to re-stamp - the first attestation has to say "
                 f"something, and only the repeats are free")
+        if body_hash:
+            current = self.read(coord_id, channel, current_hash=body_hash)
+            if not any(e.get("stale") for e in current
+                       if not e.get("reaffirms")):
+                return None
         return self.add(coord_id, channel, "", author=author,
                         body_hash=body_hash, reaffirms=len(prior))
 

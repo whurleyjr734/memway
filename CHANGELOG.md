@@ -7,6 +7,60 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.61.2] - 2026-08-22
+
+A second pass of **using** the feature. Two more defects, both in the
+re-stamp shipped hours earlier, and both the same mistake in different
+clothes: the code did not know that a stamp is not an entry.
+
+### `affirm` rebuilt the volume problem in a cheaper format
+
+Pointing the tool at an already-fresh channel wrote a stamp anyway. Five
+calls on an unchanged coordinate left **one claim and five stamps**, each
+recording that a hash which never moved still had not moved. An agent
+sweeping `affirm` across a repo would grow the store on every run - which
+is precisely the disease the feature exists to cure.
+
+`reaffirm` now writes only when something is actually stale, and
+"nothing needed" is a **success**: a sweep must not fail on the
+coordinates that were already fine.
+
+Four existing tests broke on this, correctly - they wrote a confirm and
+affirmed it in the same breath, which reads naturally and is a no-op.
+They passed only because `affirm` used to write unconditionally. A test
+that exercises a re-stamp now has to earn one.
+
+### `review` reported a stamp as superseding what it vouched for
+
+On the surface where a **human judges the change**, `review` was wrong
+three ways at once:
+
+- it rendered stamps as `+ ` with no text;
+- it announced that an empty entry had **replaced** the note it was
+  actually vouching for;
+- and by taking the `previous` slot, it made the next real entry report
+  itself as "first entry in this channel" - in a channel with two.
+
+Found by running `memway review` on memway's own release. Stamps now
+render as `↻ re-stamped N existing entries - no new claim`, supersede
+nothing, and are counted separately so "6 entries added" stops meaning
+"one claim and five stamps".
+
+### The rot fix, confirmed against real code
+
+The 200-character fix from 0.61.0 was verified on Django's
+`template.defaulttags.do_for` (1,764-character docstring) rather than a
+fixture:
+
+| | old rule | new rule |
+|---|---|---|
+| logic moves, docstring untouched | rot `True` | rot `True` |
+| docstring corrected at char 1,614 | rot `True` | rot `False` |
+
+Under the old rule the author's only way out was writing a `confirm`
+about a docstring they had just corrected. 935 of Django's 16,278
+commented entities sit at that cut.
+
 ## [0.61.1] - 2026-08-22
 
 Everything here was found by **using** 0.61.0, not by a test. Four

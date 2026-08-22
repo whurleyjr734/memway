@@ -467,6 +467,26 @@ def _rot_repo(tmp_path):
     return r
 
 
+def _stale_widget(r, marker="or 0"):
+    """Move widget's LOGIC and bank it, so entries written before now stale.
+
+    Four tests used to write a confirm and immediately affirm it, which
+    reads naturally and is a no-op: nothing had gone stale, so there was
+    nothing to re-stamp. They passed only because `affirm` used to write
+    unconditionally. A test that exercises a re-stamp has to earn one.
+    """
+    src = (r / "m.py").read_text()
+    # widget is in one of two shapes depending on what the caller wrote
+    if "return sum(x)" in src:
+        new = src.replace("return sum(x)", f"return sum(x) {marker}", 1)
+    else:
+        assert "total += i" in src, f"[fixture] unexpected widget:\n{src}"
+        new = src.replace("total += i", "total += int(i)", 1)
+    assert new != src, "[fixture] no logic change applied - nothing will stale"
+    (r / "m.py").write_text(new)
+    assert _cli("index", str(r)).returncode == 0
+
+
 def test_a_change_reports_the_comments_IT_rotted(tmp_path):
     """Caught at the commit that causes it, while the author still has
     the reasoning in their head - the same moment, and the same scoping,
@@ -641,7 +661,7 @@ def test_the_refusal_prints_a_remedy_THAT_RUNS(tmp_path):
     again = _cli("affirm", str(r), "widget")
     assert again.returncode == 0, (
         f"remedy ran but the refusal stands:\n{again.stdout}{again.stderr}")
-    assert "re-stamped 1 confirm entry" in again.stdout, again.stdout
+    assert "nothing to reaffirm" not in again.stdout, again.stdout
 
 
 def test_the_mcp_refusal_names_a_real_tool_and_a_real_parameter(tmp_path):
@@ -672,6 +692,7 @@ def test_the_mcp_refusal_names_a_real_tool_and_a_real_parameter(tmp_path):
 
     # and the remedy must actually unblock it, through the same door
     query.agent_meta(str(r), "widget", "confirm", "read it, still accurate")
+    _stale_widget(r)
     ok = query.agent_affirm(str(r), "widget", "confirm")
     assert "error" not in ok, ok
     assert ok["reaffirmed"]["entries"] == 1, ok
@@ -689,6 +710,7 @@ def test_show_never_renders_a_stamp_as_a_blank_entry(tmp_path):
     assert _cli("meta", str(r), "widget", "confirm",
                 "read it, the comment still describes the logic"
                 ).returncode == 0
+    _stale_widget(r)
     assert _cli("affirm", str(r), "widget").returncode == 0
 
     out = _cli("show", str(r), "widget")
@@ -726,12 +748,51 @@ def test_the_json_door_carries_who_last_vouched(tmp_path):
     `stale: false`."""
     r = _rot_repo(tmp_path)
     assert _cli("meta", str(r), "widget", "confirm", "read it").returncode == 0
+    _stale_widget(r)
     assert _cli("affirm", str(r), "widget", "confirm",
                 "--author", "quinn").returncode == 0
     d = query.before_edit(str(r), "widget")
     seals = [k for k in d["knowledge"] if k.get("reaffirmed_by")]
     assert seals, f"the whitelist dropped the seal: {d['knowledge']}"
     assert seals[0]["reaffirmed_by"] == "quinn", seals[0]
+
+
+def test_affirming_something_already_current_writes_nothing(tmp_path):
+    """THE VOLUME PROBLEM, REBUILT IN A CHEAPER FORMAT.
+
+    Found by pointing the new tool at a fresh channel: five `affirm` calls
+    on an unchanged coordinate left one claim and FIVE stamps, each
+    recording that a hash which never moved still had not moved. An agent
+    sweeping affirm across a repo would grow the store on every run - the
+    exact disease this feature was built to cure, in a new costume.
+
+    Nothing needed is a SUCCESS, not an error: a sweep must not fail on
+    the coordinates that were already fine.
+    """
+    r = _rot_repo(tmp_path)
+    assert _cli("meta", str(r), "widget", "confirm", "read it").returncode == 0
+
+    def stamps():
+        f = r / ".coord" / "meta"
+        return sum(1 for p in f.glob("*/confirm.jsonl")
+                   for l in p.read_text().splitlines()
+                   if l.strip() and json.loads(l).get("reaffirms"))
+
+    assert stamps() == 0
+    for _ in range(5):
+        out = _cli("affirm", str(r), "widget")
+        assert out.returncode == 0, out.stdout + out.stderr
+        assert "already current" in out.stdout, out.stdout
+    assert stamps() == 0, (
+        f"{stamps()} stamps written for a hash that never moved - the "
+        f"store refills with entries recording nothing")
+
+    # once the code actually moves, exactly ONE stamp answers it
+    _stale_widget(r)
+    assert "re-stamped" in _cli("affirm", str(r), "widget").stdout
+    assert stamps() == 1
+    assert "already current" in _cli("affirm", str(r), "widget").stdout
+    assert stamps() == 1, "the repeat wrote a second stamp for the same hash"
 
 
 def test_a_restamp_expires_when_the_logic_moves_again(tmp_path):

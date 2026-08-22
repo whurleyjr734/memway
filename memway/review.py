@@ -97,8 +97,31 @@ def review(repo: str, since: str = "HEAD") -> dict:
         # The entry that was newest before this change is the one the
         # first new entry supersedes; each new entry supersedes the one
         # before it.
-        previous = was[-1] if was else None
-        for i, en in enumerate(now[len(was):]):
+        #
+        # A RE-STAMP SUPERSEDES NOTHING AND IS SUPERSEDED BY NOTHING. It
+        # carries no claim (metadata.MetaStore.reaffirm), so it is not a
+        # position in this chain - and reporting it as one was wrong in
+        # three ways at once on the surface where a human judges the
+        # change: it rendered as `+ ` with no text, it announced that an
+        # empty entry had REPLACED the note it was actually vouching for,
+        # and by sitting in `previous` it made the next real entry read
+        # "first entry in this channel". Same rule as for_display, which
+        # the reading order learned first.
+        previous = next((e for e in reversed(was)
+                         if not e.get("reaffirms")), None)
+        for en in now[len(was):]:
+            if en.get("reaffirms"):
+                added.append({
+                    "coordinate": coord,
+                    "channel": channel,
+                    "author": en.get("author", ""),
+                    "text": "",
+                    "reaffirms": en["reaffirms"],
+                    "supersedes": None,
+                    "supersedes_author": None,
+                    "replaces": None,
+                })
+                continue                      # does NOT become `previous`
             added.append({
                 "coordinate": coord,
                 "channel": channel,
@@ -125,6 +148,8 @@ def review(repo: str, since: str = "HEAD") -> dict:
         **report,
         "added_by_channel": by_channel,
         "superseding": sum(1 for a in added if a["supersedes"]),
+        # not knowledge added - see render()
+        "reaffirmed": sum(1 for a in added if a.get("reaffirms")),
         # Never silently dropped: a rewrite breaks the staleness model.
         "rewritten": rewritten,
         "note": ("a line diff cannot show supersession - the entry being "
@@ -147,6 +172,14 @@ def render(result: dict, width: int = 78) -> str:
     if result["added_by_channel"]:
         lines.append("  " + ", ".join(f"{k} {v}" for k, v in
                                       sorted(result["added_by_channel"].items())))
+    # Counted separately because a re-stamp is not knowledge added. Saying
+    # "6 entries" over four stamps and two claims overstates what there is
+    # to review by three times.
+    if result.get("reaffirmed"):
+        n = result["reaffirmed"]
+        lines.append(f"  of which {n} "
+                     f"{'is a re-stamp' if n == 1 else 'are re-stamps'} - "
+                     f"existing entries re-read and left standing")
     if result["rewritten"]:
         lines.append("")
         lines.append("  REWRITTEN HISTORY - append-only was violated:")
@@ -160,6 +193,15 @@ def render(result: dict, width: int = 78) -> str:
         lines.append("")
         lines.append(f"  {a['coordinate']} [{a['channel']}]"
                      + (f" by {a['author']}" if a['author'] else ""))
+        if a.get("reaffirms"):
+            # A re-stamp is a change worth seeing in review - somebody
+            # re-read this and let it stand - but it is not an addition
+            # and it replaces nothing.
+            n = a["reaffirms"]
+            lines.append(f"    ↻ re-stamped {n} existing "
+                         f"{'entry' if n == 1 else 'entries'} at the "
+                         f"current hash - no new claim")
+            continue
         lines.append(f"    + {clip(a['text'])}")
         if a["supersedes"]:
             lines.append(f"    ↳ supersedes: {clip(a['supersedes'])}")

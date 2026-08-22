@@ -1448,6 +1448,17 @@ def agent_affirm(repo_root, ref, channel="confirm", author="agent"):
                 "remedy": f"call memway_meta with channel={channel!r} on "
                           f"{ref!r} to write the first attestation; "
                           f"memway_affirm re-stamps it from then on"}
+    if entry is None:
+        # Not an error - there was simply nothing stale to answer. Said
+        # "reaffirmed" here once and wrote a stamp for it, which is how
+        # the store refills with entries that record nothing.
+        return {
+            "already_current": {"coord": e.coord_id, "qualname": e.qualname,
+                                "channel": channel},
+            "note": "nothing written - every entry in this channel is "
+                    "already stamped at the current hash. Re-stamping is "
+                    "only meaningful once the code has moved under them",
+        }
     return {
         "reaffirmed": {"coord": e.coord_id, "qualname": e.qualname,
                        "channel": channel, "author": author,
