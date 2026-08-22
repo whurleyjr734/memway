@@ -7,6 +7,98 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-08-22
+
+Theme: **the map is part of the change.**
+
+Minor: a new module, a new command, and payload shapes changed again.
+
+### Found by running memway on repos it had never seen
+
+Three unfamiliar codebases, three defects, and the class got weaker each
+time - which is the direction you want.
+
+| repo | entity | edges | verdict |
+|---|---|---|---|
+| prometheus | `memChunk.len` | 1,619 @ exact/0.95 | confidently wrong |
+| scikit-learn | `_EstimatorPrettyPrinter.format` | 292 @ exact/0.95 | confidently wrong |
+| django | `ListMixin.append` | 573 @ bare-name/0.60 | honestly guessed, badly reported |
+
+**Literal receivers.** `"score: {:.4f}".format(x)` is `str.format` and
+cannot be a repo method. The syntax states the receiver's type, so unlike
+the rest of the stdlib-receiver problem this needs no inference at all.
+`RawEdge.literal_recv` is a THIRD field - merging it into `bare` or
+`via_attr` would repeat the mistake that cost rich and sqlalchemy their
+floors. sklearn: 292 -> 46, and the 46 are real.
+
+**The caller warning carries its own confidence.** django's
+`ListMixin.append` has 573 callers and all 573 are bare-name guesses at
+0.60 - the resolver was right to hedge. The briefing was not: it led with
+"WIDELY DEPENDED ON (573 direct callers)" while the caveat sat in a
+different block, phrased about the whole radius. Claim and caveat in
+different places means the reader weighs the claim.
+
+**`summary.most_depended_on`** puts that where anyone can see it - top
+entities by in-degree with `guessed` beside `callers`. Deliberately NOT a
+detector: no threshold, no flag, and a test asserts the absence of a
+verdict. On its first run it surfaced two cases nobody had noticed -
+django's `render_to_string` at 834 callers, all 834 guesses, and
+`order_by` at 800 with 798.
+
+### Running the loop at team scale
+
+**`memway review [--since REV] [--json]`** pairs each added knowledge
+entry with the one it supersedes. A line diff cannot do this: the store
+is append-only, so superseding a note ADDS a line and leaves the
+superseded entry untouched - git reports `1 +` and never shows what was
+replaced. Supersession is positional; line diffs compare lines. Rewritten
+history is reported as `rewritten`, never diffed.
+
+**`memway verify-change --gate`** exits nonzero when a change staled
+AUTHORED knowledge nobody answered. In CI, not a hook - memway's hooks
+open with `A HOOK MUST NEVER BREAK A COMMIT` because a hook that blocks
+gets uninstalled. Gates on `notes`/`docs` only: one change to parsers.py
+staled ELEVEN coordinates at once, and eleven blocking items a
+contributor cannot judge produces confirm-to-clear, manufacturing the
+fatigue the gate exists to prevent.
+
+**`.github/CODEOWNERS`**, zero code - the channel is the filename.
+**`.github/workflows/map.yml`** builds the registry bundle on tag and
+refuses if the committed map does not match the tagged tree.
+
+### Bounded, again
+
+Three more unbounded lists, all found because the 0.58.0 census measured
+one entity in one language:
+
+| field | was |
+|---|---|
+| `inheritance.inherited_unchanged_by` | 2,389 entries, 133,163 chars - 97.6% of one briefing |
+| `knowledge` | 12 entries, 10,587 of 14,673 chars, eleven of them superseded |
+| `overridden_by` | unbounded |
+
+  django `assertRaisesMessage`  136,453 -> 4,107 chars
+
+"I measured every tool" is not the same claim as "I measured every
+field". The knowledge bound keeps the entry that DECIDES and truncates
+superseded history - nothing is deleted, it stays on disk.
+
+### Also
+
+`viz` names its clusters: 40 labels on prometheus, zero duplicates.
+Gating on cluster screen size drew three, so the gate is collision,
+biggest first. Detached components are parked in a grid rather than
+orbited - 463 nodes with no edges cannot be placed by physics, and any
+radially symmetric force puts them all at one radius, which is the ring
+readers kept seeing. Angular coverage 30/36 buckets -> 2/36.
+
+The no-reimplementation pin blocked correct code: it flagged `review.py`
+for READING a `_shown` key. It claimed "no module may construct this" and
+was implemented as "no module may mention it". Now it inspects
+dict-literal keys and Store-context subscripts.
+
+`PARSE_SCHEMA_VERSION` 10 -> 11.
+
 ## [0.58.0] - 2026-08-20
 
 Theme: **a briefing, not a dump.**
