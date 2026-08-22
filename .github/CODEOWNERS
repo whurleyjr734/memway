@@ -1,0 +1,30 @@
+# Review policy for the map's authored knowledge.
+#
+# THE CHANNEL IS THE FILENAME, which is why this needs no tooling at all:
+# .coord/meta/<coord>/notes.jsonl, confirm.jsonl, docs.jsonl. The layout
+# already put the channel in the path, so ordinary CODEOWNERS expresses
+# the policy directly.
+#
+# The tiers are not arbitrary. `notes` is where somebody records a reason
+# the code is the way it is - the part nobody can reconstruct - and it
+# should be open to whoever learned it, including agents. `docs` and
+# `confirm` are attestations ABOUT that content: a confirm says "I read
+# this and it still holds", which is a claim only a maintainer can make
+# on the project's behalf.
+#
+# Deliberately NOT owned: the derived index. .coord/index/, metrics/ and
+# cache/ regenerate from source, so requiring review of them would put a
+# human in front of a machine's output on every commit.
+
+# Anyone may record what they learned.
+.coord/meta/**/notes.jsonl
+
+# Attestations and explanations are maintainer calls.
+.coord/meta/**/confirm.jsonl   @whurleyjr734
+.coord/meta/**/docs.jsonl      @whurleyjr734
+
+# Lineage is identity: a bad edit here silently reattributes knowledge.
+.coord/lineage/                @whurleyjr734
+
+# The rules agents follow, and the lessons behind them.
+CLAUDE.md                      @whurleyjr734

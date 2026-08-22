@@ -1,0 +1,71 @@
+# The map is part of the change, so it is reviewed with the change.
+#
+# WHY THIS IS IN CI AND NOT IN A HOOK. memway's git hooks open with
+# `A HOOK MUST NEVER BREAK A COMMIT` and every one of them ends in
+# `exit 0` - deliberately, because a hook that blocks gets uninstalled and
+# then the map silently stops syncing for that person. CI is the layer
+# that can refuse without that failure mode.
+name: map
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  knowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # review compares against the base commit, so shallow will not do
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e .[languages]
+
+      # The index must reflect the tree before anything is judged against
+      # it. verify-change compares the WORKING TREE to the STORED index,
+      # so re-indexing first would make the two agree and report a clean
+      # run on a change that staled plenty (CLAUDE.md lesson 9).
+      - name: what this change staled
+        run: memway verify-change . --gate
+
+      # Reviewable output for the human, whether or not the gate passed.
+      # A line diff cannot show supersession: the superseded entry is
+      # unchanged on disk, so it never appears in the diff.
+      - name: knowledge added, paired with what it replaces
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          memway review . --since "origin/${{ github.base_ref }}" \
+            | tee "$GITHUB_STEP_SUMMARY"
+
+  release-map:
+    # THE IN-TREE MAP IS THE SOURCE OF TRUTH; the registry tarball is a
+    # release artifact of it, built on tag exactly like a wheel. The
+    # published bundles drifted five releases behind this way once, and
+    # went on serving call edges that a later release had proved wrong.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e .[languages]
+      - name: the map must be current with the tag it ships from
+        run: |
+          memway index . --if-stale
+          git diff --exit-code -- .coord/index \
+            || { echo "the committed map does not match the tagged tree"; exit 1; }
+      - name: bundle
+        run: |
+          mkdir -p dist
+          tar czf "dist/memway-map-${GITHUB_REF_NAME}.tar.gz" .coord
+          sha256sum "dist/memway-map-${GITHUB_REF_NAME}.tar.gz" \
+            > "dist/memway-map-${GITHUB_REF_NAME}.tar.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: map-bundle
+          path: dist/

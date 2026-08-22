@@ -166,7 +166,22 @@ def _entity_dict(e, meta=None) -> dict:
             "superseded": r["superseded"],
             "author": r.get("author", ""),
         } for r in for_display(md)]
+        # THE DECIDING ENTRY FIRST, HISTORY BEHIND IT, AND BOUNDED.
+        # Knowledge is append-only and never deleted - authored content is
+        # precious - so a well-used coordinate accumulates. before_edit on
+        # this repo's own before_edit shipped 12 entries, 10,587 of the
+        # payload's 14,673 characters, and ELEVEN of the twelve were
+        # superseded: history, not warnings.
+        #
+        # Superseded means somebody already answered it (metadata.
+        # for_display), so it is exactly the right thing to truncate -
+        # nothing is lost, it is still on disk and `memway show` reads it.
+        # The unsuperseded entry per channel is the one that decides, and
+        # it is never cut.
+        knowledge, _kn_report = rank_bound_report(
+            knowledge, "knowledge", rank=lambda r: r["superseded"], cap=6)
         d["knowledge"] = knowledge
+        d.update(_kn_report)
         _attach_evidence(d, e, meta)
     return d
 
@@ -1000,6 +1015,10 @@ def before_edit(repo: str, ref: str) -> dict:
         # A stale map here is not trivia, it is the difference between
         # "no callers" and "no callers as of seven commits ago".
         warnings = list(warnings) + [_lag["message"]]
+    # Same rule as everywhere else; the deciding entry is never cut.
+    _kn_shown, _kn_report = rank_bound_report(
+        knowledge, "knowledge", rank=lambda r: r.get("superseded", False),
+        cap=6)
     return {
         "map_lag": _lag,
         "knowledge_lag": _knowledge_lag(ix, meta),
@@ -1016,7 +1035,8 @@ def before_edit(repo: str, ref: str) -> dict:
         "direct_callers_tests": callers_tests,
         "direct_callers_guessed": callers_guessed,
         "downstream": radius,
-        "knowledge": knowledge,
+        "knowledge": _kn_shown,
+        **_kn_report,
         **({"evidence": _evidence} if _evidence else {}),
         "recent_history": [{"kind": r["kind"], "note": r.get("note", "")}
                            for r in recent],

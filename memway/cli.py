@@ -53,6 +53,13 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway summary <repo>               repo shape at a glance
   memway before-edit <repo> <ref>     the pre-change briefing
   memway verify-change [repo]         impact + what you staled
+                                        [--gate] exit 1 if AUTHORED
+                                        knowledge (notes/docs) was staled
+                                        and left unanswered - the CI check
+  memway review [repo] [--since REV]  knowledge added since REV, each
+                                        entry paired with the one it
+                                        supersedes. A line diff cannot
+                                        show that [--json]
   memway attention <repo>             the queue: stale knowledge, comment
                                         rot, drifted design docs, markers
   memway mcp [repo]                   run the MCP server (agent wiring)
@@ -928,12 +935,50 @@ def cmd_before_edit(repo, ref):
         print(f"  ! {w}")
 
 
-def cmd_verify_change(repo="."):
+def cmd_review(repo=".", *args):
+    """What this change did to the map's knowledge, paired for review."""
+    since = "HEAD"
+    rest = list(args)
+    as_json = False
+    while rest:
+        a = rest.pop(0)
+        if a == "--since" and rest:
+            since = rest.pop(0)
+        elif a.startswith("--since="):
+            since = a.split("=", 1)[1]
+        elif a == "--json":
+            as_json = True
+        else:
+            raise SystemExit(f"unknown flag {a!r} - use --since REV, --json")
+    from .review import review, render
+    r = review(repo, since)
+    if r.get("error"):
+        print(r["error"]); sys.exit(1)
+    print(json.dumps(r, indent=2) if as_json else render(r))
+
+
+def cmd_verify_change(repo=".", *args, gate=False):
     """Post-change impact AND the knowledge this change staled.
+
+    `--gate` makes it a CI check: nonzero exit when a change staled
+    AUTHORED knowledge that nobody answered.
+
+    THE SCOPE IS DELIBERATE and it is the whole design of this flag. It
+    gates on `notes` and `docs` only - the channels carrying reasons
+    somebody wrote down, the part nobody can reconstruct. It does NOT
+    gate on `confirm`, which is attestation: one change to parsers.py in
+    this repo staled ELEVEN coordinates at once, and a contributor facing
+    eleven blocking items they cannot judge clicks confirm to clear them.
+    That is how a gate manufactures the confirm fatigue it was meant to
+    prevent - and this project already has a specimen, seven identical
+    confirms written on memway.__init__ across seven releases.
 
     The CLI door. It existed over MCP and --json only, which is why the
     pre-commit hook had nothing readable to call - and why the author of
     the supersede-before-you-finish rule broke it twice in one evening.
+
+    Enforcement on the channel that holds irreplaceable content;
+    visibility on the channel that holds attestation.
     """
     from . import query
     r = query.verify_change(repo)
@@ -972,6 +1017,24 @@ def cmd_verify_change(repo="."):
               "rides to attention")
     else:
         print("  comment rot: none")
+
+    if gate:
+        # AUTHORED KNOWLEDGE ONLY - see the docstring. A staled `confirm`
+        # is a prompt; a staled `notes` or `docs` is a reason somebody
+        # wrote down that the code has moved out from under.
+        owed = [e for e in (r.get("staled_knowledge") or [])
+                if e.get("channel") in ("notes", "docs")]
+        if owed:
+            print()
+            print(f"GATE: {len(owed)} authored entr"
+                  f"{'y' if len(owed) == 1 else 'ies'} staled and unanswered")
+            for e in owed:
+                print(f"  {e['coordinate']}  {e['qualname']}  [{e['channel']}]")
+            print("  supersede in the SAME channel, or record why it still "
+                  "holds. `memway review .` shows each entry beside what it "
+                  "would replace.")
+            sys.exit(1)
+        print("  gate: no authored knowledge left unanswered")
 
 
 def cmd_attention(repo):
@@ -1119,7 +1182,7 @@ COMMANDS = {
     "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
-    "viz": cmd_viz, "console": cmd_console,
+    "viz": cmd_viz, "console": cmd_console, "review": cmd_review,
     "pull": cmd_pull, "attention": cmd_attention,
     # The three read doors that existed over MCP and --json but not here.
     # verify-change is the one that mattered: the pre-commit hook had
@@ -1211,6 +1274,7 @@ def _usage_line(cmd: str) -> str:
 VALUE_FLAGS = {"--author": ("meta",), "--source": ("pull",),
                "--into": ("pull",)}
 BOOL_FLAGS = {"--force": ("pull", "viz", "console"),
+              "--gate": ("verify-change",),
               "--replace-meta": ("pull",),
               "--replay": ("pull",)}
 

@@ -431,17 +431,41 @@ def test_one_truncation_rule_and_nothing_reimplements_it():
     shown, rep = payload.rank_bound_report(list(range(50)), "things")
     assert len(shown) == payload.CAP and rep["things_total"] == 50, rep
 
+    # CONSTRUCTING the key, not MENTIONING it. The first version of this
+    # flagged every string literal ending in _shown, which caught
+    # review.py READING the report it had just been handed - a read is
+    # not a second implementation, and a check that cannot tell them
+    # apart forbids using the very thing it protects.
+    #
+    # So: a dict literal key, or an assignment into a subscript. Both are
+    # ways to build the report; a Load subscript is a way to consume it.
+    def _constructs_report(tree):
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                for k in node.keys:
+                    if (isinstance(k, ast.Constant) and isinstance(k.value, str)
+                            and k.value.endswith("_shown")):
+                        out.append(k.value)
+            elif isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Store):
+                sl = node.slice
+                if (isinstance(sl, ast.Constant) and isinstance(sl.value, str)
+                        and sl.value.endswith("_shown")):
+                    out.append(sl.value)
+            elif isinstance(node, ast.JoinedStr):
+                # f"{name}_shown" is the form payload.py itself uses
+                tail = node.values[-1] if node.values else None
+                if (isinstance(tail, ast.Constant)
+                        and str(tail.value).endswith("_shown")):
+                    out.append("f-string _shown")
+        return out
+
     offenders = []
     for f in sorted(src_dir.glob("*.py")):
         if f.name == "payload.py":
             continue
-        tree = ast.parse(f.read_text())
-        for node in ast.walk(tree):
-            # a literal "<something>_shown" key anywhere else means a
-            # second implementation of the report half
-            if isinstance(node, ast.Constant) and isinstance(node.value, str) \
-                    and node.value.endswith("_shown"):
-                offenders.append(f"{f.name}: {node.value!r}")
+        for name in _constructs_report(ast.parse(f.read_text())):
+            offenders.append(f"{f.name}: {name!r}")
     assert not offenders, (
         "these build a truncation report outside payload.py, which is how "
         f"five copies of this rule happened the first time: {offenders}")
