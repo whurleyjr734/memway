@@ -7,6 +7,84 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-08-22
+
+**Saying "still true" no longer costs a paragraph.**
+
+Measured on this repo's own map at 0.60.1: of 257 knowledge entries, 176
+(68%) were `confirm` - attestation rather than knowledge - carrying
+14,186 words. 89 of those were a repeat on a coordinate that already had
+one, 9,395 words of restating what the entry beneath already said.
+
+The cause was structural, not discipline. Answering a staled entry means
+supersede or confirm, so an entry that is STILL TRUE could only be
+cleared by writing a paragraph saying it is still true. And because a
+confirm is itself a hash-stamped entry, it stales in turn and demands a
+confirm on the confirm - seven identical ones accumulated on
+`memway.__init__` that way before the generator behind them was removed.
+
+### `memway affirm` / `memway_affirm`
+
+An affirmation becomes what it always was: a stamp. Same append-only
+file, same hash rule, no prose.
+
+- It **takes no position in the reading order**. Supersession is
+  positional, so a textless entry occupying a slot would render as an
+  empty note at the top of the panel AND mark the substantive entry it
+  was vouching for as superseded history. `for_display` skips it; the
+  entry it re-stamps stays newest and gains `reaffirmed_ts` /
+  `reaffirmed_by`.
+- It **vouches only backwards**, for entries written before it.
+- It **expires** when the logic moves again, exactly as a written
+  confirm does. It is not a mute button.
+- It **refuses on an empty channel**. The first attestation has to say
+  something; only the repeats are free. That refusal is the whole safety
+  of the feature - without it, "affirm" would clear a warning while
+  asserting nothing.
+
+Used immediately on this release: of six staled confirms, five were
+re-stamped and one - which claimed "Python tokenize path unchanged"
+about a path this release changed - was superseded with prose.
+
+### Comment rot could only see the first 200 characters of a docstring
+
+Found by following the release ceremony rather than by a test.
+`metadata.for_display`'s docstring was rewritten to describe new
+behaviour and the rot flag stayed lit, because `comment_hash` was built
+from `comments[i].text` - which is truncated to 200 characters **for
+display**. A display bound was doing a change-detector's job.
+
+Both directions were wrong, and the quiet one is worse:
+
+- a real fix past the cut **did not clear the flag**, so the only way
+  out was to write a `confirm` for a docstring that had genuinely been
+  corrected - confirm volume manufactured by a bug, independent of the
+  cause above;
+- a typo fix **inside** the cut **did** clear it, going quiet on a
+  docstring still wrong for its remaining 1,400 characters. A false
+  "fresh", which this project treats as the more serious failure.
+
+On this map, 307 of 785 commented entities (39%) carry a comment at that
+cut. Every harvest site now also stores `h`, a digest of the full text,
+and `comment_hash` derives from it; `text` stays truncated for payloads.
+A digest rather than the full string because comments are stored per
+entity and banking whole docstrings would inflate every map.
+
+`PARSE_SCHEMA_VERSION` 12 → 13: a cache warmed at 12 replays comments
+with no `h`, the compatibility fallback fires, and the bug returns
+silently on every file that did not happen to change.
+
+**Migration is the safe direction.** Re-deriving the hash changes it for
+every entity, and the rule reads `prev_ch != comment_hash → rot
+cleared`. So the first re-index after upgrading clears an existing rot
+backlog once rather than mass-flagging false rot.
+
+### Also
+
+- `test_dig` no longer asserts `len(TOOLS) == 11`. A magic count with no
+  relation to dig, bumped by every new tool; the roster is pinned by
+  name in `test_mcp`, which is the check worth having.
+
 ## [0.60.1] - 2026-08-22
 
 **`memway review --json` was unreachable in 0.60.0.**

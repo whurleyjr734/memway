@@ -166,6 +166,7 @@ def test_the_hook_exits_zero_even_when_memway_is_broken(repo):
 # adding to it takes an argument.
 SURFACE_EXEMPT = {
     "meta": "a WRITE; --json is the read surface and QUERIES holds reads only",
+    "affirm": "a WRITE, like meta - it re-stamps entries; QUERIES holds reads",
     "probe": "executes the user's code; neither a read nor a safe default door",
 }
 

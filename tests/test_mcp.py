@@ -156,11 +156,13 @@ def test_initialized_notification_returns_none(built):
 def test_tools_list_advertises_every_tool(built):
     r = mcp.handle(rpc("tools/list"), built)
     names = {t["name"] for t in r["result"]["tools"]}
-    assert names == {"memway_summary", "memway_at",
-                     "memway_dig",
-                     "memway_verify_change", "memway_probe", "memway_meta",
-                     "memway_attention",
-        "memway_search",
+    # THE ROSTER, by name. The one place that changes when a tool is
+    # added or removed - a bare len() assertion elsewhere only ever said
+    # "the number moved", which is not the thing worth knowing.
+    assert names == {"memway_summary", "memway_at", "memway_dig",
+                     "memway_verify_change", "memway_probe",
+                     "memway_meta", "memway_affirm",
+                     "memway_attention", "memway_search",
                      "memway_show", "memway_lineage",
                      "memway_before_edit"}
     for t in r["result"]["tools"]:                  # schema well-formed

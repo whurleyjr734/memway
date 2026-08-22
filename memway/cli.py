@@ -19,6 +19,12 @@ Workflow: grep finds it; memway explains it and remembers it.
                                         [--replaces WHY] the reason this
                                           supersedes what came before
                                         [--author WHO] (default: cli)
+  memway affirm <repo> <ref> [ch]     re-stamp existing entries at the
+                                        current hash: "still true", with
+                                        no new prose. Default channel is
+                                        confirm. Refuses when the channel
+                                        is empty - the FIRST attestation
+                                        has to say something [--author WHO]
   memway pull <name>[@version]        fetch a published map into .coord
                                         [--into DIR] [--source URL]
                                         [--force] replace the derived index;
@@ -425,6 +431,44 @@ def cmd_meta(repo, ref, channel, text, author="cli", replaces=""):
              **_extra)
     print(f"added {channel} entry to {e.coord_id} ({e.qualname})")
 
+
+def cmd_affirm(repo, ref, channel="confirm", author="cli"):
+    """Re-stamp a coordinate's existing entries at the current hash.
+
+    The cheap half of the answer to confirm volume (MetaStore.reaffirm has
+    the measurement). `meta` is for saying something; this is for saying
+    nothing, which is what 68% of this repo's knowledge entries were
+    already doing at length.
+
+    Defaults to `confirm` because that is the channel the ceremony
+    hammers, but any channel can be re-stamped: a `notes` entry whose
+    function was reformatted is still true, and superseding it with a
+    copy of itself is the same waste wearing a different label.
+    """
+    from .metadata import CHANNELS, GhostEntity, stamp_for
+    if channel not in CHANNELS:
+        raise SystemExit(f'unknown channel {channel!r} - '
+                         f'one of: {", ".join(CHANNELS)}')
+    repo, coord, ix, edges, meta, _ = _load(repo)
+    e = ix.resolve(ref)
+    if not e:
+        _unresolved(ref, ix)
+    try:
+        stamp = stamp_for(e, repo)
+    except GhostEntity as exc:
+        print(str(exc)); sys.exit(1)
+    try:
+        entry = meta.reaffirm(e.coord_id, channel, author=author,
+                              body_hash=stamp)
+    except ValueError as exc:
+        # The refusal IS the feature - see MetaStore.reaffirm. Exit
+        # non-zero so a script cannot mistake "there was nothing to
+        # vouch for" for a successful attestation.
+        print(str(exc)); sys.exit(1)
+    n = entry["reaffirms"]
+    print(f"re-stamped {n} {channel} "
+          f"{'entry' if n == 1 else 'entries'} at {e.coord_id} "
+          f"({e.qualname}) - no new prose written")
 
 
 def cmd_pull(name, into=".", source=None, force=False,
@@ -1248,7 +1292,8 @@ def cmd_console(repo, *args, force=False):
 
 COMMANDS = {
     "init": cmd_init, "index": cmd_index, "harvest": cmd_harvest,
-    "show": cmd_show, "meta": cmd_meta, "lineage": cmd_lineage,
+    "show": cmd_show, "meta": cmd_meta, "affirm": cmd_affirm,
+    "lineage": cmd_lineage,
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
     "viz": cmd_viz, "console": cmd_console, "review": cmd_review, "search": cmd_search,
@@ -1340,7 +1385,8 @@ def _usage_line(cmd: str) -> str:
 # line - was rejected with "applies to 'pull' only", because pull happened
 # to claim --force first. The usage text and the parser disagreed, and the
 # usage text was right.
-VALUE_FLAGS = {"--author": ("meta",), "--replaces": ("meta",), "--source": ("pull",),
+VALUE_FLAGS = {"--author": ("meta", "affirm"),
+               "--replaces": ("meta",), "--source": ("pull",),
                "--into": ("pull",)}
 BOOL_FLAGS = {"--force": ("pull", "viz", "console"),
               "--gate": ("verify-change",),

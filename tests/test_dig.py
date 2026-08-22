@@ -520,7 +520,12 @@ def test_mcp_registers_dig_and_states_the_callers_job():
     assert "caller" in d, "the description must hand judgment to the caller"
     assert "never gates" in d and "never writes" in d
     assert t["inputSchema"]["required"] == ["ref"]
-    assert len(TOOLS) == 11, "dig ships alongside the other tools"
+    # The `next(...)` above already proves dig ships alongside the others.
+    # A `len(TOOLS) == 11` used to sit here as well: a magic count with no
+    # relation to dig, which every new tool had to bump, and whose only
+    # real job - pinning the exact roster - is done properly and by name
+    # in test_mcp.test_tools_list_advertises_every_tool. One place to
+    # update when a tool is added, and it is the place that says what.
 
 
 def test_cli_help_states_the_contract():

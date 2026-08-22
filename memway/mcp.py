@@ -133,6 +133,29 @@ TOOLS = [
                                                a["text"]),
     },
     {
+        "name": "memway_affirm",
+        "description": "SAY 'STILL TRUE' WITHOUT WRITING A PARAGRAPH. When "
+                       "a staled entry or a comment-rot flag turns out to "
+                       "need no correction - you read it, the logic moved, "
+                       "the entry still describes reality - use this instead "
+                       "of memway_meta. It re-stamps the entries already "
+                       "there at the current hash and writes NO new prose. "
+                       "Use memway_meta when you have something to SAY; use "
+                       "this when the honest answer is 'nothing has "
+                       "changed'. Refuses when the channel is empty: the "
+                       "first attestation has to say something, only the "
+                       "repeats are free.",
+        "inputSchema": {"type": "object", "properties": {
+            "ref": {"type": "string"},
+            "channel": {"type": "string",
+                        "description": "default 'confirm' - the channel that "
+                                       "clears comment rot; any channel can "
+                                       "be re-stamped"}},
+            "required": ["ref"]},
+        "fn": lambda repo, a: query.agent_affirm(repo, a["ref"],
+                                                 a.get("channel", "confirm")),
+    },
+    {
         "name": "memway_search",
         "description": "FIND PRIOR REASONING BEFORE YOU START. Every other "
                        "read starts from a coordinate you already know; this "

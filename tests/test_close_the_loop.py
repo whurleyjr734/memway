@@ -515,6 +515,140 @@ def test_a_current_confirm_answers_rot_at_commit_time(tmp_path):
         f"a current confirm must answer rot: {after}")
 
 
+def test_a_restamp_answers_rot_without_writing_prose(tmp_path):
+    """THE CONFIRM-VOLUME FIX, end to end.
+
+    Measured at 0.60.1: 176 of this repo's 257 entries were confirms,
+    14,186 words of "I read it and it still holds" - because the only way
+    to clear a flag was to WRITE that sentence. `affirm` re-stamps
+    instead, and must clear exactly what a written confirm clears.
+    """
+    r = _rot_repo(tmp_path)
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    # the first attestation is prose, as it must be
+    assert _cli("meta", str(r), "widget", "confirm",
+                "read it: logic moved to sum(), the comment still fits"
+                ).returncode == 0
+    # ...the logic moves again, staling that confirm
+    (r / "m.py").write_text(
+        ROT_AFTER.replace("return sum(x)", "return sum(x) or 0")
+                 .replace("return y * 2", "return y + y"))
+    assert _cli("index", str(r)).returncode == 0
+    (r / "m.py").write_text(
+        ROT_AFTER.replace("return sum(x)", "return sum(x) or 0.0")
+                 .replace("return y * 2", "return y + y"))
+    before = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    assert any(n.endswith("widget") for n in before), (
+        f"fixture banked no rot to answer: {before}")
+
+    out = _cli("affirm", str(r), "widget")
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "re-stamped" in out.stdout, out.stdout
+    after = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    assert not any(n.endswith("widget") for n in after), (
+        f"a re-stamp must answer rot exactly as a written confirm does: "
+        f"{after}")
+
+    # AND IT WROTE NO PROSE - the point of the exercise.
+    import json as _json
+    files = sorted((r / ".coord" / "meta").glob("*/confirm.jsonl"))
+    assert len(files) == 1, f"fixture is ambiguous about which file to read: {files}"
+    lines = [_json.loads(l) for l in files[0].read_text().splitlines()
+             if l.strip()]
+    assert [l for l in lines if l.get("reaffirms")], lines
+    assert all(not l["text"] for l in lines if l.get("reaffirms")), (
+        "a re-stamp that carries text is just a confirm with extra steps")
+
+
+def test_a_restamp_does_not_bury_the_entry_it_vouches_for(tmp_path):
+    """Supersession is POSITIONAL, so a textless entry taking a slot would
+    mark the note it was vouching FOR as superseded history - and render
+    as an empty note at the top of the panel. The worst of both."""
+    from memway.metadata import MetaStore, for_display
+    m = MetaStore(tmp_path)
+    m.add("C-x", "confirm", "the threshold is 0.05 because rich needs it",
+          body_hash="H1")
+    m.reaffirm("C-x", "confirm", body_hash="H2")
+    rows = for_display(m.read_all("C-x", "H2"))
+    assert len(rows) == 1, f"the stamp leaked into the reading order: {rows}"
+    assert rows[0]["text"].startswith("the threshold"), rows[0]
+    assert not rows[0]["superseded"], (
+        "the re-stamp superseded the very entry it was vouching for")
+    assert rows[0].get("reaffirmed_by"), (
+        "provenance lost: who vouched is the entire content of an "
+        "attestation")
+
+
+def test_the_first_attestation_must_be_prose(tmp_path):
+    """THE GUARD THAT MAKES THIS HONEST RATHER THAN A MUTE BUTTON.
+
+    A re-stamp over an empty channel would assert nothing while clearing
+    a warning - which is the confirm fatigue this feature exists to end,
+    arrived at from the other side. Somebody says it once; repeats are
+    free.
+    """
+    r = _rot_repo(tmp_path)
+    (r / "m.py").write_text(ROT_AFTER.replace("return y * 2",
+                                              "return y + y"))
+    before = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    assert any(n.endswith("widget") for n in before), before
+
+    out = _cli("affirm", str(r), "widget")
+    assert out.returncode != 0, (
+        "affirming an empty channel must fail, not silently vouch for "
+        "nothing: " + out.stdout)
+    assert "nothing to reaffirm" in out.stdout, out.stdout
+    after = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
+    assert after == before, f"the refused affirm still cleared rot: {after}"
+
+
+def test_a_restamp_expires_when_the_logic_moves_again(tmp_path):
+    """Not a silencer. It answers only until the code moves, which is what
+    makes a written confirm honest, and must remain true of a stamp."""
+    from memway.metadata import MetaStore, for_display, unsuperseded_stale
+    m = MetaStore(tmp_path)
+    m.add("C-x", "notes", "keep bare and via_attr separate", body_hash="H1")
+    m.reaffirm("C-x", "notes", body_hash="H2")
+    assert not unsuperseded_stale(for_display(m.read_all("C-x", "H2")))
+    assert unsuperseded_stale(for_display(m.read_all("C-x", "H3"))), (
+        "the stamp outlived the hash it was made against")
+
+
+def test_no_reaffirmation_means_no_restamp(tmp_path):
+    """THE ABSENT CASE, which is where this nearly shipped a hole.
+
+    "index of the last accepted stamp, default -1" reads naturally and
+    makes the slice out[:-1] when there is no stamp at all - clearing
+    staleness on EVERY entry but the last, on every coordinate in the
+    repo, forever. It would have looked like the feature working.
+    """
+    from memway.metadata import MetaStore, unsuperseded_stale, for_display
+    m = MetaStore(tmp_path)
+    m.add("C-x", "notes", "first", body_hash="H1")
+    m.add("C-x", "notes", "second", body_hash="H1")
+    m.add("C-x", "notes", "third", body_hash="H1")
+    rows = m.read("C-x", "notes", "H2")
+    assert all(e.get("stale") for e in rows), (
+        f"an entry went fresh with nothing vouching for it: {rows}")
+    assert len(unsuperseded_stale(for_display(m.read_all("C-x", "H2")))) == 1
+
+
+def test_a_restamp_cannot_vouch_forward(tmp_path):
+    """It attests to what was in front of the author. An entry written
+    AFTER it is judged on its own stamp - nothing can vouch for text that
+    did not exist when it was written."""
+    from memway.metadata import MetaStore
+    m = MetaStore(tmp_path)
+    m.add("C-x", "notes", "older claim", body_hash="H1")
+    m.reaffirm("C-x", "notes", body_hash="H2")
+    m.add("C-x", "notes", "written after the stamp", body_hash="H2")
+    rows = m.read("C-x", "notes", "H2")
+    later = [e for e in rows if e["text"] == "written after the stamp"][0]
+    assert not later.get("reaffirmed_by"), (
+        "the stamp reached forward over an entry written after it")
+
+
 def test_attention_reports_the_total_not_the_page(tmp_path):
     """No silent caps. This printed the length of the truncated slice as
     if it were the census - 20 against a real backlog of 49 - while

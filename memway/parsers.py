@@ -859,7 +859,16 @@ class JavaParser(LanguageParser):
 # Bump whenever ANY parser's extraction logic changes: a warm parse
 # cache from an older parser silently replays stale entities/edges,
 # so the cache is versioned by this schema and discarded on mismatch.
-PARSE_SCHEMA_VERSION = 12     # 12: a SyntaxError now RAISES instead of
+PARSE_SCHEMA_VERSION = 13     # 13: comments carry `h`, a digest of the
+                              #     FULL text, and comment_hash is built
+                              #     from it. A cache warmed at 12 replays
+                              #     comments with no `h`, so the hash
+                              #     falls back to the 200-char display
+                              #     string and rot goes on reading only
+                              #     the first sentence of a docstring -
+                              #     the bug, restored silently, on every
+                              #     file that did not happen to change.
+                              # 12: a SyntaxError now RAISES instead of
                               #     returning ([], []). A cache warmed at
                               #     11 holds the empty result for a broken
                               #     file and would replay it as 'this file

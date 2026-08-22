@@ -48,6 +48,65 @@ def test_comment_rot_fires_and_clears(tmp_path):
     assert b["comments"]["rot"] is False
 
 
+# A docstring longer than the 200-character DISPLAY bound, with the
+# sentence that matters deliberately past it. Real docstrings in this
+# repo run to 1,672 characters; the harvested comment was capped at 200.
+_LONG_DOC = (
+    "Return the total.\n\n"
+    + "    Padding that exists only to push the load-bearing sentence past "
+      "the display truncation, because that is exactly where real "
+      "rationale lives - the first sentence of a docstring says what a "
+      "function returns and the rest says why it is built that way, which "
+      "is the part that rots.\n\n" * 2
+    + "    TAIL: the multiplier is three.\n")
+
+_DOC_V1 = f'''def price(x):
+    """{_LONG_DOC}    """
+    return x * 3
+'''
+
+
+def test_rot_sees_a_docstring_past_the_display_truncation(tmp_path):
+    """Comment rot hashed `text[:200]`, the DISPLAY string, so it was blind
+    to every edit past the first 200 characters of a docstring.
+
+    Found by following the ceremony: metadata.for_display's docstring was
+    rewritten to describe new behaviour, and rot stayed lit because the
+    rewrite sat past the cut. The only way to clear it was to write a
+    confirm for a docstring that had genuinely been corrected.
+    """
+    repo = tmp_path / "r"; repo.mkdir()
+    (repo / "m.py").write_text(_DOC_V1)
+    _idx(repo)
+    assert len(_LONG_DOC) > 400, "fixture no longer exercises the cut"
+
+    # logic moves; the docstring is corrected TO MATCH, past character 200
+    v2 = _DOC_V1.replace("return x * 3", "return x * 4") \
+                .replace("the multiplier is three", "the multiplier is four")
+    assert "multiplier is four" in v2, "[fixture] the tail edit did not apply"
+    (repo / "m.py").write_text(v2)
+    _idx(repo)
+    b = query.before_edit(str(repo), "price")
+    assert b["comments"]["rot"] is False, (
+        "the docstring was corrected and rot stayed lit - the fix is past "
+        "the 200-char display bound, which is what comment_hash was built "
+        "from")
+
+
+def test_rot_still_fires_when_the_long_docstring_is_left_alone(tmp_path):
+    """THE CONTROL. Hashing the full text must not become 'never report
+    rot' - a fix that simply stopped flagging would pass the test above
+    and destroy the signal."""
+    repo = tmp_path / "r"; repo.mkdir()
+    (repo / "m.py").write_text(_DOC_V1)
+    _idx(repo)
+    (repo / "m.py").write_text(_DOC_V1.replace("return x * 3", "return x * 4"))
+    _idx(repo)
+    b = query.before_edit(str(repo), "price")
+    assert b["comments"]["rot"] is True, (
+        "logic moved and the docstring was untouched - that is rot")
+
+
 def test_comment_rot_confirm_suppresses_and_restales(tmp_path):
     """Confirm channel: rot fires → confirm written → rot suppressed →
     logic changes again → old confirm stale, rot returns."""

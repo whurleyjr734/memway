@@ -1400,6 +1400,40 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
     }
 
 
+def agent_affirm(repo_root, ref, channel="confirm", author="agent"):
+    """MCP entry: re-stamp existing entries. "Still true", without prose.
+
+    THE SURFACE THAT MATTERS MOST FOR THIS, because agents write the
+    volume: 176 of this repo's 257 entries are confirms, and the agent
+    driving MCP wrote nearly all of them. Offering the re-stamp only on
+    the CLI would leave the generator running.
+
+    Returns the count re-stamped, and refuses - loudly, with the remedy -
+    when the channel has nothing in it. See MetaStore.reaffirm: the first
+    attestation must be prose or this is a mute button.
+    """
+    ctx = _ctx(repo_root)
+    if not ctx:
+        return {"error": f"no index at {repo_root}; run memway init first"}
+    repo_p, coord, ix, edges, meta = ctx
+    e = ix.resolve(ref)
+    if not e:
+        return _resolve_error(ref, ix, coord)
+    try:
+        entry = meta.reaffirm(e.coord_id, channel, author=author,
+                              body_hash=stamp_for(e, repo_root))
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return {
+        "reaffirmed": {"coord": e.coord_id, "qualname": e.qualname,
+                       "channel": channel, "author": author,
+                       "entries": entry["reaffirms"]},
+        "note": "no new entry was written - the existing entries are now "
+                "stamped at the current hash. Use memway_meta instead when "
+                "you have something to SAY; this is only for 'still true'",
+    }
+
+
 def attention(repo_root, limit=20):
     """MCP entry: the repo's attention queue - everything currently
     flagged as possibly wrong or needing eyes, in one call.

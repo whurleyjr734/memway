@@ -341,6 +341,37 @@ def _annotations(body_text: str):
 _C_STYLE_EXTS = (".go", ".js", ".jsx", ".ts", ".tsx", ".java")
 
 
+def _ctext_hash(s: str) -> str:
+    """Digest of a comment's FULL text, for rot detection.
+
+    THE 200 IN `text[:200]` IS A DISPLAY BOUND, AND IT WAS ALSO THE
+    CHANGE DETECTOR. Comments ride in payloads read by agents, so they
+    are truncated - reasonable. But comment_hash was built from those
+    same truncated strings, so rot could only ever see the first 200
+    characters of a docstring, and this repo's docstrings run to 1,672.
+
+    Both directions were wrong, and the quiet one is worse:
+
+      a real fix past the cut DOES NOT CLEAR THE FLAG. Measured here on
+      metadata.for_display - its docstring was rewritten to describe the
+      new behaviour, the hash did not move, and rot stayed lit. The only
+      way out was to write a `confirm` for a docstring that had actually
+      been corrected, which is the confirm-volume problem arriving from a
+      completely different direction.
+
+      a cosmetic edit INSIDE the cut clears it. Fix a typo in the first
+      sentence and rot goes quiet on a docstring that is still wrong for
+      the other 1,400 characters - a false 'fresh', which this project
+      treats as the more serious failure.
+
+    So the display bound stays a display bound, and detection gets its
+    own value. Storing a digest rather than the full text keeps the map
+    small: comments are held per entity in coordinates.json, and banking
+    whole docstrings there to compare them would inflate every map.
+    """
+    return hashlib.sha256(s.encode()).hexdigest()[:16]
+
+
 def _c_style_comments(body_text: str) -> list:
     """Harvest // and /* */ comments for brace-family languages.
 
@@ -356,7 +387,8 @@ def _c_style_comments(body_text: str) -> list:
             text = s[:s.index("*/")] if "*/" in s else s
             text = text.lstrip("*").strip()
             if text:
-                out.append({"line": i, "text": text[:200], "kind": "comment"})
+                out.append({"line": i, "text": text[:200],
+                            "kind": "comment", "h": _ctext_hash(text)})
             if "*/" in s:
                 in_block = False
             continue
@@ -365,7 +397,8 @@ def _c_style_comments(body_text: str) -> list:
             text = s[2:s.index("*/")] if "*/" in s else s[2:]
             text = text.strip().lstrip("*").strip()
             if text:
-                out.append({"line": i, "text": text[:200], "kind": "comment"})
+                out.append({"line": i, "text": text[:200],
+                            "kind": "comment", "h": _ctext_hash(text)})
             continue
         # only a line whose CODE part ends before the // counts; a // inside
         # a string literal would otherwise be harvested as intent.
@@ -374,7 +407,8 @@ def _c_style_comments(body_text: str) -> list:
                 and s.count("'", 0, idx) % 2 == 0:
             text = s[idx + 2:].strip()
             if text:
-                out.append({"line": i, "text": text[:200], "kind": "comment"})
+                out.append({"line": i, "text": text[:200],
+                            "kind": "comment", "h": _ctext_hash(text)})
     return out
 
 
@@ -401,7 +435,8 @@ def _comments(body_text: str, ext: str = ".py") -> list:
                 text = tok.string.lstrip("#").strip()
                 if text:
                     out.append({"line": tok.start[0], "text": text[:200],
-                                "kind": "comment"})
+                                "kind": "comment",
+                                "h": _ctext_hash(text)})
     except (_tk.TokenizeError, IndentationError, SyntaxError):
         pass
     # Docstrings are STRING tokens, never COMMENT, so the loop above cannot
@@ -423,6 +458,7 @@ def _comments(body_text: str, ext: str = ".py") -> list:
         if _doc and _doc.strip():
             out.insert(0, {"line": _line,
                            "text": " ".join(_doc.split())[:200],
+                           "h": _ctext_hash(" ".join(_doc.split())),
                            "kind": "docstring"})
     except (SyntaxError, IndentationError, ValueError, RecursionError):
         pass
@@ -724,9 +760,16 @@ class Indexer:
                 _dt = " ".join(c["text"] for c in _c_style_comments(_doc))
                 if _dt:
                     cmts.insert(0, {"line": 0, "text": _dt[:200],
-                                    "kind": "docstring"})
+                                    "kind": "docstring",
+                                    "h": _ctext_hash(_dt)})
+            # `h` is the digest of the FULL comment; `text` is truncated for
+            # display and must never be what rot compares (_ctext_hash has
+            # the measurement). The fallback keeps maps written before 0.61
+            # readable - absent reads as the prior generation, never as
+            # current - and PARSE_SCHEMA_VERSION 13 stops a warm cache from
+            # replaying `h`-less comments and silently restoring the bug.
             c_hash = hashlib.sha256(
-                "\n".join(c["text"] for c in cmts).encode()
+                "\n".join(c.get("h") or c["text"] for c in cmts).encode()
             ).hexdigest()[:16] if cmts else ""
             sk, n_sh = _sketch(re_.body_text)
             loc = re_.body_text.count("\n") + 1

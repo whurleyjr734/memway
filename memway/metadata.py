@@ -12,6 +12,15 @@ Channels:
   docs     - documentation
   traces   - recorded data-flow traversals (structural stack traces)
   confirm  - attestation that current comments/docs remain accurate after logic change
+
+Entries come in two kinds, and the difference is not the channel:
+
+  a CLAIM   says something, and takes a position in the reading order -
+            the newest claim in a channel supersedes the ones behind it.
+  a STAMP   says nothing and supersedes nothing. It re-dates the claims
+            already there ("I read these, they still hold"), and carries
+            `reaffirms: <n>`. See MetaStore.reaffirm for why saying
+            nothing needed its own shape rather than another paragraph.
 """
 
 import json
@@ -126,10 +135,20 @@ def for_display(md: dict) -> list:
     a panel that renders them identically teaches people to ignore both.
     Only the newest entry per channel can be a warning; everything behind
     it is marked superseded regardless of its own stale flag.
+
+    REAFFIRMATIONS ARE NOT ENTRIES AND DO NOT SUPERSEDE. A reaffirmation
+    carries a stamp and no claim (see MetaStore.reaffirm). Letting one take
+    a position here would be the worst of both worlds: it would render as
+    an empty note at the top of the panel, and - because supersession is
+    positional - it would mark the substantive note it was vouching FOR as
+    superseded history. The entry it re-stamps is exactly the entry a
+    reader wants to see, so it stays newest and picks up `reaffirmed_ts`
+    and `reaffirmed_by` from MetaStore.read.
     """
     out = []
     for channel, entries in md.items():
-        for i, en in enumerate(reversed(list(entries))):
+        rows = [en for en in entries if not en.get("reaffirms")]
+        for i, en in enumerate(reversed(rows)):
             out.append({**en, "channel": channel, "superseded": i > 0})
     return out
 
@@ -235,7 +254,67 @@ class MetaStore:
             for e in out:
                 if e.get("body_hash") and e["body_hash"] not in accepted:
                     e["stale"] = True
+            # A REAFFIRMATION RE-STAMPS THE ENTRIES BEHIND IT. "I read
+            # these at hash H and they still hold" is a stamp, not a
+            # claim, so it updates their acceptance rather than adding
+            # prose that repeats them (MetaStore.reaffirm has the why).
+            # The LAST accepted reaffirmation wins, and it vouches only
+            # for entries written BEFORE it - nothing can attest to text
+            # that did not exist when it was written.
+            # `default=-1` would make the slice below out[:-1] and clear
+            # staleness on every entry but the last, so the absence of a
+            # reaffirmation is checked explicitly rather than encoded as
+            # an index.
+            stamps = [i for i, e in enumerate(out)
+                      if e.get("reaffirms") and e.get("body_hash") in accepted]
+            if stamps:
+                last = stamps[-1]
+                for e in out[:last]:
+                    e.pop("stale", None)
+                    e["reaffirmed_ts"] = out[last].get("ts", "")
+                    e["reaffirmed_by"] = out[last].get("author", "")
         return out
+
+    def reaffirm(self, coord_id: str, channel: str, author: str = "human",
+                 body_hash: str = "") -> dict:
+        """Re-stamp a channel's existing entries at the current hash.
+
+        WHY THIS IS NOT JUST ANOTHER `add`. Measured on memway's own map
+        at 0.60.1: of 257 knowledge entries, 176 (68%) were confirms -
+        attestation rather than knowledge - carrying 14,186 words that
+        almost entirely repeated the entry beneath them. The cause is
+        structural, not a discipline failure. Answering a staled entry
+        means supersede or confirm, so an entry that is STILL TRUE can
+        only be cleared by WRITING A PARAGRAPH SAYING IT IS STILL TRUE.
+        Every false stale manufactures prose, and because a confirm is
+        itself a hash-stamped entry, it stales in turn and demands a
+        confirm on the confirm - seven identical ones accumulated on
+        memway.__init__ that way before the generator was removed.
+
+        So the affirmation becomes what it always was: a stamp. Same
+        append-only file, same hash rule, no prose required.
+
+        THE FIRST ATTESTATION IN A CHANNEL MUST STILL BE PROSE, and this
+        refuses when there is nothing to re-stamp. That line is the whole
+        safety of the feature. A reaffirmation with an empty channel
+        behind it would assert nothing while clearing a warning, which is
+        a mute button wearing the word `confirm` - exactly the confirm
+        fatigue this is meant to end, arrived at from the other side.
+        Somebody has to say the thing once; only the repeats are free.
+
+        Raises ValueError with the remedy when the channel has no
+        substantive entry.
+        """
+        prior = [e for e in self.read(coord_id, channel)
+                 if not e.get("reaffirms")]
+        if not prior:
+            raise ValueError(
+                f"nothing to reaffirm: {coord_id} has no {channel} entry to "
+                f"re-stamp. The first attestation has to say something - "
+                f"write it with `meta --channel {channel}`, and later "
+                f"re-stamps are free.")
+        return self.add(coord_id, channel, "", author=author,
+                        body_hash=body_hash, reaffirms=len(prior))
 
     def read_all(self, coord_id: str, current_hash="") -> dict:
         return {ch: entries for ch in CHANNELS
