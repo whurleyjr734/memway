@@ -7,6 +7,52 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.61.1] - 2026-08-22
+
+Everything here was found by **using** 0.61.0, not by a test. Four
+defects, three of them in the release shipped an hour earlier.
+
+### The refusal printed a command that does not run
+
+`affirm` on an empty channel refuses and offers a remedy. It read
+``write it with `meta --channel confirm` `` - and `meta` takes the
+channel **positionally**; `--channel` is `search`'s spelling. The one
+line offered to a blocked user failed.
+
+Lesson 11's sixth specimen, written the same day the lesson was quoted.
+The test beside it asserted the phrase `nothing to reaffirm` appeared,
+which a wrong remedy satisfies exactly as well as a right one.
+
+The message also served two doors with different grammars - an MCP
+caller has no shell and was being handed a CLI command. `MetaStore`
+now states only what is missing; each door phrases its own remedy, and
+both are pinned **by execution**: one test parses the printed command
+out of stdout and runs it, the other checks the named tool and parameter
+against the server's live schema.
+
+### `memway show` rendered a re-stamp as a blank entry
+
+`for_display` drops stamps precisely so they cannot appear as empty
+notes. `cmd_show` walked the raw store instead - a second copy of the
+reading rule - and printed `2026-08-22T16:44:53Z (agent) ` with nothing
+after it.
+
+It was also missing supersession entirely, so the entry the ring
+DISCARDED rendered as a peer of the one that replaced it, in file order,
+with the discarded one on top. That is the exact confusion `for_display`
+was written to end, still live in the CLI door a year later. Now routed
+through it.
+
+### The seal was stored and never shown
+
+`reaffirmed_ts` / `reaffirmed_by` record who last read an entry and let
+it stand. **Four** hand-built copies of the knowledge row dropped them:
+`_entity_dict`, `before_edit`, `viz._knowledge_for`, and the template's
+own normalizer. An entry re-checked yesterday and one nobody has
+revisited both render `stale: false`; only the seal separates them.
+
+All four now carry it, and the card shows `· re-stamped <date> by <who>`.
+
 ## [0.61.0] - 2026-08-22
 
 **Saying "still true" no longer costs a paragraph.**

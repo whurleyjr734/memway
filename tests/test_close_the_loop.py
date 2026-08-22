@@ -17,6 +17,7 @@ was poor.
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -601,6 +602,136 @@ def test_the_first_attestation_must_be_prose(tmp_path):
     assert "nothing to reaffirm" in out.stdout, out.stdout
     after = {e["qualname"] for e in query.verify_change(str(r))["rotted_comments"]}
     assert after == before, f"the refused affirm still cleared rot: {after}"
+
+
+def test_the_refusal_prints_a_remedy_THAT_RUNS(tmp_path):
+    """Lesson 11, caught red-handed on this very feature.
+
+    The refusal first read "write it with `meta --channel confirm`". That
+    command does not exist - `meta` takes the channel POSITIONALLY, and
+    `--channel` is `search`'s spelling - so the one line offered to a
+    blocked user failed. The test beside it asserted only that the phrase
+    "nothing to reaffirm" appeared, which a wrong remedy satisfies exactly
+    as well as a right one.
+
+    So this EXECUTES what the message prints. Parse the command out of
+    stdout, run it, require success, and require that the affirm which
+    was refused now works. A constant describing behaviour has to be
+    pinned by execution or it is not pinned at all.
+    """
+    r = _rot_repo(tmp_path)
+    out = _cli("affirm", str(r), "widget")
+    assert out.returncode != 0, out.stdout
+
+    line = [l for l in out.stdout.splitlines() if "memway meta" in l]
+    assert line, f"the refusal offered no remedy at all:\n{out.stdout}"
+    cmd = line[0].split("memway meta", 1)[1].strip()
+    args = shlex.split(cmd)
+    assert args and "<" not in args[0], f"remedy has an unfilled slot: {args}"
+    # the last arg is the placeholder for the prose; supply real text
+    args[-1] = "read it at this hash, the comment still describes the logic"
+
+    ran = _cli("meta", *args)
+    assert ran.returncode == 0, (
+        f"the remedy the tool printed does not run:\n"
+        f"  printed: memway meta {cmd}\n"
+        f"  stdout : {ran.stdout}\n  stderr : {ran.stderr}")
+
+    # and it must actually unblock the thing that was refused
+    again = _cli("affirm", str(r), "widget")
+    assert again.returncode == 0, (
+        f"remedy ran but the refusal stands:\n{again.stdout}{again.stderr}")
+    assert "re-stamped 1 confirm entry" in again.stdout, again.stdout
+
+
+def test_the_mcp_refusal_names_a_real_tool_and_a_real_parameter(tmp_path):
+    """The OTHER door, and the reason the message had to split in two.
+
+    An MCP caller has no shell, and the first version of this handed it a
+    CLI command - wrong for the door and unusable by it. Its remedy names
+    a tool and a parameter instead, so both are checked against the
+    server's actual schema rather than read for plausibility.
+    """
+    from memway import mcp
+    r = _rot_repo(tmp_path)
+    res = query.agent_affirm(str(r), "widget", "confirm")
+    assert "error" in res, res
+    remedy = res.get("remedy", "")
+    assert remedy, f"the MCP refusal offered no remedy: {res}"
+    assert "memway meta " not in remedy, (
+        f"the MCP door is offering a shell command: {remedy}")
+
+    names = {t["name"] for t in mcp.TOOLS}
+    named = [n for n in names if n in remedy]
+    assert named, f"remedy names no tool this server advertises: {remedy}"
+    tool = next(t for t in mcp.TOOLS if t["name"] == named[0])
+    props = set(tool["inputSchema"]["properties"])
+    assert "channel" in props, (
+        f"remedy tells the caller to pass channel= to {named[0]}, whose "
+        f"schema accepts {sorted(props)}")
+
+    # and the remedy must actually unblock it, through the same door
+    query.agent_meta(str(r), "widget", "confirm", "read it, still accurate")
+    ok = query.agent_affirm(str(r), "widget", "confirm")
+    assert "error" not in ok, ok
+    assert ok["reaffirmed"]["entries"] == 1, ok
+
+
+def test_show_never_renders_a_stamp_as_a_blank_entry(tmp_path):
+    """The panel bug, in the door that did not go through for_display.
+
+    for_display drops re-stamps precisely so they cannot render as empty
+    notes - and `memway show` walked the raw store instead, so it printed
+    `<ts> (agent) ` with nothing after it. A second copy of the reading
+    rule, found by running the command rather than by any test.
+    """
+    r = _rot_repo(tmp_path)
+    assert _cli("meta", str(r), "widget", "confirm",
+                "read it, the comment still describes the logic"
+                ).returncode == 0
+    assert _cli("affirm", str(r), "widget").returncode == 0
+
+    out = _cli("show", str(r), "widget")
+    assert out.returncode == 0, out.stdout + out.stderr
+    body = [l for l in out.stdout.splitlines()
+            if l.strip().startswith("20")]      # entry lines start with a ts
+    assert body, out.stdout
+    for line in body:
+        # everything after "<ts> (<author>)[flags]" must not be empty
+        assert line.split(")", 1)[1].strip(), (
+            f"a stamp rendered as a blank entry: {line!r}\n{out.stdout}")
+    assert "re-stamped" in out.stdout, (
+        f"the seal is stored but never shown:\n{out.stdout}")
+
+
+def test_show_marks_superseded_entries_as_history(tmp_path):
+    """Same second copy, older half. `show` had no notion of supersession
+    at all, so the entry the ring DISCARDED read as a peer of the one that
+    replaced it - the exact confusion for_display was written to end."""
+    r = _rot_repo(tmp_path)
+    for text in ("first reading of this", "second reading, replacing it"):
+        assert _cli("meta", str(r), "widget", "notes", text).returncode == 0
+    out = _cli("show", str(r), "widget")
+    assert "SUPERSEDED" in out.stdout, (
+        f"two notes, neither marked as history:\n{out.stdout}")
+    # newest first: the replacement is above the entry it replaced
+    i_new = out.stdout.index("second reading")
+    i_old = out.stdout.index("first reading")
+    assert i_new < i_old, f"file order, not reading order:\n{out.stdout}"
+
+
+def test_the_json_door_carries_who_last_vouched(tmp_path):
+    """An entry can be years old and freshly checked. Without the seal a
+    reader cannot tell that from one nobody has revisited - both read
+    `stale: false`."""
+    r = _rot_repo(tmp_path)
+    assert _cli("meta", str(r), "widget", "confirm", "read it").returncode == 0
+    assert _cli("affirm", str(r), "widget", "confirm",
+                "--author", "quinn").returncode == 0
+    d = query.before_edit(str(r), "widget")
+    seals = [k for k in d["knowledge"] if k.get("reaffirmed_by")]
+    assert seals, f"the whitelist dropped the seal: {d['knowledge']}"
+    assert seals[0]["reaffirmed_by"] == "quinn", seals[0]
 
 
 def test_a_restamp_expires_when_the_logic_moves_again(tmp_path):

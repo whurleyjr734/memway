@@ -129,6 +129,13 @@ def _knowledge_for(meta, e) -> list:
             # Markers the excavated channel adds. Carried so the card can
             # say "this describes code as of a commit" rather than
             # implying it describes the code now.
+            # The seal: who last read this entry and let it stand. An old
+            # claim that was re-checked yesterday and one nobody has
+            # touched both render `stale: false`, and the card has no
+            # other way to tell them apart.
+            if en.get("reaffirmed_ts"):
+                row["reaffirmed_ts"] = en["reaffirmed_ts"]
+                row["reaffirmed_by"] = en.get("reaffirmed_by", "")
             if en.get("historical"):
                 row["historical"] = True
             if en.get("aggregate"):

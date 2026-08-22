@@ -381,14 +381,31 @@ def cmd_show(repo, ref):
         if not str(other).startswith("EVT:") and other in ix.entities:
             label = f"{other} ({ix.entities[other].qualname})"
         print(f"  {edge['kind']:9s} {direction} {label}")
-    from .metadata import accepted_for
-    md = meta.read_all(e.coord_id, current_hash=accepted_for(e))
-    for channel, entries in md.items():
+    # THROUGH for_display, NOT STRAIGHT OFF THE STORE. This walked the raw
+    # channels for a year and was a second copy of the reading rule, wrong
+    # in the two ways for_display exists to fix: file order puts the entry
+    # the ring DISCARDED at the top, and nothing marked it as discarded, so
+    # a superseded note read as a peer of the one that replaced it. Found
+    # when re-stamps arrived and this door printed them as blank entries -
+    # `2026-08-22T16:44:53Z (agent) ` with no text - because a stamp is not
+    # an entry and only for_display knows that.
+    from .metadata import accepted_for, for_display
+    rows = for_display(meta.read_all(e.coord_id, current_hash=accepted_for(e)))
+    by_channel: dict = {}
+    for r in rows:
+        by_channel.setdefault(r["channel"], []).append(r)
+    for channel, entries in by_channel.items():
         print(f"  [{channel}]")
         for entry in entries:
-            flag = " [STALE: code changed since written]" \
-                if entry.get("stale") else ""
-            print(f"    {entry['ts']} ({entry['author']}){flag} "
+            flag = (" [SUPERSEDED - history, kept for the record]"
+                    if entry.get("superseded")
+                    else " [STALE: code changed since written]"
+                    if entry.get("stale") else "")
+            # who last vouched for it, when the claim itself is older
+            seal = (f" [re-stamped {entry['reaffirmed_ts']} by "
+                    f"{entry['reaffirmed_by']}]"
+                    if entry.get("reaffirmed_ts") else "")
+            print(f"    {entry['ts']} ({entry['author']}){flag}{seal} "
                   f"{entry['text']}")
 
 
@@ -464,7 +481,15 @@ def cmd_affirm(repo, ref, channel="confirm", author="cli"):
         # The refusal IS the feature - see MetaStore.reaffirm. Exit
         # non-zero so a script cannot mistake "there was nothing to
         # vouch for" for a successful attestation.
-        print(str(exc)); sys.exit(1)
+        #
+        # THE REMEDY IS SPELLED IN THIS DOOR'S OWN GRAMMAR, and the
+        # channel is positional here - writing `--channel` produced a
+        # line that fails, which is what shipped first. A test executes
+        # this exact string rather than reading it.
+        print(str(exc))
+        print(f'  write the first one with: '
+              f'memway meta {repo} {ref} {channel} "<what you checked>"')
+        sys.exit(1)
     n = entry["reaffirms"]
     print(f"re-stamped {n} {channel} "
           f"{'entry' if n == 1 else 'entries'} at {e.coord_id} "

@@ -165,6 +165,15 @@ def _entity_dict(e, meta=None) -> dict:
             "stale": bool(r.get("stale")),
             "superseded": r["superseded"],
             "author": r.get("author", ""),
+            # WHO LAST VOUCHED FOR IT. A re-stamp says "read at this hash,
+            # still holds" without adding prose, so an entry can be years
+            # old and freshly checked - and this whitelist silently dropped
+            # that, leaving a reader unable to tell a claim nobody has
+            # revisited from one confirmed an hour ago. Both read `stale:
+            # false`; only the seal distinguishes them.
+            **({"reaffirmed_ts": r["reaffirmed_ts"],
+                "reaffirmed_by": r.get("reaffirmed_by", "")}
+               if r.get("reaffirmed_ts") else {}),
         } for r in for_display(md)]
         # THE DECIDING ENTRY FIRST, HISTORY BEHIND IT, AND BOUNDED.
         # Knowledge is append-only and never deleted - authored content is
@@ -916,7 +925,16 @@ def before_edit(repo: str, ref: str) -> dict:
         stale = bool(r.get("stale"))
         has_stale = has_stale or (stale and not r["superseded"])
         knowledge.append({"channel": r["channel"], "text": r["text"],
-                          "stale": stale, "superseded": r["superseded"]})
+                          "stale": stale, "superseded": r["superseded"],
+                          # The seal, on the surface agents actually read.
+                          # This is the THIRD hand-built copy of this row -
+                          # _entity_dict and viz._knowledge_for are the
+                          # others - which is why adding a field meant
+                          # finding all three by grep. Same shape the
+                          # payload rule was extracted for.
+                          **({"reaffirmed_ts": r["reaffirmed_ts"],
+                              "reaffirmed_by": r.get("reaffirmed_by", "")}
+                             if r.get("reaffirmed_ts") else {})})
     # knowledge flows DOWN the hierarchy: a note on the ancestor method
     # this one overrides (or inherits from) describes behavior this
     # entity shares - surface it with provenance, staleness checked
@@ -1423,7 +1441,13 @@ def agent_affirm(repo_root, ref, channel="confirm", author="agent"):
         entry = meta.reaffirm(e.coord_id, channel, author=author,
                               body_hash=stamp_for(e, repo_root))
     except ValueError as exc:
-        return {"error": str(exc)}
+        # An MCP caller has no CLI. The first version of this handed back
+        # a shell command, which is both wrong for this door and useless
+        # to it - see MetaStore.reaffirm.
+        return {"error": str(exc),
+                "remedy": f"call memway_meta with channel={channel!r} on "
+                          f"{ref!r} to write the first attestation; "
+                          f"memway_affirm re-stamps it from then on"}
     return {
         "reaffirmed": {"coord": e.coord_id, "qualname": e.qualname,
                        "channel": channel, "author": author,

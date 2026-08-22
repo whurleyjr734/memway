@@ -302,17 +302,29 @@ class MetaStore:
         fatigue this is meant to end, arrived at from the other side.
         Somebody has to say the thing once; only the repeats are free.
 
-        Raises ValueError with the remedy when the channel has no
-        substantive entry.
+        THE REMEDY IS THE DOOR'S TO PHRASE, NOT THIS METHOD'S. The first
+        version of this message ended "write it with `meta --channel
+        confirm`" and that command does not exist: `meta` takes the
+        channel POSITIONALLY, and `--channel` is `search`'s spelling. So
+        the refusal handed the reader a line that fails. Worse, an MCP
+        caller has no CLI at all and was being told to run one.
+
+        Found by exercising the feature, not by a test - the tests
+        asserted the message was PRESENT, which a wrong message satisfies
+        exactly as well as a right one (lesson 11: a constant describing
+        behaviour is invisible to a test that checks behaviour). Both
+        doors now append their own remedy and both are pinned by
+        EXECUTING it.
+
+        Raises ValueError stating what is missing; callers add the how.
         """
         prior = [e for e in self.read(coord_id, channel)
                  if not e.get("reaffirms")]
         if not prior:
             raise ValueError(
-                f"nothing to reaffirm: {coord_id} has no {channel} entry to "
-                f"re-stamp. The first attestation has to say something - "
-                f"write it with `meta --channel {channel}`, and later "
-                f"re-stamps are free.")
+                f"nothing to reaffirm: {coord_id} has no {channel} entry "
+                f"to re-stamp - the first attestation has to say "
+                f"something, and only the repeats are free")
         return self.add(coord_id, channel, "", author=author,
                         body_hash=body_hash, reaffirms=len(prior))
 
