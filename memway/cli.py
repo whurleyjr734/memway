@@ -533,8 +533,13 @@ def cmd_clones(repo=".", *rest):
     print(f"  bodies under {r['min_loc']} lines are excluded "
           f"({r['excluded_below_min_loc']} of them) - a structure hash on a "
           f"one-liner is noise")
+    # The census, not a filter: production ranks first, everything is
+    # still counted, and the reader can see what the ordering is doing.
+    o = r["groups_by_origin"]
+    print(f"  {o['production']} production, {o['mixed']} mixed, "
+          f"{o['test-only']} test-only - production first, none excluded")
     for g in r["groups"]:
-        print(f"\n  {g['count']}x  {g['loc']} lines")
+        print(f"\n  {g['count']}x  {g['loc']} lines  [{g['origin']}]")
         for m in g["members"]:
             print(f"    {m['qualname']}  ({m['path']}:{m['line']})")
         if g["members_shown"] < g["members_total"]:

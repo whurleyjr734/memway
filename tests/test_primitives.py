@@ -222,3 +222,90 @@ def test_clone_groups_are_bounded_at_BOTH_levels(tmp_path):
     # AND THE COUNT SURVIVES THE CUT - it is the actionable part.
     assert g["count"] > g["members_shown"], (
         "a reader must still learn how many copies exist")
+
+
+BODY_A = ("def {name}(a, b):\n"
+          "    total = a + b\n"
+          "    scaled = total * 2\n"
+          "    return scaled - 1\n")
+BODY_B = ("def {name}(x):\n"
+          "    if x is None:\n"
+          "        return []\n"
+          "    return sorted(set(x))\n")
+
+
+@pytest.fixture
+def split_repo(tmp_path):
+    """A SMALL production group and a BIGGER test group.
+
+    The sizes are deliberate: ranking by count alone puts the test group
+    first, so a test that used equal sizes would pass whether or not
+    origin is consulted.
+    """
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(BODY_A.format(name="alpha")
+                            + "\n\n" + BODY_A.format(name="beta"))
+    (r / "test_m.py").write_text(
+        "\n\n".join(BODY_B.format(name=f"test_case_{i}") for i in range(4)))
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", r).returncode == 0
+    return r
+
+
+def test_production_duplication_outranks_a_bigger_test_group(split_repo):
+    """THE POINT. On pydantic, 351 of 471 groups are test-only, so ranking
+    by size handed the whole page to parametrized tests and never surfaced
+    ten identical property accessors in production networking code."""
+    d = clones(str(split_repo))
+    assert d["groups_total"] == 2, d
+    first, second = d["groups"][0], d["groups"][1]
+    assert first["origin"] == "production", d["groups"]
+    assert second["origin"] == "test-only", d["groups"]
+    assert second["count"] > first["count"], (
+        "[fixture] the test group is not bigger, so size-ranking and "
+        "origin-ranking agree and this proves nothing")
+
+
+def test_the_split_is_a_census_and_filters_nothing(split_repo):
+    """Not a filter. Excluding tests would discard real duplication
+    silently, which is the thing this project refuses to do."""
+    d = clones(str(split_repo))
+    o = d["groups_by_origin"]
+    assert sum(o.values()) == d["groups_total"], (o, d["groups_total"])
+    assert o == {"production": 1, "mixed": 0, "test-only": 1}, o
+    origins = {g["origin"] for g in d["groups"]}
+    assert "test-only" in origins, (
+        f"a test group was dropped rather than ranked below: {d['groups']}")
+
+
+def test_mixed_is_its_own_bucket(tmp_path):
+    """A body in BOTH production and a test is a different finding from
+    duplication inside either - sometimes a test reimplementing logic
+    instead of calling it."""
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(BODY_A.format(name="alpha"))
+    (r / "test_m.py").write_text(BODY_A.format(name="test_alpha_copy"))
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", r).returncode == 0
+    d = clones(str(r))
+    assert d["groups_total"] == 1, d
+    assert d["groups"][0]["origin"] == "mixed", d["groups"][0]
+    assert d["groups_by_origin"]["mixed"] == 1, d["groups_by_origin"]
+
+
+def test_origin_uses_the_one_test_rule():
+    """is_test_entity is THE test/source rule - summary, viz and the test
+    lens all join there. A second copy is how two views come to disagree
+    about the same repo."""
+    import ast
+    src = (HERE / "memway" / "primitives.py").read_text()
+    fn = [n for n in ast.walk(ast.parse(src))
+          if isinstance(n, ast.FunctionDef) and n.name == "_origin"][0]
+    body = ast.dump(fn)
+    assert "is_test_entity" in body, "_origin no longer delegates the rule"
+    for banned in ("tests", "test_", "suffix", "parts"):
+        assert f"'{banned}'" not in body and f'"{banned}"' not in body, (
+            f"_origin decides what a test is by itself ({banned!r} appears "
+            f"in its body)")

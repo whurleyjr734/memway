@@ -62,6 +62,38 @@ NEAR_DEFAULT = 0.80
 MEMBERS_CAP = 5
 
 
+def _origin(members) -> str:
+    """Where a clone group lives: production, test-only, or mixed.
+
+    THROUGH is_test_entity, which is THE one test/source rule - summary,
+    viz and the test lens all join there rather than each deciding for
+    itself, and a second rule is how two views start disagreeing about the
+    same repo.
+
+    MIXED EARNS ITS OWN BUCKET rather than being folded into either side.
+    "The same body exists in production and in a test" is a different
+    finding from duplication within one of them - sometimes a test
+    reimplementing logic instead of calling it. Honesty about its size:
+    on pydantic it is 4 groups of 471, and at three lines they look
+    coincidental (a test's __init__ matching NameEmail.__init__ is two
+    short constructors, not a smell). It is a real category carrying
+    little weight here, which is worth knowing before anyone builds on it.
+
+    CLASSIFIED BY PATH, because is_test_entity is - deliberately, since a
+    function called test_connection in production code is production code.
+    The consequence runs the other way too and is not hidden: a genuine
+    helper living under tests/ is called a test, and a vendored subtree
+    like pydantic-core counts as production. That is a claim about
+    LOCATION, which is why the split is reported as a census the reader
+    can weigh rather than applied as a filter they cannot see.
+    """
+    from .verify import is_test_entity
+    n = sum(1 for e in members if is_test_entity(e))
+    if n == 0:
+        return "production"
+    return "test-only" if n == len(members) else "mixed"
+
+
 def clones(repo: str, ref: str = "", min_loc: int = MIN_CLONE_LOC,
            near: float = 0.0, limit: int = 12) -> dict:
     """Structurally identical callables - and optionally near-identical.
@@ -158,17 +190,41 @@ def clones(repo: str, ref: str = "", min_loc: int = MIN_CLONE_LOC,
         rows = [_row(e) for e in sorted(v, key=lambda x: x.qualname)]
         shown_m, rep_m = rank_bound_report(rows, "members", cap=MEMBERS_CAP)
         return {"shape": h, "count": len(v), "loc": v[0].loc,
-                "members": shown_m, **rep_m}
+                "origin": _origin(v), "members": shown_m, **rep_m}
 
     dupes = [_group(h, v) for h, v in groups.items() if len(v) > 1]
+    # RANKED BY ORIGIN FIRST, AND NOTHING IS DROPPED. Ranking purely by
+    # group size hands the whole page to parametrized tests: 351 of
+    # pydantic's 471 groups are test-only, so the twelve shown were
+    # test bodies and this never surfaced -
+    #
+    #   10x 6 lines  _BaseUrl.host / _BaseUrl.fragment /
+    #                _BaseMultiHostUrl.query
+    #
+    # ten identical property accessors in production networking code,
+    # which is what somebody runs this to find.
+    #
+    # A FILTER WOULD HAVE BEEN WRONG. Excluding tests discards real
+    # duplication silently, and raising min_loc kills the true positives
+    # FIRST - measured: at loc>=5 memway's own _cli and _git groups
+    # vanish and 3 of 14 groups survive. So the totals still count every
+    # group, the census says how they split, and only the ORDER changes.
+    order = {"production": 0, "mixed": 1, "test-only": 2}
     shown, rep = rank_bound_report(
-        dupes, "groups", rank=lambda g: (-g["count"], -g["loc"]), cap=limit)
+        dupes, "groups",
+        rank=lambda g: (order[g["origin"]], -g["count"], -g["loc"]),
+        cap=limit)
+    census = collections.Counter(g["origin"] for g in dupes)
     out.update({"groups": shown, **rep,
+                # Reported as a FACT, not applied as a filter.
+                "groups_by_origin": {k: census.get(k, 0) for k in order},
                 "duplicated_callables": sum(g["count"] for g in dupes),
                 "callables": len(callables),
                 "note": ("each group is one body appearing under several "
                          "coordinates; the structure hash ignores the "
-                         "entity's own name, so renamed copies still match")})
+                         "entity's own name, so renamed copies still match. "
+                         "Production groups rank first - nothing is "
+                         "filtered, see groups_by_origin for the split")})
     return out
 
 

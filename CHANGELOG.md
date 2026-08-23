@@ -7,6 +7,59 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.63.2] - 2026-08-23
+
+**`clones` ranks production duplication first — and filters nothing.**
+
+Ranking purely by group size handed the visible page to parametrized
+tests. **351 of pydantic's 471 duplicated groups are test-only**, so the
+twelve shown were test bodies, and this never surfaced:
+
+```
+10x  6 lines  [production]
+   pydantic.networks._BaseUrl.host
+   pydantic.networks._BaseUrl.fragment
+   pydantic.networks._BaseMultiHostUrl.query
+```
+
+Ten identical property accessors in production networking code — what
+somebody actually runs this to find. It is now second on the page. On
+memway's own map the split immediately surfaced three identical parser
+constructors (`GoParser`, `JavaParser`, `JavaScriptParser.__init__`) that
+twelve test groups had been sitting on top of.
+
+Every group carries an `origin` (production / mixed / test-only) and the
+payload carries `groups_by_origin` as a census:
+
+```
+471 duplicated groups - 1215 of 8229 callables (showing 12)
+  116 production, 4 mixed, 351 test-only - production first, none excluded
+```
+
+**It is a ranking and a census, not a filter.** The totals still count
+every group and nothing is dropped. Both alternatives stay rejected on
+measured grounds: excluding tests discards real duplication silently —
+memway's own largest finding is a test helper copied into seven files
+under two names, and it is worth fixing — and raising `min_loc` kills the
+true positives *first*: at `loc>=5` only 3 of 14 groups survive here and
+both `_cli` and `_git` vanish.
+
+Two things recorded rather than glossed:
+
+- **`mixed` is smaller than the idea suggests** — 4 groups of 471 on
+  pydantic, and at three lines they look coincidental. A real category
+  (a test reimplementing logic instead of calling it) carrying little
+  weight on this data. Check its size before building on it.
+- **The classification is about location, not intent.** `is_test_entity`
+  decides by path, so a helper under `tests/` counts as a test and a
+  vendored subtree like `pydantic-core` counts as production. That is a
+  judgement a reader may disagree with — which is the argument for a
+  census they can weigh over a filter they cannot see.
+
+`_origin` delegates to `is_test_entity`, the one test/source rule shared
+with `summary`, `viz` and the test lens; an AST test forbids it from
+deciding for itself.
+
 ## [0.63.1] - 2026-08-22
 
 **The bound was applied at one level and forgotten at the level below.**
