@@ -225,3 +225,92 @@ def test_unplaceable_knowledge_is_named_not_dropped(published, consumer):
     o = rp["orphans"][0]
     assert o["qualname"] and o["entries"] >= 1, o
     assert "best_score" in o, "an orphan must say how close it got"
+
+
+def _stamps(coord_dir, channel="notes"):
+    out = []
+    for p in Path(coord_dir).glob(f"meta/*/{channel}.jsonl"):
+        for l in p.read_text().splitlines():
+            if l.strip():
+                e = json.loads(l)
+                if e.get("reaffirms"):
+                    out.append(e.get("body_hash", ""))
+    return out
+
+
+def test_a_newer_restamp_is_not_deduped_away_by_an_older_one(tmp_path):
+    """DEDUPLICATION BY TEXT, MEETING AN ENTRY THAT HAS NO TEXT.
+
+    Every re-stamp carries `text: ""`, so under a text-keyed dedupe they
+    were all identical to each other. Pull an updated map whose upstream
+    had re-affirmed a note at a NEW hash, and that stamp was discarded
+    because an older one - at a different hash - had already put "" in
+    the set.
+
+    The note then read STALE on the puller's map when upstream had just
+    re-checked it. This module's whole promise is that version skew reads
+    as HONEST staleness; that was staleness which was not true.
+    """
+    from memway.replay import replay
+    from memway.indexer import Indexer
+
+    def mk(d, body):
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "m.py").write_text(f'def alpha(x):\n    """Doc."""\n    {body}\n')
+        subprocess.run(["git", "-C", str(d), "init", "-q", "-b", "main"],
+                       capture_output=True)
+        assert _cli("init", d).returncode == 0
+
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    mk(src, "return x + 1"); mk(dst, "return x + 1")
+    assert _cli("meta", src, "alpha", "notes", "The +1 is load-bearing.").returncode == 0
+
+    # upstream re-affirms at v2, and the consumer pulls that
+    (src / "m.py").write_text('def alpha(x):\n    """Doc."""\n    return x + 2\n')
+    assert _cli("index", src).returncode == 0
+    assert _cli("affirm", src, "alpha", "notes").returncode == 0
+    ix = Indexer(str(dst), str(dst / ".coord")); ix.load_existing()
+    replay(src / ".coord", dst / ".coord", ix)
+    assert len(_stamps(src / ".coord")) == 1, "[fixture] upstream has no stamp"
+
+    # upstream moves again and re-affirms again - a SECOND, NEWER stamp
+    (src / "m.py").write_text('def alpha(x):\n    """Doc."""\n    return x + 3\n')
+    assert _cli("index", src).returncode == 0
+    assert _cli("affirm", src, "alpha", "notes").returncode == 0
+    assert len(_stamps(src / ".coord")) == 2, "[fixture] no second stamp"
+
+    ix = Indexer(str(dst), str(dst / ".coord")); ix.load_existing()
+    replay(src / ".coord", dst / ".coord", ix)
+
+    missing = [h for h in _stamps(src / ".coord")
+               if h not in _stamps(dst / ".coord")]
+    assert not missing, (
+        f"a re-stamp was deduped away by an older one at a different "
+        f"hash: {missing}. The consumer's copy now reads stale for a "
+        f"note upstream had re-checked.")
+
+
+def test_replaying_stamps_twice_still_changes_nothing(tmp_path):
+    """THE CONTROL. Keying stamps on their hash must not cost idempotence
+    - the property the text-keyed rule was there to provide."""
+    from memway.replay import replay
+    from memway.indexer import Indexer
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    for d in (src, dst):
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "m.py").write_text('def alpha(x):\n    """Doc."""\n    return x + 1\n')
+        subprocess.run(["git", "-C", str(d), "init", "-q", "-b", "main"],
+                       capture_output=True)
+        assert _cli("init", d).returncode == 0
+    assert _cli("meta", src, "alpha", "notes", "load-bearing").returncode == 0
+    (src / "m.py").write_text('def alpha(x):\n    """Doc."""\n    return x + 2\n')
+    assert _cli("index", src).returncode == 0
+    assert _cli("affirm", src, "alpha", "notes").returncode == 0
+
+    def count():
+        return sum(1 for p in (dst / ".coord").glob("meta/*/notes.jsonl")
+                   for l in p.read_text().splitlines() if l.strip())
+    for _ in range(3):
+        ix = Indexer(str(dst), str(dst / ".coord")); ix.load_existing()
+        replay(src / ".coord", dst / ".coord", ix)
+    assert count() == 2, f"replay doubled entries: {count()} (expected 2)"

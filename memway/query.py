@@ -943,13 +943,30 @@ def before_edit(repo: str, ref: str) -> dict:
         md_i = meta.read_all(
             base_m.coord_id,
             current_hash=accepted_for(base_m))
-        for channel, entries in md_i.items():
-            for en in entries:
-                knowledge.append({
-                    "channel": channel, "text": en["text"],
-                    "stale": bool(en.get("stale")),
-                    "inherited_from": base_m.qualname,
-                    "hops_up": hops})
+        # THROUGH for_display, like everything else that reads knowledge.
+        # This walked the raw channels and was wrong in both of the ways
+        # that function exists to prevent, on the surface an agent reads
+        # before it edits:
+        #
+        #   a re-stamp arrived as an inherited note with NO TEXT; and,
+        #   worse and long before stamps existed, an ancestor note that
+        #   somebody had explicitly SUPERSEDED arrived unmarked, in file
+        #   order, AHEAD of the note that replaced it. A child method was
+        #   briefed with a claim its author had retracted, presented as
+        #   current.
+        #
+        # Found by giving an ancestor a re-stamp and looking at what the
+        # child inherited; the superseded leak was sitting underneath it.
+        for row in for_display(md_i):
+            knowledge.append({
+                "channel": row["channel"], "text": row["text"],
+                "stale": bool(row.get("stale")),
+                "superseded": row["superseded"],
+                "inherited_from": base_m.qualname,
+                "hops_up": hops,
+                **({"reaffirmed_ts": row["reaffirmed_ts"],
+                    "reaffirmed_by": row.get("reaffirmed_by", "")}
+                   if row.get("reaffirmed_ts") else {})})
 
     from . import evidence as _ev
     _records = _ev.read(coord, e.coord_id)

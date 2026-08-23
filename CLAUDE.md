@@ -167,6 +167,17 @@ that checks behaviour**. So derive it, and pin the derivation: assert the
 value comes from the source (AST or execution), not that the sentence
 reads right today.
 
+**13. Knowledge written through a shell is knowledge the shell may
+rewrite.** A confirm was passed to `memway meta` inside a double-quoted
+zsh string containing backticks; zsh ran them as command substitution and
+stored the sentence with two words silently deleted. The CLI printed
+"added confirm entry" and exited 0 - correctly, because it faithfully
+stored what it was handed. This is lesson 2 in a new place: the success
+line describes the WRITE, not the CONTENT. Prose entries are the one
+artifact in this project nobody can reconstruct, so write them through
+the API or from a file rather than an interpolated command line, and read
+the entry back before believing it landed.
+
 ## 3. Where knowledge goes
 
 - **A fact about an entity** → `memway_meta` (stamped, staleness-audited).

@@ -888,3 +888,58 @@ def test_module_rot_reaches_neither_the_commit_report_nor_the_queue(tmp_path):
     assert not any(q == "m" or q.endswith(".m") for q in a["comment_rot"]), (
         f"a module reached the queue: {a['comment_rot']}. Module rot ends "
         f"at the computation now - see CLAUDE.md lesson 12.")
+
+
+def _inherit_repo(tmp_path):
+    r = tmp_path / "inh"; r.mkdir()
+    (r / "m.py").write_text(
+        "class Base:\n"
+        "    def handle(self, x):\n"
+        '        """Base handling."""\n'
+        "        return x + 1\n"
+        "\n\n"
+        "class Child(Base):\n"
+        "    def handle(self, x):\n"
+        '        """Child handling."""\n'
+        "        return x + 10\n")
+    _git(r, "init", "-q", "-b", "main")
+    _git(r, "add", "-A")
+    _git(r, "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "one", "--no-gpg-sign")
+    assert _cli("init", str(r)).returncode == 0
+    return r
+
+
+def test_inherited_knowledge_marks_history_and_drops_stamps(tmp_path):
+    """KNOWLEDGE FLOWING DOWN read the raw channels, and was wrong in both
+    ways for_display exists to prevent.
+
+    A re-stamp arrived as an inherited note with NO TEXT. And - long
+    before stamps existed - an ancestor note somebody had explicitly
+    SUPERSEDED arrived unmarked, in file order, AHEAD of the note that
+    replaced it. The child was briefed with a retracted claim, presented
+    as current, on the surface an agent reads before it edits.
+    """
+    r = _inherit_repo(tmp_path)
+    assert _cli("meta", str(r), "m.Base.handle", "notes",
+                "The +1 compensates for the zero-index.").returncode == 0
+    # stale the ancestor, re-stamp it, then supersede it properly
+    src = (r / "m.py").read_text()
+    assert "return x + 1\n" in src
+    (r / "m.py").write_text(src.replace("return x + 1\n", "return x + 2\n", 1))
+    assert _cli("index", str(r)).returncode == 0
+    assert _cli("affirm", str(r), "m.Base.handle", "notes").returncode == 0
+    assert _cli("meta", str(r), "m.Base.handle", "notes",
+                "SUPERSEDES: the zero-index story was wrong.").returncode == 0
+
+    rows = [k for k in query.before_edit(str(r), "m.Child.handle")["knowledge"]
+            if k.get("inherited_from")]
+    assert rows, "the child inherits nothing - fixture proves nothing"
+    assert all((k["text"] or "").strip() for k in rows), (
+        f"a stamp arrived as a blank inherited note: {rows}")
+    live = [k for k in rows if not k.get("superseded")]
+    assert len(live) == 1, f"more than one entry presented as current: {rows}"
+    assert "SUPERSEDES" in live[0]["text"], (
+        f"the retracted claim is being presented as current: {live[0]}")
+    assert rows[0]["text"] == live[0]["text"], (
+        "file order, not reading order - the replaced note is on top")

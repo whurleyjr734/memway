@@ -7,6 +7,63 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.61.3] - 2026-08-22
+
+A third pass. The re-stamp keeps acting as a probe: it has no text, so
+every surface that assumed "an entry has text" fails visibly. Two of the
+three defects below **predate re-stamps entirely** and were simply
+invisible until something empty went through them.
+
+### Replay silently dropped the re-stamp that mattered
+
+`replay` deduplicates by text. Every stamp carries `text: ""`, so they
+were all identical to each other. Pull an updated map whose upstream had
+re-affirmed a note at a **new** hash, and that stamp was discarded
+because an older one - at a different hash - had already put `""` in the
+set.
+
+The note then read **stale on the consumer's map when upstream had just
+re-checked it**. This module's whole promise is that version skew reads
+as *honest* staleness; that was staleness which was not true.
+Deduplication now keys a claim on its text and a stamp on the hash it
+vouches at. Idempotence is unchanged and tested.
+
+### Inherited knowledge presented a retracted claim as current
+
+Knowledge flows down to a child method from the ancestor it overrides,
+and that loop walked the **raw** channels in file order. So an ancestor
+note somebody had explicitly SUPERSEDED arrived at the child **unmarked,
+ahead of the note that replaced it** - on the surface an agent reads
+immediately before editing.
+
+This is older than re-stamps by seven releases. It stayed hidden because
+several confirms on `before_edit` state that "the knowledge list is built
+through `for_display`" - true of the local list, quietly false of the
+inherited one. An attestation can be accurate about the code you read and
+silently wrong about code you did not. A stamp made it visible by
+arriving as an inherited note with no text at all.
+
+### `agentmap.py` is unreferenced
+
+165 lines, no importer, no CLI command, no MCP tool, no test, zero
+callers in the map's own edge graph. Not junk - its design (path
+confidence, impact ranking, hard token budget, "never pretend coverage")
+is the design memway adopted, implemented elsewhere as
+`payload.rank_bound_report` and `before_edit`'s grounding block.
+
+It also contains the same raw-read bug in a third place, plus a
+`why_stale` flag with no path to `True`. Recorded on the coordinate
+rather than deleted - removing a module is a maintainer call.
+
+### CLAUDE.md lesson 13
+
+A confirm was written through a double-quoted zsh string containing
+backticks. zsh ran them as command substitution and stored the sentence
+with two words deleted; the CLI printed "added confirm entry" and exited
+0, correctly, having faithfully stored what it was handed. Prose entries
+are the one artifact nobody can reconstruct - write them through the API
+or a file, and read them back.
+
 ## [0.61.2] - 2026-08-22
 
 A second pass of **using** the feature. Two more defects, both in the

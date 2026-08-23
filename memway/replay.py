@@ -123,12 +123,39 @@ def _best_local_match(be, local_entities, by_kind):
     return (best, best_score) if best_score >= CONFIDENT else (None, best_score)
 
 
+def _identity(en: dict):
+    """What makes two entries THE SAME ENTRY, for deduplication.
+
+    Text, for a claim - two identical sentences in a channel are one
+    observation, and replaying a bundle twice must not double them.
+
+    A STAMP HAS NO TEXT, so text cannot identify it. Every re-stamp
+    carries `text: ""` (metadata.MetaStore.reaffirm), which made them all
+    identical to each other under the old rule, and the failure was not
+    cosmetic: pull an updated map whose upstream had re-affirmed a note at
+    a NEW hash, and that stamp was discarded because an older one - at a
+    different hash - had already put "" in the set. The note then read
+    STALE on the puller's map when upstream had just re-checked it, which
+    is the exact inversion of what this module promises. Version skew is
+    supposed to read as honest staleness; here it read as staleness that
+    was not true.
+
+    So a stamp is identified by the hash it vouches at. Claims are
+    untouched by this, deliberately: keying them on (text, hash) too would
+    replay the same sentence again every time the code moved.
+    """
+    if en.get("reaffirms"):
+        return ("\x00reaffirms", en.get("body_hash", ""))
+    return en.get("text")
+
+
 def replay(bundle_coord: Path, local_coord: Path, local_indexer) -> dict:
     """Append the bundle's knowledge to the local map. Returns a report.
 
     Never deletes and never re-stamps. An entry that already exists on the
-    target coordinate - same channel, same text - is not duplicated, so
-    replaying twice is a no-op rather than a doubling.
+    target coordinate is not duplicated, so replaying twice is a no-op
+    rather than a doubling. What counts as "already there" is _identity -
+    text for a claim, the vouched-for hash for a stamp.
     """
     bundle_coord, local_coord = Path(bundle_coord), Path(local_coord)
     b_ents = _bundle_entities(bundle_coord)
@@ -172,10 +199,10 @@ def replay(bundle_coord: Path, local_coord: Path, local_indexer) -> dict:
                 "to": target.qualname, "score": round(score, 2)})
 
         for channel, entries in channels.items():
-            existing = {e.get("text") for e in store.read(target.coord_id,
-                                                          channel)}
+            existing = {_identity(e) for e in store.read(target.coord_id,
+                                                        channel)}
             for en in entries:
-                if en.get("text") in existing:
+                if _identity(en) in existing:
                     report["entries_already_present"] += 1
                     continue
                 extra = {k: v for k, v in en.items()
