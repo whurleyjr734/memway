@@ -1021,3 +1021,52 @@ def test_a_tiebroken_name_is_not_reported_as_a_refusal(tmp_path):
         f"a tiebroken name counted as a refusal ({n} refs) - the warning "
         f"would say the resolver declined to guess about a reference it "
         f"resolved and shipped at 0.95")
+
+
+# The reverse direction's exemptions. A CLI command belongs here when it
+# is NOT a read an agent should be able to make - installation, rendering,
+# network, or a mutation of the map itself. An entry is a decision.
+REVERSE_EXEMPT = {
+    "init": "creates the map; an agent should not silently index a repo",
+    "index": "MUTATES the map. Open question, deliberately left shut: the "
+             "hooks keep it current, and an agent rewriting the index "
+             "mid-session changes what every other reader sees",
+    "harvest": "writes knowledge in bulk from git history",
+    "setup": "installs rules files into the user's repo",
+    "hooks": "installs git hooks",
+    "mcp": "IS the server",
+    "pull": "fetches over the network and installs into .coord",
+    "viz": "renders a file to disk",
+    "console": "runs a web server",
+    "evidence": "prints a stored commit body; dig is the MCP door to it",
+    "meta": "a WRITE - has its MCP door, checked in the forward direction",
+    "affirm": "a WRITE - has its MCP door, checked in the forward direction",
+}
+
+
+def test_every_readable_cli_command_has_an_mcp_door_or_a_reason():
+    """THE OTHER DIRECTION, and its absence is why gaps accumulated.
+
+    The forward test walks mcp.TOOLS and demands a CLI and --json door for
+    each. Nothing walked the CLI, so a capability that existed for a human
+    and not for an agent was invisible to the guard - which is precisely
+    the population that matters, because the agent is the primary user of
+    this tool and cannot read the --help.
+
+    Found by asking the question out loud rather than by any test:
+    `review` had no MCP door, so an agent could not see what its own
+    change did to the knowledge it was being asked to maintain.
+    """
+    from memway import mcp
+    from memway.cli import COMMANDS
+    doors = {t["name"].replace("memway_", "").replace("_", "-")
+             for t in mcp.TOOLS}
+    missing = sorted(c for c in COMMANDS
+                     if c not in REVERSE_EXEMPT
+                     and c not in doors
+                     and c.replace("-", "_") not in
+                     {d.replace("-", "_") for d in doors})
+    assert not missing, (
+        f"CLI commands with no MCP door: {missing}\n"
+        f"either add the tool, or add an entry to REVERSE_EXEMPT with a "
+        f"reason an agent should not be able to ask this")

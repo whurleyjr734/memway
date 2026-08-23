@@ -96,6 +96,16 @@ READS = {
     "review":      lambda r: __import__("memway.review", fromlist=["review"])
                                 .review(str(r), "HEAD"),
     "attention":     lambda r: query.attention(str(r)),
+    # Graph primitives, enrolled the moment they existed rather than two
+    # releases later - which is the whole argument of the test below.
+    # clones walks every entity's shape hash and sketch; tests_for walks
+    # the edge graph and READS TEST FILES OFF DISK for the name-hit tier,
+    # which is the widest filesystem read of any query here.
+    "clones":      lambda r: __import__("memway.primitives",
+                                        fromlist=["clones"]).clones(str(r)),
+    "tests_for":   lambda r: __import__("memway.primitives",
+                                        fromlist=["covering_tests"]
+                                        ).covering_tests(str(r), "m.alpha"),
 }
 
 

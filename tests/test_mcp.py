@@ -164,7 +164,8 @@ def test_tools_list_advertises_every_tool(built):
                      "memway_meta", "memway_affirm",
                      "memway_attention", "memway_search",
                      "memway_show", "memway_lineage",
-                     "memway_before_edit"}
+                     "memway_before_edit",
+                     "memway_review", "memway_clones", "memway_tests_for"}
     for t in r["result"]["tools"]:                  # schema well-formed
         assert t["inputSchema"]["type"] == "object"
 

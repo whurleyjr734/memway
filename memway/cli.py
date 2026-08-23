@@ -78,10 +78,11 @@ Workflow: grep finds it; memway explains it and remembers it.
   memway --version                    print the installed version (-V)
   memway --json <q> <repo> [args]     structured: summary, at, show,
                                         before-edit, lineage, dig, search,
-                                        review, attention, verify-change (which
-                                        also names the knowledge your
-                                        change just staled). All ten are
-                                        reads: .coord is left untouched.
+                                        review, attention, clones, tests-for,
+                                        verify-change (which also names the
+                                        knowledge your change just staled).
+                                        Every one is a read: .coord is left
+                                        untouched, proven per query.
 
 Agent integration (Claude Code, Cursor - see IDE_AGENTS.md):
   claude mcp add memway -- memway mcp .
@@ -502,6 +503,57 @@ def cmd_affirm(repo, ref, channel="confirm", author="cli"):
     print(f"re-stamped {n} {channel} "
           f"{'entry' if n == 1 else 'entries'} at {e.coord_id} "
           f"({e.qualname}) - no new prose written")
+
+
+def cmd_clones(repo=".", *rest):
+    """Where this repo repeats itself, structurally.
+
+    Reads through the same _clones_q the --json door uses, so the flag
+    grammar cannot drift between surfaces.
+    """
+    from .query import _clones_q
+    r = _clones_q(repo, list(rest))
+    if r.get("error"):
+        print(r["error"]); sys.exit(1)
+    if r.get("of"):
+        n = r["identical_total"]
+        print(f"{r['of']}: {n} identical {'body' if n == 1 else 'bodies'} "
+              f"elsewhere" + (f" (showing {r['identical_shown']})"
+                              if r["identical_shown"] < n else ""))
+        for m in r["identical"]:
+            print(f"  {m['qualname']}  ({m['path']}:{m['line']})")
+        for m in r.get("near", []):
+            print(f"  ~{m['similarity']:.2f}  {m['qualname']}  "
+                  f"({m['path']}:{m['line']})")
+        return
+    print(f"{r['groups_total']} duplicated {'group' if r['groups_total'] == 1 else 'groups'}"
+          f" - {r['duplicated_callables']} of {r['callables']} callables"
+          + (f" (showing {r['groups_shown']})"
+             if r["groups_shown"] < r["groups_total"] else ""))
+    print(f"  bodies under {r['min_loc']} lines are excluded "
+          f"({r['excluded_below_min_loc']} of them) - a structure hash on a "
+          f"one-liner is noise")
+    for g in r["groups"]:
+        print(f"\n  {g['count']}x  {g['loc']} lines")
+        for m in g["members"]:
+            print(f"    {m['qualname']}  ({m['path']}:{m['line']})")
+
+
+def cmd_tests_for(repo, ref):
+    """What covers this coordinate, before you touch it."""
+    from .query import _tests_for_q
+    r = _tests_for_q(repo, [ref])
+    if r.get("error"):
+        print(r["error"]); sys.exit(1)
+    print(f"{r['of']}")
+    print(f"  {r['grounded_total']} grounded (reached through real edges), "
+          f"{r['name_hit_total']} by name only (a guess)")
+    for t in r["grounded"]:
+        print(f"    {t}")
+    for t in r["name_hit"]:
+        print(f"    ~ {t}  [name match, no traced edge]")
+    for t in r.get("other_language", []):
+        print(f"    ! {t['test']}  ({t['runner']} - not runnable here)")
 
 
 def cmd_pull(name, into=".", source=None, force=False,
@@ -1330,6 +1382,8 @@ COMMANDS = {
     "at": cmd_at, "setup": cmd_setup, "mcp": cmd_mcp,
     "dig": cmd_dig, "evidence": cmd_evidence, "hooks": cmd_hooks,
     "viz": cmd_viz, "console": cmd_console, "review": cmd_review, "search": cmd_search,
+    # graph primitives - useful on a map with no knowledge in it yet
+    "clones": cmd_clones, "tests-for": cmd_tests_for,
     "pull": cmd_pull, "attention": cmd_attention,
     # The three read doors that existed over MCP and --json but not here.
     # verify-change is the one that mattered: the pre-commit hook had

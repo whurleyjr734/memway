@@ -7,6 +7,89 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-08-22
+
+**Primitives: tools that work on a map with no knowledge in it.**
+
+Every tool memway shipped until now answered a question about accumulated
+*knowledge*. That has a cold-start problem no polish fixes: a map indexed
+five minutes ago holds zero notes, so every memory tool returns nothing
+until somebody has been recording for weeks. The cost of the workflow is
+immediate; the benefit was deferred. That is the shape that gets a tool
+uninstalled.
+
+But the substrate is not a memory store. `shape_hash` (a name-insensitive
+structure hash) and `sketch` (a minhash) are computed for **every entity
+in every repo**, shipped inside every published bundle — and existed
+solely to help `lineage` match renames. Nobody could ask for them.
+
+The rule for adding a primitive: **it must answer something grep and Read
+cannot.** Otherwise it is a worse LSP plus a context tax.
+
+### `memway clones`
+
+Callables with an identical structure hash. Name-insensitive, so a copy
+under a different name still matches — which is exactly why grep cannot
+do it. On memway's own repo: 14 groups, 42 of 1,074 callables, the
+largest being the same 3-line subprocess helper in **seven** test files
+under two different names (`_cli`, `cli`, `_run`).
+
+Two tiers that are different kinds of claim: `identical` is a hash match
+and is certain; `near` is a minhash **estimate** carrying its score, off
+unless asked for. The `min_loc` floor is derived from measurement, not
+taste — at `loc>=5` the real findings disappear — and the count it
+excludes is always reported.
+
+### `memway tests-for`
+
+What covers a coordinate *before* you change it, in the two tiers
+`verify_change` already used: `grounded` (reached through resolved edges —
+evidence) versus `name_hit` (a file mentioning the name — the tier grep
+would give you, labelled a guess). "84 grounded, 0 by name" tells you
+what is provably covered; one merged number would tell you neither.
+
+**Extracted, not copied.** The walk and its tiers lived inline in
+`verify_change`; they are now `verify.tests_reaching`, with an AST test
+forbidding `covering_tests` from mentioning `deque`, `is_test_entity` or
+`_pytest_node`. Every drifted rule in this project's history started as a
+second copy — this is the first time one was lifted out *before* the copy
+existed rather than after.
+
+### The parity test now runs both directions
+
+`test_every_mcp_tool_has_three_doors` walked `mcp.TOOLS` and demanded a
+CLI door for each. Nothing walked the CLI, so a capability that existed
+for a human and **not** for an agent was structurally invisible — and
+that is the population that matters, because the agent is the primary
+user and cannot read `--help`.
+
+Turned on, it immediately named one: **`review` had no MCP door**, so an
+agent could not see what its own change did to the knowledge it was being
+asked to maintain. Now `memway_review`.
+
+### `memway_meta` gains `replaces`
+
+The CLI has taken `--replaces` since it was added; the MCP door never
+did. `replaces` records **why** a belief changed — what `review` renders
+as *"because: …"* — and agents wrote 68% of this map's entries. The
+surface producing most of the knowledge could not say why any of it
+changed. Note the reverse parity test checks *doors*, not *parameters*,
+and would not have found this.
+
+### The API name that pytest ate
+
+`tests_for` was collected **as a test** by pytest — any module-level
+callable whose name starts with `test` is — so a user importing it into
+their own suite would get `fixture 'ref' not found`, an error naming
+neither memway nor the cause. Found one minute after writing it, by
+importing it here. The Python symbol is `covering_tests`; the CLI command
+is still `tests-for` and the MCP tool still `memway_tests_for`, because
+neither is imported and those are the names people type.
+
+Both primitives were enrolled in the read fence the moment they existed —
+`clones` walks every entity, and `tests-for` reads test files off disk for
+its name-hit tier, the widest filesystem read of any query.
+
 ## [0.62.0] - 2026-08-22
 
 **A refusal is not a blind spot — but it is still a ceiling.**

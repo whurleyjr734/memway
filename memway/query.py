@@ -1236,6 +1236,47 @@ def _search_q(repo, a):
     return search(repo, a[0], a[1] if len(a) > 1 else "")
 
 
+def _clones_q(repo, args):
+    """`--json clones <repo> [ref] [--near F] [--min-loc N]`.
+
+    Flags parsed here rather than in main(): VALUE_FLAGS is global and
+    scoped by command name, so claiming `--near` there would strip it from
+    every other surface - the collision the viz --force incident is about.
+    """
+    from .primitives import clones
+    ref, near, min_loc = "", 0.0, None
+    rest = list(args)
+    while rest:
+        a = rest.pop(0)
+        if a.startswith("--near"):
+            v = a.split("=", 1)[1] if "=" in a else (rest.pop(0) if rest else "")
+            try:
+                near = float(v)
+            except ValueError:
+                return {"error": f"--near takes a number between 0 and 1, got {v!r}"}
+        elif a.startswith("--min-loc"):
+            v = a.split("=", 1)[1] if "=" in a else (rest.pop(0) if rest else "")
+            try:
+                min_loc = int(v)
+            except ValueError:
+                return {"error": f"--min-loc takes an integer, got {v!r}"}
+        elif a.startswith("--"):
+            return {"error": f"unknown flag {a!r} - use --near F, --min-loc N"}
+        elif not ref:
+            ref = a
+    from .primitives import MIN_CLONE_LOC
+    return clones(repo, ref, MIN_CLONE_LOC if min_loc is None else min_loc, near)
+
+
+def _tests_for_q(repo, args):
+    """`--json tests-for <repo> <ref>`."""
+    from .primitives import covering_tests
+    if not args:
+        return {"error": "tests-for needs a ref: "
+                         "memway --json tests-for <repo> <ref>"}
+    return covering_tests(repo, args[0])
+
+
 QUERIES = {
     "show": lambda repo, a: show(repo, a[0]),
     # The one read that starts from a SUBJECT rather than a coordinate.
@@ -1247,6 +1288,12 @@ QUERIES = {
     # shape as the --replay flag that existed and could not be discovered.
     # One door, the established one.
     "review": lambda repo, a: _review_q(repo, a),
+    # GRAPH PRIMITIVES, not memory. These answer on a map indexed five
+    # minutes ago with no knowledge in it - see primitives.py for why that
+    # matters. `ref` is optional for clones (repo-wide) and required for
+    # tests-for.
+    "clones": lambda repo, a: _clones_q(repo, a),
+    "tests-for": lambda repo, a: _tests_for_q(repo, a),
     "lineage": lambda repo, a: lineage(repo, a[0]),
     "at": lambda repo, a: at(repo, a[0]),
     "summary": lambda repo, a: summary(repo),
@@ -1482,7 +1529,7 @@ def probe(repo_root, ref, args=None, kwargs=None, setup="", record=False):
     return _probe(ix, edges, repo_root, ref, args, kwargs, setup, record)
 
 
-def agent_meta(repo_root, ref, channel, text, author="agent"):
+def agent_meta(repo_root, ref, channel, text, author="agent", replaces=""):
     """MCP entry: agent write-back. Attach an observation to a coordinate.
 
     The entry is stamped at write time by stamp_for() - the LOGIC hash
@@ -1509,8 +1556,16 @@ def agent_meta(repo_root, ref, channel, text, author="agent"):
         return _resolve_error(ref, ix, coord)
     # stamp with logic_hash: the note survives comment/docstring edits and
     # flags stale only when BEHAVIOR changes (falls back to body hash)
+    #
+    # `replaces` was CLI-ONLY until 0.63, which meant the field recording
+    # WHY a belief changed - the part review renders as "because: ..." and
+    # the part nobody can reconstruct later - was unreachable from the
+    # surface that writes most of the entries. Agents wrote 68% of this
+    # map's knowledge. Rides in **extra, so no schema change and older
+    # entries simply lack it, same as the CLI door.
+    _extra = {"replaces": replaces} if replaces else {}
     meta.add(e.coord_id, channel, text, author=author,
-             body_hash=stamp_for(e, repo_root))
+             body_hash=stamp_for(e, repo_root), **_extra)
     return {
         "attached": {"coord": e.coord_id, "qualname": e.qualname,
                      "channel": channel, "author": author},

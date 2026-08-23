@@ -91,6 +91,9 @@ def test_verify_change_is_a_registered_query():
         "verify-change", "attention",
         "search",
         "review",
+        # graph primitives (0.63.0) - answerable on a map with no
+        # knowledge in it, which is what the memory queries cannot do
+        "clones", "tests-for",
     }, sorted(query.QUERIES)
 
 

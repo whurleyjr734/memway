@@ -30,6 +30,21 @@ def _search(repo, query, channel=""):
     return search(repo, query, channel)
 
 
+def _review(repo, since="HEAD"):
+    from .review import review
+    return review(repo, since)
+
+
+def _clones(repo, ref="", near=0.0):
+    from .primitives import clones
+    return clones(repo, ref, near=near)
+
+
+def _tests_for(repo, ref):
+    from .primitives import covering_tests
+    return covering_tests(repo, ref)
+
+
 TOOLS = [
     {
         "name": "memway_summary",
@@ -126,11 +141,19 @@ TOOLS = [
         "inputSchema": {"type": "object", "properties": {
             "ref": {"type": "string"},
             "channel": {"type": "string"},
-            "text": {"type": "string"}},
+            "text": {"type": "string"},
+            "replaces": {"type": "string",
+                         "description": "when this supersedes an earlier "
+                                        "entry, WHY the belief changed. A "
+                                        "pair of texts leaves the reader to "
+                                        "infer the reason, and the reason "
+                                        "is the part that does not survive "
+                                        "in anybody's head"}},
             "required": ["ref", "text"]},
         "fn": lambda repo, a: query.agent_meta(repo, a["ref"],
                                                a.get("channel", "notes"),
-                                               a["text"]),
+                                               a["text"],
+                                               replaces=a.get("replaces", "")),
     },
     {
         "name": "memway_affirm",
@@ -154,6 +177,62 @@ TOOLS = [
             "required": ["ref"]},
         "fn": lambda repo, a: query.agent_affirm(repo, a["ref"],
                                                  a.get("channel", "confirm")),
+    },
+    {
+        "name": "memway_review",
+        "description": "WHAT YOUR CHANGE DID TO THE KNOWLEDGE. Pairs every "
+                       "entry added since a revision with the one it "
+                       "SUPERSEDES. A line diff structurally cannot show "
+                       "this: the store is append-only, so superseding a "
+                       "note adds one line and leaves the replaced entry "
+                       "untouched on disk, where no diff will ever show "
+                       "it. Call it before handing work over, to check you "
+                       "replaced what you meant to replace. Re-stamps are "
+                       "marked and supersede nothing.",
+        "inputSchema": {"type": "object", "properties": {
+            "since": {"type": "string",
+                      "description": "any git revision; default HEAD"}}},
+        "fn": lambda repo, a: _review(repo, a.get("since") or "HEAD"),
+    },
+    {
+        "name": "memway_clones",
+        "description": "WHERE THIS CODE ALREADY EXISTS. Finds callables "
+                       "with an identical structure hash - the body hash "
+                       "with the entity's own name stripped, so a copy "
+                       "under a DIFFERENT name still matches. Grep cannot "
+                       "do this: the names differ and so does the "
+                       "whitespace. Call it before writing a helper, or to "
+                       "find the four places a fix has to land instead of "
+                       "one. With `ref`, asks what else is this; without, "
+                       "asks where this repo repeats itself. Optional "
+                       "`near` (0-1) adds a minhash tier - a SCORE, not a "
+                       "verdict; the identical tier is a hash match and is "
+                       "certain.",
+        "inputSchema": {"type": "object", "properties": {
+            "ref": {"type": "string",
+                    "description": "omit for a repo-wide report"},
+            "near": {"type": "number",
+                     "description": "0-1 similarity floor for the near tier; "
+                                    "omit for identical-only"}}},
+        "fn": lambda repo, a: _clones(repo, a.get("ref", ""),
+                                      float(a.get("near") or 0.0)),
+    },
+    {
+        "name": "memway_tests_for",
+        "description": "WHAT COVERS THIS, BEFORE YOU CHANGE IT. Two tiers, "
+                       "and the split is the point: 'grounded' tests are "
+                       "reached through resolved graph edges - evidence "
+                       "that they exercise this code - while 'name_hit' "
+                       "files merely mention the name, which is the tier "
+                       "grep would give you, and is labelled a guess. "
+                       "'12 grounded, 3 by name' tells you what is provably "
+                       "covered and what only looks covered; one merged "
+                       "number would tell you neither. Same lens "
+                       "verify_change uses afterwards, asked beforehand.",
+        "inputSchema": {"type": "object", "properties": {
+            "ref": {"type": "string"}},
+            "required": ["ref"]},
+        "fn": lambda repo, a: _tests_for(repo, a["ref"]),
     },
     {
         "name": "memway_search",
