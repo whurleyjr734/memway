@@ -147,6 +147,72 @@ def _unresolved_refs_to(ix, edges, ent) -> int:
     return n
 
 
+def _ambiguous_refs_to(ix, edges, ent):
+    """Call references spelling this name that the resolver REFUSED to
+    place, because several entities share it. Returns (refs, definitions).
+
+    THE MIRROR OF THE COUNTER ABOVE, AND OF ITS FIX. 0.57.1 stopped
+    ambiguity being reported as blindness - correct, and it left a second
+    question unasked. "Is the map blind here?" and "do I know everyone who
+    calls this?" are different, and a refusal answers no to the second
+    while answering no to the first.
+
+    Measured on pytest@df87db7. `pytest_collect_file` is the central
+    extension point of the whole framework: seven entities define it (the
+    hookspec plus six implementations) and five call references spell it -
+    Session._collect_path, Package.collect, Dir.collect among them. Seven
+    candidates is ambiguous, so the resolver correctly declines all five,
+    and before_edit then reported `direct_callers: 0`, `unresolved_refs:
+    0`, `is_lower_bound: FALSE`, and no warning at all. The map asserted
+    that nothing depends on pytest's main hook, on the strength of having
+    decided not to say.
+
+    This is the same disease as uniqueness-being-read-as-certainty
+    (edges.EdgeBuilder._unreachable_target), approached from the other
+    side: there a guess was labelled exact, here a refusal is labelled
+    complete. Both are the label disagreeing with the evidence.
+
+    So refusals stay OUT of unresolved_refs - a refusal is genuinely not a
+    blind spot, and reporting 3,294 of them on SQLAlchemy was the defect
+    0.57.1 fixed - and they raise is_lower_bound on their own footing,
+    with their own sentence.
+
+    A REFUSAL IS `resolve() is None` WITH SEVERAL CANDIDATES - not merely
+    "several candidates". The difference is not pedantry, and the first
+    version of this counter got it wrong: resolve() breaks a
+    production-versus-test tie itself, so a name with two definitions of
+    which one is a test helper DOES resolve, and ships an edge at 0.95.
+    Counting those here made the warning say "the resolver declined to
+    guess" about references it had very much guessed at - on pydantic,
+    2,098 of them on TypeAdapter.validate_python, which is precisely the
+    entity the OTHER defect in this family is about. One sentence would
+    have been false on the exact coordinate that needed the true one.
+
+    So a tiebroken name is not counted here. It is not a refusal; it is a
+    guess wearing "exact", which is
+    edges.EdgeBuilder._unreachable_target's territory.
+    """
+    raw = getattr(ix, "_raw_edges", None) or []
+    if not raw:
+        return 0, 0
+    target = _short(ent.qualname)
+    seen: dict = {}
+    n = 0
+    for r in raw:
+        if getattr(r, "kind", None) != "calls":
+            continue
+        ref = getattr(r, "dst_ref", "")
+        if _short(ref) != target:
+            continue
+        if ref not in seen:
+            cands = ix.candidates(ref)
+            seen[ref] = len(cands) if (len(cands) > 1
+                                       and ix.resolve(ref) is None) else 0
+        if seen[ref]:
+            n += 1
+    return n, max(seen.values(), default=0)
+
+
 def _entity_dict(e, meta=None) -> dict:
     d = {
         "coord_id": e.coord_id,
@@ -751,6 +817,11 @@ def before_edit(repo: str, ref: str) -> dict:
     # whatever the language and whatever the reason. Computed from data
     # already on disk, so it costs a set membership test.
     unresolved = _unresolved_refs_to(ix, edges, e)
+    # A REFUSAL IS NOT A BLIND SPOT, BUT IT IS STILL A CEILING ON WHAT THIS
+    # LIST KNOWS. Kept as its own number so 0.57.1's rule survives intact:
+    # ambiguity must never inflate unresolved_refs, and must never be
+    # silently absent either.
+    ambiguous, competing = _ambiguous_refs_to(ix, edges, e)
     radius = {
         "downstream_count": len(affected),
         # DEPTH 1 IS `direct_callers`, ALREADY ABOVE. This repeated all
@@ -762,8 +833,10 @@ def before_edit(repo: str, ref: str) -> dict:
         "transitive_count": sum(1 for a in affected if a["depth"] > 1),
         "via_event": [a["qualname"] for a in affected if a["via_event"]],
         "is_lower_bound": bool(b.get("radius_is_lower_bound", False)
-                               or unresolved),
+                               or unresolved or ambiguous),
         "unresolved_refs": unresolved,
+        "ambiguous_refs": ambiguous,
+        "ambiguous_definitions": competing,
     }
 
     # Grounding: how trustworthy is this picture? Every edge carries the
@@ -1015,6 +1088,17 @@ def before_edit(repo: str, ref: str) -> dict:
             why.append(f"{radius['unresolved_refs']} call reference"
                        f"{'s' if radius['unresolved_refs'] != 1 else ''} to "
                        f"this name could not be resolved to any entity")
+        # A DIFFERENT SENTENCE, because it is a different situation and the
+        # reader's next move differs: nothing is missing from the map here,
+        # the name is simply shared and the resolver declined to guess
+        # which one you meant. Saying "could not be resolved to any entity"
+        # about seven entities that all match would be plainly false.
+        if radius.get("ambiguous_refs"):
+            n, defs = radius["ambiguous_refs"], radius["ambiguous_definitions"]
+            why.append(f"{n} call reference{'s' if n != 1 else ''} spell"
+                       f"{'' if n != 1 else 's'} this name, which is defined "
+                       f"{defs} times - the resolver declined to guess which "
+                       f"definition {'they' if n != 1 else 'it'} meant")
         warnings.append("DOWNSTREAM REACH IS A LOWER BOUND: "
                         + " and ".join(why)
                         + " - real impact may exceed what the graph shows")

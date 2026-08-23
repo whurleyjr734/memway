@@ -932,3 +932,92 @@ def test_json_surfaces_emit_only_json_on_stdout(tmp_path):
         raise AssertionError(
             f"--json stdout is not parseable JSON ({e}). First 120 bytes: "
             f"{r.stdout[:120]!r}")
+
+
+def test_a_refusal_is_admitted_as_a_ceiling_on_the_caller_list(tmp_path):
+    """THE MIRROR of the test above, and of the fix it pins.
+
+    0.57.1 stopped ambiguity being reported as blindness. Correct - and it
+    left a second question unasked. "Is the map blind here?" and "do I
+    know everyone who calls this?" are different questions, and a refusal
+    answers no to the second while answering no to the first.
+
+    Measured on pytest@df87db7: `pytest_collect_file`, the central
+    extension point of the framework, is defined 7 times and spelled by 5
+    call references. All five are correctly refused - and before_edit then
+    reported direct_callers 0, unresolved_refs 0, is_lower_bound FALSE and
+    no warning. The map asserted that nothing depends on pytest's main
+    hook, on the strength of having decided not to say.
+    """
+    from memway import query
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "class A:\n    def runner(self, x):\n        return x\n\n\n"
+        "class B:\n    def runner(self, x):\n        return x + 1\n\n\n"
+        "def caller(o, x):\n    return o.runner(x)\n")
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    d = query.before_edit(str(r), "m.A.runner")
+    rad = d["downstream"]
+    assert rad["ambiguous_refs"] >= 1, (
+        f"the refused reference is not admitted anywhere: {rad}")
+    assert rad["ambiguous_definitions"] >= 2, rad
+    assert rad["is_lower_bound"] is True, (
+        f"a refused reference left the radius claiming completeness: {rad}")
+
+    # 0.57.1 MUST STILL HOLD: a refusal is not a blind spot.
+    assert rad["unresolved_refs"] == 0, (
+        f"ambiguity leaked back into the blind-spot counter: {rad}")
+
+    lb = [w for w in d["warnings"] if "LOWER BOUND" in w]
+    assert lb, d["warnings"]
+    assert "declined to guess" in lb[0], lb[0]
+    assert "could not be resolved to any entity" not in lb[0], (
+        f"the wrong sentence: seven entities matched, so 'resolved to no "
+        f"entity' is false. {lb[0]}")
+
+
+def test_a_tiebroken_name_is_not_reported_as_a_refusal(tmp_path):
+    """THE PRECISION THIS COUNTER NEEDS, and the first version lacked.
+
+    resolve() breaks a production-versus-test tie itself, so a name with
+    two definitions of which one is a test helper DOES resolve and ships
+    an edge at 0.95. Counting those as refusals made the warning say "the
+    resolver declined to guess" about references it had very much guessed
+    at - on pydantic, 2,098 of them on TypeAdapter.validate_python, the
+    exact coordinate where the opposite defect lives.
+
+    A refusal is `resolve() is None` WITH several candidates. A tiebreak
+    is a guess wearing "exact", and belongs to the other counter.
+    """
+    from memway.query import _ctx, _ambiguous_refs_to
+
+    r = tmp_path / "p"
+    r.mkdir()
+    (r / "m.py").write_text(
+        "class A:\n    def runner(self, x):\n        return x\n\n\n"
+        "def caller(o, x):\n    return o.runner(x)\n")
+    (r / "test_m.py").write_text(
+        "class B:\n    def runner(self, x):\n        return x + 1\n")
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", str(r)).returncode == 0
+
+    _, _, ix, edges, _ = _ctx(str(r))
+    assert len(ix.candidates("runner")) == 2, (
+        f"[fixture] not ambiguous: {ix.candidates('runner')}")
+    resolved = ix.resolve("runner")
+    assert resolved is not None, (
+        "[fixture] the production/test tiebreak did not fire, so this "
+        "test cannot distinguish a tiebreak from a refusal")
+    assert not resolved.path.startswith("test_"), resolved.path
+
+    prod = ix.entities[[c for c in ix.candidates("runner")
+                        if not ix.entities[c].path.startswith("test_")][0]]
+    n, _defs = _ambiguous_refs_to(ix, edges, prod)
+    assert n == 0, (
+        f"a tiebroken name counted as a refusal ({n} refs) - the warning "
+        f"would say the resolver declined to guess about a reference it "
+        f"resolved and shipped at 0.95")

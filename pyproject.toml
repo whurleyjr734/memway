@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memway"
-version = "0.61.3"
+version = "0.62.0"
 description = "A coordinate system for code: stable entity identity through refactors, lineage, and a self-auditing memory layer for coding agents. A cache answers what the code is; the map knows what we've learned about it."
 readme = "README.md"
 requires-python = ">=3.10"

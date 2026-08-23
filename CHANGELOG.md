@@ -7,6 +7,66 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-08-22
+
+**A refusal is not a blind spot — but it is still a ceiling.**
+
+0.57.1 stopped ambiguity being reported as blindness, which was right:
+announcing "3,294 call references could not be resolved" on SQLAlchemy,
+about a name the resolver was correctly declining, is noise. But that fix
+answered only one of two questions. *"Is the map blind here?"* and *"do I
+know everyone who calls this?"* are different, and a refusal answers no
+to the second while answering no to the first.
+
+Found on **pytest@df87db7**. `pytest_collect_file` is the central
+extension point of the entire framework: 7 entities define it (the
+hookspec plus six implementations) and 5 call references spell it —
+`Session._collect_path`, `Package.collect`, `Dir.collect`. All five are
+correctly refused. `before_edit` then reported:
+
+```
+direct_callers: 0   unresolved_refs: 0   is_lower_bound: FALSE   warnings: []
+```
+
+The map asserted that nothing depends on pytest's main hook, on the
+strength of having decided not to say.
+
+`ambiguous_refs` and `ambiguous_definitions` now ride beside
+`unresolved_refs`, and either raises `is_lower_bound`. They stay separate
+numbers so 0.57.1's rule survives intact — ambiguity must never inflate
+the blind-spot counter. The two warnings read differently on purpose:
+"could not be resolved to any entity" is simply false when seven entities
+matched, and the reader's next move differs — one is a spelling drift to
+fix, the other a name to disambiguate by hand.
+
+Newly admitted rather than hidden: **1,142 of 6,316** callables on
+pytest, **1,463 of 8,229** on pydantic, **107 of 1,071** here.
+
+### The precision that cost a rewrite
+
+A refusal is `resolve() is None` **with** several candidates — not merely
+"several candidates". `resolve()` breaks a production-versus-test tie
+itself, so a name with two definitions of which one is a test helper
+*does* resolve and ships an edge at 0.95.
+
+The first version counted those, which made the warning claim the
+resolver "declined to guess" about 2,098 references on pydantic's
+`TypeAdapter.validate_python` — the exact coordinate where the *opposite*
+defect lives, a guess wearing the label `exact`. One sentence would have
+been false precisely where the true one was most needed. Caught by
+measuring the change across three repos rather than by a test.
+
+### Also measured, not fixed
+
+pydantic@2151025: 2,040 of 12,180 call edges (16.7%) come from an
+attribute call whose receiver type was never established, resolve to a
+single short-name match, and ship as `exact`/0.95 — `kwargs.keys()`
+attributed to `GetterDict.keys`, `SchemaValidator(...).validate_python()`
+attributed to `TypeAdapter`. Recorded on
+`EdgeBuilder._unreachable_target` with the proposed 0.60 tier. Not done:
+it moves 16.7% of a real map between tiers, and the corpus floors are the
+ruler that would measure it.
+
 ## [0.61.3] - 2026-08-22
 
 A third pass. The re-stamp keeps acting as a probe: it has no text, so
