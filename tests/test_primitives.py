@@ -185,3 +185,40 @@ def test_all_three_doors_agree(repo):
     cli_text = _cli("clones", repo, "m.alpha")
     assert cli_text.returncode == 0, cli_text.stderr
     assert "m.beta" in cli_text.stdout, cli_text.stdout
+
+
+def test_clone_groups_are_bounded_at_BOTH_levels(tmp_path):
+    """THE RULE APPLIED ONCE AND FORGOTTEN ONE LEVEL DOWN.
+
+    The first version capped GROUPS at twelve and let each carry every
+    member. On pytest's map that returned 12 groups holding 193 member
+    rows - 36,433 characters, ~9k tokens - and nothing said a list had
+    been cut, because none had. payload.py's own docstring names this
+    shape: "a list that quietly stops at twelve IS a sampled list". This
+    one did not stop at all.
+    """
+    from memway.primitives import MEMBERS_CAP
+    r = tmp_path / "p"
+    r.mkdir()
+    body = ("def {name}(a, b):\n"
+            "    total = a + b\n"
+            "    scaled = total * 2\n"
+            "    return scaled - 1\n")
+    n = MEMBERS_CAP + 4
+    (r / "m.py").write_text(
+        "\n\n".join(body.format(name=f"f{i}") for i in range(n)))
+    _git(r, "init", "-q", "-b", "main")
+    assert _cli("init", r).returncode == 0
+
+    d = clones(str(r))
+    assert d["groups_total"] == 1, d
+    g = d["groups"][0]
+    assert g["count"] == n, (
+        f"[fixture] the {n} bodies are not one group: {g}")
+    assert g["members_shown"] == MEMBERS_CAP, g
+    assert g["members_total"] == n, g
+    assert len(g["members"]) == MEMBERS_CAP, (
+        f"the member list was not actually bounded: {len(g['members'])}")
+    # AND THE COUNT SURVIVES THE CUT - it is the actionable part.
+    assert g["count"] > g["members_shown"], (
+        "a reader must still learn how many copies exist")

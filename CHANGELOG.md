@@ -7,6 +7,48 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.63.1] - 2026-08-22
+
+**The bound was applied at one level and forgotten at the level below.**
+
+Found by running `clones` on pytest and pydantic within minutes of
+shipping it. `rank_bound_report` capped **groups** at twelve — and let
+each group carry every member. On pytest that returned 12 groups holding
+**193 member rows: 36,433 characters, ~9,000 tokens for one call** — and
+nothing in the payload said a list had been cut, because none had.
+
+`payload.py`'s own docstring names this exact shape: *"a list that
+quietly stops at twelve IS a sampled list."* This one did not stop at
+all. Seventh instance of the class in this codebase, and the first one
+where the rule existed and was simply not applied twice.
+
+Bounded at both levels: **36,433 → 12,424 characters**, a 66% cut, with
+`members_shown` / `members_total` on every group and the CLI stating what
+it withheld. `MEMBERS_CAP` is 5 rather than 12 because a group is already
+a summary — its *count* is what a reader acts on, and five names are
+enough to go and look.
+
+### Verified rather than assumed
+
+- The `near` tier returning 0 on pydantic was a **real** zero, not a
+  silent failure: the sketch was confirmed populated (48 values, 483
+  shingles) before the empty result was believed. `model_dump`'s true
+  nearest neighbour is `model_dump_json` at 0.646 — semantically right,
+  and correctly below a 0.8 threshold. 6,699 comparisons in 0.4s.
+- `tests-for` on a hot pydantic method: 349 grounded tests, bounded to 12,
+  1,429-character payload.
+
+### Recorded, not fixed
+
+On test-heavy repos the top clone groups are dominated by test entities —
+27 structurally identical test bodies on pytest, 20 three-line validators
+in one pydantic dataclass test. The hash is right and the duplication is
+real, but it is not what a reader means by "where does my repo repeat
+itself". If this is ever tuned, the fix is a production/test split
+reported as a fact, not a filter that silently drops entities and not a
+raised floor: `min_loc>=5` was tried and discards the true positives
+first — memway's own `_cli` and `_git` groups vanish and only 3 survive.
+
 ## [0.63.0] - 2026-08-22
 
 **Primitives: tools that work on a map with no knowledge in it.**

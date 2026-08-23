@@ -55,6 +55,12 @@ MIN_CLONE_LOC = 3
 # a hash match.
 NEAR_DEFAULT = 0.80
 
+# Members shown per clone group. Smaller than payload.CAP on purpose: a
+# group is already a summary, and its COUNT is what a reader acts on. Five
+# names are enough to go and look; the twelfth is not worth the budget
+# when there are twelve groups of them.
+MEMBERS_CAP = 5
+
 
 def clones(repo: str, ref: str = "", min_loc: int = MIN_CLONE_LOC,
            near: float = 0.0, limit: int = 12) -> dict:
@@ -137,11 +143,24 @@ def clones(repo: str, ref: str = "", min_loc: int = MIN_CLONE_LOC,
                        "verdict")
         return out
 
-    dupes = [{"shape": h,
-              "count": len(v),
-              "loc": v[0].loc,
-              "members": [_row(e) for e in sorted(v, key=lambda x: x.qualname)]}
-             for h, v in groups.items() if len(v) > 1]
+    # BOUNDED AT BOTH LEVELS. The first version capped GROUPS at twelve and
+    # let each carry every member, which is the same rule applied at one
+    # level and forgotten at the level below: pytest's map returned 12
+    # groups holding 193 member rows - 36,433 characters, ~9k tokens - and
+    # nothing in the payload said a list had been cut, because none had.
+    # payload.py's own docstring names this shape ("a list that quietly
+    # stops at twelve IS a sampled list"); this one did not stop at all.
+    #
+    # The COUNT is the actionable part of a clone group - "this body exists
+    # 27 times" - and five examples are enough to go look. The rest is
+    # reachable by asking about one ref.
+    def _group(h, v):
+        rows = [_row(e) for e in sorted(v, key=lambda x: x.qualname)]
+        shown_m, rep_m = rank_bound_report(rows, "members", cap=MEMBERS_CAP)
+        return {"shape": h, "count": len(v), "loc": v[0].loc,
+                "members": shown_m, **rep_m}
+
+    dupes = [_group(h, v) for h, v in groups.items() if len(v) > 1]
     shown, rep = rank_bound_report(
         dupes, "groups", rank=lambda g: (-g["count"], -g["loc"]), cap=limit)
     out.update({"groups": shown, **rep,

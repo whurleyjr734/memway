@@ -537,6 +537,9 @@ def cmd_clones(repo=".", *rest):
         print(f"\n  {g['count']}x  {g['loc']} lines")
         for m in g["members"]:
             print(f"    {m['qualname']}  ({m['path']}:{m['line']})")
+        if g["members_shown"] < g["members_total"]:
+            print(f"    ... {g['members_total'] - g['members_shown']} more "
+                  f"(ask about one of these refs for the full list)")
 
 
 def cmd_tests_for(repo, ref):
